@@ -373,6 +373,10 @@
       <div class="nav-item" onclick="navigate('inventory')">
         <span class="nav-icon">📦</span> Inventory
       </div>
+      <div class="nav-label">Events</div>
+      <div class="nav-item" onclick="navigate('expos')">
+        <span class="nav-icon">🎪</span> Expos
+      </div>
       <div class="nav-label">Automation</div>
       <div class="nav-item" onclick="navigate('invoices')">
         <span class="nav-icon">📧</span> Invoice Inbox
@@ -578,6 +582,51 @@
       </div>
     </div>
 
+    <!-- ── EXPOS PAGE ── -->
+    <div id="page-expos" class="page">
+
+      <!-- KPI row -->
+      <div class="kpi-grid">
+        <div class="kpi-card kpi-purple">
+          <div class="kpi-label">Total Expos</div>
+          <div class="kpi-value" id="expo-total-count">—</div>
+          <div class="kpi-sub" id="expo-upcoming-label">—</div>
+        </div>
+        <div class="kpi-card kpi-green">
+          <div class="kpi-label">Total Expo Revenue</div>
+          <div class="kpi-value" id="expo-total-rev">—</div>
+          <div class="kpi-sub">across all expos</div>
+        </div>
+        <div class="kpi-card kpi-blue">
+          <div class="kpi-label">Best Expo</div>
+          <div class="kpi-value" id="expo-best-name">—</div>
+          <div class="kpi-sub" id="expo-best-rev">by revenue</div>
+        </div>
+      </div>
+
+      <!-- Expo cards grid -->
+      <div class="section-header" style="margin-bottom:.75rem">
+        <h2>All Expos</h2>
+        <button class="btn btn-sm btn-outline" onclick="openExpoModal()">+ Add Expo</button>
+      </div>
+      <div id="expo-cards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:1rem;margin-bottom:1.5rem">
+        <div style="color:var(--muted);padding:2rem;text-align:center">Loading...</div>
+      </div>
+
+      <!-- Comparison table -->
+      <div class="chart-card">
+        <h3>Expo Comparison</h3>
+        <div class="table-card" style="margin-top:1rem">
+          <table>
+            <thead><tr><th>Expo</th><th>Date(s)</th><th>Location</th><th>Revenue</th><th>Transactions</th><th>Avg Sale</th><th></th></tr></thead>
+            <tbody id="expo-table-body">
+              <tr><td colspan="7" class="empty-state">No expos yet</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
     <!-- ── INVOICES PAGE ── -->
     <div id="page-invoices" class="page">
       <div style="background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.3);border-radius:10px;padding:1rem;margin-bottom:1.5rem;font-size:.875rem;color:var(--muted);">
@@ -676,6 +725,43 @@
     <div class="form-actions">
       <button class="btn btn-outline btn-sm" onclick="closeModal('sale')">Cancel</button>
       <button class="btn btn-green btn-sm" onclick="submitSale()">Save Sale</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Expo Modal -->
+<div class="modal-overlay" id="modal-expo">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="expo-modal-title">Add Expo</h2>
+      <button class="modal-close" onclick="closeModal('expo')">✕</button>
+    </div>
+    <div class="form-group">
+      <label>Expo Name</label>
+      <input type="text" id="expo-name" placeholder="e.g. SOS Expo, Comic Con, Markets on Main" />
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Start Date</label>
+        <input type="date" id="expo-date-from" />
+      </div>
+      <div class="form-group">
+        <label>End Date</label>
+        <input type="date" id="expo-date-to" />
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Location (optional)</label>
+      <input type="text" id="expo-location" placeholder="e.g. Cape Town, Sandton Convention Centre" />
+    </div>
+    <div class="form-group">
+      <label>Notes (optional)</label>
+      <textarea id="expo-notes" placeholder="Table cost, setup notes, products brought, etc." style="min-height:70px"></textarea>
+    </div>
+    <div id="expo-modal-error" style="color:var(--red);font-size:.85rem;margin-top:.25rem"></div>
+    <div class="form-actions">
+      <button class="btn btn-outline btn-sm" onclick="closeModal('expo')">Cancel</button>
+      <button class="btn btn-primary btn-sm" onclick="submitExpo()">Save Expo</button>
     </div>
   </div>
 </div>
@@ -981,7 +1067,7 @@ function navigate(page) {
   document.getElementById('page-' + page).classList.add('active');
   document.querySelector(`.nav-item[onclick="navigate('${page}')"]`).classList.add('active');
 
-  const titles = { overview: 'Overview', sales: 'Sales', expenses: 'Expenses', invoices: 'Invoice Inbox', inventory: 'Inventory' };
+  const titles = { overview: 'Overview', sales: 'Sales', expenses: 'Expenses', invoices: 'Invoice Inbox', inventory: 'Inventory', expos: 'Expos' };
   document.getElementById('page-title').textContent = titles[page] || page;
 
   const actions = document.getElementById('topbar-actions');
@@ -992,6 +1078,8 @@ function navigate(page) {
     actions.innerHTML = `<button class="btn btn-sm btn-outline" onclick="openModal('expense')">+ Add Expense</button>`;
   } else if (page === 'inventory') {
     actions.innerHTML = `<button class="btn btn-sm btn-outline" onclick="loadInventory()">↺ Refresh</button><button class="btn btn-sm btn-outline" onclick="openInvItemModal()">+ Add Item</button>`;
+  } else if (page === 'expos') {
+    actions.innerHTML = `<button class="btn btn-sm btn-outline" onclick="openExpoModal()">+ Add Expo</button>`;
   }
 
   if (page === 'overview')  loadOverview();
@@ -999,6 +1087,7 @@ function navigate(page) {
   if (page === 'expenses')  loadExpenses();
   if (page === 'invoices')  loadInvoices();
   if (page === 'inventory') loadInventory();
+  if (page === 'expos')     loadExpos();
 }
 
 // ─────────────────── HELPERS ───────────────────
@@ -1182,9 +1271,10 @@ function setSalesCustomRange() {
 }
 
 async function loadSales() {
-  if (!allSalesCache) {
-    allSalesCache = await fetchAllPages('sales');
-  }
+  const tasks = [];
+  if (!allSalesCache) tasks.push(fetchAllPages('sales').then(d => allSalesCache = d));
+  if (!_exposCache) tasks.push(db.from('expos').select('*').order('date_from').then(({ data }) => _exposCache = data || []));
+  if (tasks.length) await Promise.all(tasks);
   renderSales();
 }
 
@@ -1348,6 +1438,9 @@ function renderSales() {
     }
   });
 
+  // Build expo lookup for badge tagging
+  const expoList = _exposCache || [];
+
   // Table
   document.getElementById('sales-tbody').innerHTML = sales.length ? sales.map((r, idx) => {
     const payBadge = r.payment_type === 'card'
@@ -1355,11 +1448,13 @@ function renderSales() {
       : r.payment_type === 'cash'
         ? '<span class="badge badge-green">💵 Cash</span>'
         : '—';
+    const expo = expoList.find(e => r.date >= e.date_from && r.date <= e.date_to);
+    const expoBadge = expo ? `<span class="badge" style="background:rgba(168,85,247,.18);color:#c084fc;font-size:.72rem">🎪 ${expo.name}</span>` : '';
     const lineItems  = parseSaleItems(r.item_name);
     const hasMulti   = lineItems.length > 1;
     const expandAttr = hasMulti ? `onclick="toggleSaleRow(${idx})"` : '';
     let html = `<tr class="sale-row${hasMulti ? ' expandable' : ''}" id="srow-${idx}" ${expandAttr}>
-      <td>${fmtD(r.date)}</td>
+      <td>${fmtD(r.date)}${expoBadge ? '<br>'+expoBadge : ''}</td>
       <td>${hasMulti ? `<span class="sale-expand-icon" id="sarr-${idx}">▶</span>` : ''}<span style="color:var(--muted);font-size:.75rem">${hasMulti ? `${lineItems.length} items` : (r.item_name||'—')}</span></td>
       <td>${r.quantity||1}</td>
       <td style="color:var(--green);font-weight:600">${fmt(r.amount)}</td>
@@ -1465,6 +1560,167 @@ function renderExpenses() {
       <td><span class="badge badge-blue">${r.source}</span></td>
       <td><button class="btn btn-sm btn-outline" style="color:var(--red);border-color:var(--red)" onclick="deleteRecord('expenses','${r.id}',()=>{allExpCache=null;loadExpenses();})">✕</button></td>
     </tr>`).join('') : `<tr><td colspan="7" class="empty-state"><div class="icon">📋</div>No expenses in this period</td></tr>`;
+}
+
+// ─────────────────── EXPOS ───────────────────
+let _exposCache = null;
+
+function openExpoModal(expo = null) {
+  document.getElementById('expo-modal-title').textContent = expo ? 'Edit Expo' : 'Add Expo';
+  document.getElementById('expo-name').value       = expo?.name || '';
+  document.getElementById('expo-date-from').value  = expo?.date_from || '';
+  document.getElementById('expo-date-to').value    = expo?.date_to || '';
+  document.getElementById('expo-location').value   = expo?.location || '';
+  document.getElementById('expo-notes').value      = expo?.notes || '';
+  document.getElementById('expo-modal-error').textContent = '';
+  document.getElementById('modal-expo')._editingId = expo?.id || null;
+  document.getElementById('modal-expo').classList.add('open');
+}
+
+async function submitExpo() {
+  const name      = document.getElementById('expo-name').value.trim();
+  const dateFrom  = document.getElementById('expo-date-from').value;
+  const dateTo    = document.getElementById('expo-date-to').value;
+  const location  = document.getElementById('expo-location').value.trim();
+  const notes     = document.getElementById('expo-notes').value.trim();
+  const errEl     = document.getElementById('expo-modal-error');
+  errEl.textContent = '';
+  if (!name)      { errEl.textContent = 'Expo name is required.'; return; }
+  if (!dateFrom)  { errEl.textContent = 'Start date is required.'; return; }
+  if (!dateTo)    { errEl.textContent = 'End date is required.'; return; }
+  if (dateTo < dateFrom) { errEl.textContent = 'End date must be on or after start date.'; return; }
+
+  const editingId = document.getElementById('modal-expo')._editingId;
+  const row = { name, date_from: dateFrom, date_to: dateTo, location: location || null, notes: notes || null };
+
+  let error;
+  if (editingId) {
+    ({ error } = await db.from('expos').update(row).eq('id', editingId));
+  } else {
+    ({ error } = await db.from('expos').insert([row]));
+  }
+  if (error) { errEl.textContent = error.message; return; }
+
+  toast(editingId ? 'Expo updated! 🎪' : 'Expo added! 🎪', 'success');
+  closeModal('expo');
+  _exposCache = null;
+  loadExpos();
+}
+
+async function loadExpos() {
+  if (!_exposCache) {
+    const { data } = await db.from('expos').select('*').order('date_from', { ascending: false });
+    _exposCache = data || [];
+  }
+  // Also need all sales to compute per-expo revenue
+  if (!allSalesCache) {
+    allSalesCache = await fetchAllPages('sales');
+  }
+  renderExpos();
+}
+
+function renderExpos() {
+  const expos = _exposCache || [];
+  const sales = allSalesCache || [];
+  const today = new Date().toISOString().split('T')[0];
+
+  // Enrich each expo with sales data
+  const enriched = expos.map(e => {
+    const expoSales = sales.filter(s => s.date >= e.date_from && s.date <= e.date_to);
+    const rev   = expoSales.reduce((sum, s) => sum + +s.amount, 0);
+    const txns  = expoSales.length;
+    const avg   = txns ? rev / txns : 0;
+    const isPast = e.date_to < today;
+    const isNow  = e.date_from <= today && e.date_to >= today;
+    return { ...e, rev, txns, avg, isPast, isNow };
+  });
+
+  // KPIs
+  const upcoming = enriched.filter(e => !e.isPast && !e.isNow);
+  const totalRev  = enriched.reduce((s, e) => s + e.rev, 0);
+  const best      = enriched.slice().sort((a, b) => b.rev - a.rev)[0];
+  document.getElementById('expo-total-count').textContent    = enriched.length;
+  document.getElementById('expo-upcoming-label').textContent = `${upcoming.length} upcoming`;
+  document.getElementById('expo-total-rev').textContent      = fmt(totalRev);
+  document.getElementById('expo-best-name').textContent      = best?.name || '—';
+  document.getElementById('expo-best-rev').textContent       = best ? fmt(best.rev) : 'no sales yet';
+
+  // Cards
+  const cardsEl = document.getElementById('expo-cards');
+  if (!enriched.length) {
+    cardsEl.innerHTML = `<div style="color:var(--muted);padding:3rem;text-align:center;grid-column:1/-1"><div style="font-size:2.5rem">🎪</div><div style="margin-top:.5rem">No expos yet — add your first one</div></div>`;
+  } else {
+    cardsEl.innerHTML = enriched.map(e => {
+      const statusBadge = e.isNow
+        ? `<span class="badge badge-green">Live Now</span>`
+        : e.isPast
+          ? `<span class="badge" style="background:rgba(148,163,184,.15);color:#94a3b8">Past</span>`
+          : `<span class="badge badge-blue">Upcoming</span>`;
+      const multiDay = e.date_from !== e.date_to;
+      const dateStr  = multiDay ? `${fmtD(e.date_from)} → ${fmtD(e.date_to)}` : fmtD(e.date_from);
+      return `
+      <div class="chart-card" style="position:relative">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.6rem">
+          <div>
+            <div style="font-weight:700;font-size:1rem">${e.name}</div>
+            <div style="color:var(--muted);font-size:.82rem;margin-top:.15rem">${dateStr}${e.location ? ' · ' + e.location : ''}</div>
+          </div>
+          ${statusBadge}
+        </div>
+        <div style="display:flex;gap:1.5rem;margin:1rem 0 .75rem">
+          <div><div style="font-size:1.2rem;font-weight:700;color:var(--green)">${fmt(e.rev)}</div><div style="color:var(--muted);font-size:.75rem">Revenue</div></div>
+          <div><div style="font-size:1.2rem;font-weight:700">${e.txns}</div><div style="color:var(--muted);font-size:.75rem">Sales</div></div>
+          <div><div style="font-size:1.2rem;font-weight:700">${fmt(e.avg)}</div><div style="color:var(--muted);font-size:.75rem">Avg Sale</div></div>
+        </div>
+        ${e.notes ? `<div style="color:var(--muted);font-size:.8rem;border-top:1px solid var(--border);padding-top:.6rem;margin-top:.25rem">${e.notes}</div>` : ''}
+        <div style="display:flex;gap:.5rem;margin-top:.75rem">
+          <button class="btn btn-sm btn-outline" onclick='openExpoModal(${JSON.stringify(e)})' style="font-size:.78rem">✏ Edit</button>
+          <button class="btn btn-sm btn-outline" style="color:var(--red);border-color:var(--red);font-size:.78rem" onclick="deleteExpo('${e.id}')">✕ Delete</button>
+          <button class="btn btn-sm btn-outline" style="font-size:.78rem" onclick="viewExpoSales('${e.date_from}','${e.date_to}',encodeURIComponent('${e.name}'))">📊 View Sales</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  // Comparison table
+  const tbody = document.getElementById('expo-table-body');
+  if (!enriched.length) {
+    tbody.innerHTML = `<tr><td colspan="7" class="empty-state">No expos yet</td></tr>`;
+  } else {
+    tbody.innerHTML = enriched.map(e => {
+      const multiDay = e.date_from !== e.date_to;
+      const dateStr  = multiDay ? `${fmtD(e.date_from)} → ${fmtD(e.date_to)}` : fmtD(e.date_from);
+      return `<tr>
+        <td><strong>${e.name}</strong></td>
+        <td>${dateStr}</td>
+        <td>${e.location || '—'}</td>
+        <td style="color:var(--green);font-weight:600">${fmt(e.rev)}</td>
+        <td>${e.txns}</td>
+        <td>${fmt(e.avg)}</td>
+        <td><button class="btn btn-sm btn-outline" style="color:var(--red);border-color:var(--red)" onclick="deleteExpo('${e.id}')">✕</button></td>
+      </tr>`;
+    }).join('');
+  }
+}
+
+async function deleteExpo(id) {
+  if (!confirm('Delete this expo?')) return;
+  const { error } = await db.from('expos').delete().eq('id', id);
+  if (error) { toast('Error: ' + error.message, 'error'); return; }
+  toast('Expo deleted', 'info');
+  _exposCache = null;
+  loadExpos();
+}
+
+function viewExpoSales(from, to, encodedName) {
+  const name = decodeURIComponent(encodedName);
+  // Navigate to sales page with custom date range pre-set
+  document.getElementById('sales-from').value = from;
+  document.getElementById('sales-to').value   = to;
+  navigate('sales');
+  salesFilter = 'custom';
+  document.querySelectorAll('#sales-filter-bar .filter-btn').forEach(b => b.classList.remove('active'));
+  toast(`Showing sales for ${name}`, 'info');
 }
 
 // ─────────────────── CURRENCY CONVERSION ───────────────────
@@ -2026,30 +2282,25 @@ async function saveInvField(input) {
   const variantId = input.dataset.variantId;
   const field     = input.dataset.field || 'default_price';
   const original  = parseFloat(input.dataset.original);
-  if (val === original) return; // nothing changed
+  if (price === original) return; // nothing changed
   const { error } = await db
     .from('loyverse_items')
-    .update({ [field]: val })
+    .update({ default_price: price })
     .eq('variant_id', variantId);
   if (error) {
     toast('Save failed: ' + error.message, 'error');
   } else {
-    input.dataset.original = val;
-    // hide save button
-    const nextBtn = input.nextElementSibling;
-    if (nextBtn) nextBtn.classList.remove('dirty');
-    // update in-memory cache
-    const cached = _invItems.find(i => i.variant_id === variantId);
-    if (cached) cached[field] = val;
-    const lCached = _loyverseItems.find(i => i.variant_id === variantId);
-    if (lCached) lCached[field] = val;
-    toast(field === 'cost_price' ? 'Cost price updated' : 'Sell price updated', 'success');
+    input.dataset.original = price;
+    const btnId = 'invbtn-' + variantId.replace(/[^a-z0-9]/gi,'_');
+    const btn = document.getElementById(btnId);
+    if (btn) btn.classList.remove('dirty');
+    const cached = _loyverseItems.find(i => i.variant_id === variantId);
+    if (cached) cached.default_price = price;
+    toast('Price updated', 'success');
   }
 }
-// keep legacy alias so any stray call still works
-const saveInvPrice = saveInvField;
 
-// ─────────────────── INVENTORY CRUD ───────────────────
+// ─────────────────────── INVENTORY CRUD ───────────────────────────
 let _invEditContext = null;
 
 function _buildCatOptions(selectedVal = '') {
@@ -2063,7 +2314,6 @@ function openInvItemModal() {
   _invEditContext = { mode: 'create-item' };
   document.getElementById('inv-modal-title').textContent = 'Add Item';
   document.getElementById('inv-f-name').value    = '';
-  document.getElementById('inv-f-cost').value    = '';
   document.getElementById('inv-f-price').value   = '';
   document.getElementById('inv-f-sku').value     = '';
   document.getElementById('inv-f-variant').value = '';
@@ -2085,14 +2335,13 @@ async function submitInvItem() {
   let catName = catSel === '__new__'
     ? (document.getElementById('inv-f-newcat').value.trim() || null)
     : (catSel || null);
-  const cost        = parseFloat(document.getElementById('inv-f-cost').value) || null;
   const price       = parseFloat(document.getElementById('inv-f-price').value) || null;
   const sku         = document.getElementById('inv-f-sku').value.trim() || null;
   const variantName = document.getElementById('inv-f-variant').value.trim() || null;
   const loyverseId  = 'manual-' + Date.now();
   const variantId   = 'mvar-' + Date.now();
   const row = { variant_id: variantId, loyverse_id: loyverseId, item_name: name,
-    category_name: catName, variant_name: variantName, sku, default_price: price, cost_price: cost };
+    category_name: catName, variant_name: variantName, sku, default_price: price };
   const { error } = await db.from('loyverse_items').insert(row);
   if (error) { toast('Failed to save: ' + error.message, 'error'); return; }
   document.getElementById('modal-inv-item').classList.remove('open');
@@ -2104,7 +2353,6 @@ function openAddVariantModal(loyverseId, itemName, catName) {
   _invEditContext = { mode: 'add-variant', loyverseId, itemName, catName };
   document.getElementById('inv-var-modal-subtitle').textContent = itemName;
   document.getElementById('inv-fv-name').value  = '';
-  document.getElementById('inv-fv-cost').value  = '';
   document.getElementById('inv-fv-price').value = '';
   document.getElementById('inv-fv-sku').value   = '';
   document.getElementById('modal-inv-variant').classList.add('open');
@@ -2113,13 +2361,11 @@ function openAddVariantModal(loyverseId, itemName, catName) {
 async function submitInvVariant() {
   const varName = document.getElementById('inv-fv-name').value.trim();
   if (!varName) { toast('Variant name is required', 'error'); return; }
-  const cost  = parseFloat(document.getElementById('inv-fv-cost').value) || null;
   const price = parseFloat(document.getElementById('inv-fv-price').value) || null;
   const sku   = document.getElementById('inv-fv-sku').value.trim() || null;
   const { loyverseId, itemName, catName } = _invEditContext;
   const row = { variant_id: 'mvar-' + Date.now(), loyverse_id: loyverseId,
-    item_name: itemName, category_name: catName, variant_name: varName, sku,
-    default_price: price, cost_price: cost };
+    item_name: itemName, category_name: catName, variant_name: varName, sku, default_price: price };
   const { error } = await db.from('loyverse_items').insert(row);
   if (error) { toast('Failed to add variant: ' + error.message, 'error'); return; }
   document.getElementById('modal-inv-variant').classList.remove('open');
@@ -2143,30 +2389,24 @@ async function deleteInvVariant(variantId, variantName) {
   await loadInventory();
 }
 
-// ── shared singleton dropdown panel ──────────────────────────
+// ── shared singleton dropdown panel ──────────────────────────────
 const _pickerDrop = (() => {
   const el = document.createElement('div');
   el.className = 'picker-dropdown-panel';
   el.style.display = 'none';
-  el.addEventListener('click', e => e.stopPropagation()); // prevent document listener from closing it
   document.body.appendChild(el);
   return el;
 })();
 let _pickerActiveRow = null;
-const _bulkSelections = {};   // rowIdx -> {variantId, itemName, label, price}
+const _bulkSelections = {};
 
 function _catMap() {
-  // Returns { category: { itemName: [{ variantId, variantLabel, price }] } }
   const map = {};
   _loyverseItems.forEach(it => {
     const cat = it.category_name || 'Uncategorised';
-    if (!map[cat]) map[cat] = {};
-    if (!map[cat][it.item_name]) map[cat][it.item_name] = [];
-    map[cat][it.item_name].push({
-      variantId:    it.variant_id,
-      variantLabel: it.variant_name || null,
-      price:        it.default_price
-    });
+    if (!map[cat]) map[cat] = [];
+    const label = it.variant_name ? `${it.item_name} — ${it.variant_name}` : it.item_name;
+    map[cat].push({ label, variantId: it.variant_id, name: it.item_name, price: it.default_price });
   });
   return map;
 }
@@ -2179,86 +2419,131 @@ function buildItemPicker(rowIdx) {
 }
 
 function _buildPickerContent(rowIdx) {
-  const map  = _catMap();
+  const map = _catMap();
   const cats = Object.keys(map).sort();
   if (!cats.length) {
     return '<div style="padding:.6rem .8rem;color:var(--muted);font-size:.82rem">No items — run loyverse-sync.js first</div>';
   }
-  const searchStyle = 'width:100%;box-sizing:border-box;padding:.45rem .75rem;background:var(--input-bg);border:none;border-bottom:1px solid var(--border);color:var(--text);font-size:.82rem;outline:none;border-radius:10px 10px 0 0';
-
-  const catsHtml = cats.map(cat => {
-    const itemsInCat = map[cat];
-    const itemsHtml = Object.keys(itemsInCat).sort().map(itemName => {
-      const variants  = itemsInCat[itemName];
-      const safeName  = itemName.replace(/"/g, '&quot;');
-
-      if (variants.length === 1) {
-        // ── Single variant → directly selectable ──
-        const v  = variants[0];
-        const fullLabel = v.variantLabel ? `${itemName} — ${v.variantLabel}` : itemName;
-        const safeLabel = fullLabel.replace(/"/g, '&quot;');
-        const pr = v.price != null ? v.price : '';
-        const suffix = v.variantLabel
-          ? ` <span style="color:var(--muted);font-size:.75rem">— ${v.variantLabel}</span>` : '';
-        return `<div class="picker-item"
-          data-row="${rowIdx}" data-variant="${v.variantId}"
-          data-name="${safeName}" data-label="${safeLabel}" data-price="${pr}"
-          onclick="selectPickerItemEl(this)">${itemName}${suffix}</div>`;
-      } else {
-        // ── Multiple variants → expandable sub-item ──
-        const variantsHtml = variants.map(v => {
-          const fullLabel = v.variantLabel ? `${itemName} — ${v.variantLabel}` : itemName;
-          const safeLabel = fullLabel.replace(/"/g, '&quot;');
-          const pr = v.price != null ? v.price : '';
-          return `<div class="picker-variant"
-            data-row="${rowIdx}" data-variant="${v.variantId}"
-            data-name="${safeName}" data-label="${safeLabel}" data-price="${pr}"
-            onclick="selectPickerItemEl(this)">${v.variantLabel || '—'}</div>`;
+  return `<input type="text" class="picker-search" placeholder="Search items…" oninput="filterPicker(this,${rowIdx})" onclick="event.stopPropagation()" />`
+    + cats.map(cat => {
+      const catItems = map[cat];
+      // Group by item_name for multi-variant
+      const byItem = {};
+      catItems.forEach(opt => {
+        if (!byItem[opt.name]) byItem[opt.name] = [];
+        byItem[opt.name].push(opt);
+      });
+      const itemsHtml = Object.entries(byItem).map(([itemName, opts]) => {
+        if (opts.length === 1 && !opts[0].label.includes('—')) {
+          const o = opts[0];
+          const pr = o.price != null ? o.price : '';
+          return `<div class="picker-item" data-row="${rowIdx}" data-variant="${o.variantId}" data-name="${itemName.replace(/"/g,'&quot;')}" data-label="${o.label.replace(/"/g,'&quot;')}" data-price="${pr}" onclick="selectPickerItemEl(this)">${o.label}</div>`;
+        }
+        // multi-variant: collapsible sub-group
+        const safeItem = itemName.replace(/"/g,'&quot;');
+        const variantsHtml = opts.map(o => {
+          const pr = o.price != null ? o.price : '';
+          return `<div class="picker-variant" data-row="${rowIdx}" data-variant="${o.variantId}" data-name="${safeItem}" data-label="${o.label.replace(/"/g,'&quot;')}" data-price="${pr}" onclick="selectPickerItemEl(this)">${o.variant_name || o.label}</div>`;
         }).join('');
         return `<div class="picker-sub">
-          <div class="picker-item-header" onclick="togglePickerItem(this)">
+          <div class="picker-item-header" onclick="togglePickerItem(event,this)">
             <span class="picker-arrow">▶</span>${itemName}
           </div>
           <div class="picker-item-variants" style="display:none">${variantsHtml}</div>
         </div>`;
-      }
+      }).join('');
+      return `<div class="picker-cat">
+        <div class="picker-cat-header" onclick="togglePickerCat(this)">
+          <span class="picker-arrow">▶</span>${cat}
+        </div>
+        <div class="picker-cat-items" style="display:none">${itemsHtml}</div>
+      </div>`;
     }).join('');
-
-    return `<div class="picker-cat">
-      <div class="picker-cat-header" onclick="togglePickerCat(this)">
-        <span class="picker-arrow">▶</span>${cat}
-      </div>
-      <div class="picker-cat-items" style="display:none">${itemsHtml}</div>
-    </div>`;
-  }).join('');
-
-  return `<input type="text" class="picker-search" placeholder="🔍 Search items…" style="${searchStyle}" oninput="onPickerSearch(this)" />` + catsHtml;
 }
 
-function togglePickerItem(header) {
-  const variantsBox = header.nextElementSibling;
+function togglePicker(e, rowIdx) {
+  e.stopPropagation();
+  if (_pickerActiveRow === rowIdx && _pickerDrop.style.display !== 'none') {
+    _pickerDrop.style.display = 'none';
+    _pickerActiveRow = null;
+    return;
+  }
+  const btn  = document.getElementById('picker-btn-' + rowIdx);
+  const rect = btn.getBoundingClientRect();
+  _pickerDrop.innerHTML  = _buildPickerContent(rowIdx);
+  _pickerDrop.style.left = rect.left + 'px';
+  _pickerDrop.style.top  = (rect.bottom + 3) + 'px';
+  _pickerDrop.style.width = Math.max(rect.width, 260) + 'px';
+  _pickerDrop.style.display = 'block';
+  _pickerActiveRow = rowIdx;
+}
+
+function togglePickerCat(header) {
+  const items = header.nextElementSibling;
   const arrow = header.querySelector('.picker-arrow');
-  const open  = variantsBox.style.display !== 'none';
-  variantsBox.style.display = open ? 'none' : 'block';
-  arrow.textContent         = open ? '▶' : '▼';
+  const open  = items.style.display !== 'none';
+  items.style.display = open ? 'none' : 'block';
+  arrow.textContent   = open ? '▶' : '▼';
 }
 
-function onPickerSearch(input) {
-  const q = input.value.toLowerCase().trim();
+function togglePickerItem(e, header) {
+  e.stopPropagation();
+  const variants = header.nextElementSibling;
+  const arrow    = header.querySelector('.picker-arrow');
+  const open     = variants.style.display !== 'none';
+  variants.style.display = open ? 'none' : 'block';
+  arrow.textContent      = open ? '▶' : '▼';
+}
 
+function selectPickerItemEl(el) {
+  const rowIdx    = el.dataset.row;
+  const variantId = el.dataset.variant;
+  const itemName  = el.dataset.name;
+  const itemLabel = el.dataset.label;
+  const price     = el.dataset.price !== '' ? parseFloat(el.dataset.price) : null;
+
+  _bulkSelections[rowIdx] = { variantId, itemName, label: itemLabel, price };
+
+  const btn = document.getElementById('picker-btn-' + rowIdx);
+  const lbl = document.getElementById('picker-label-' + rowIdx);
+  lbl.textContent = itemLabel;
+  btn.classList.add('has-value');
+
+  _pickerDrop.style.display = 'none';
+  _pickerActiveRow = null;
+
+  const row    = document.getElementById('bulk-row-' + rowIdx);
+  const inputs = row.querySelectorAll('input');
+  if (price != null) {
+    inputs[4].value = price.toFixed(2);
+    const qty = parseInt(inputs[3].value) || 1;
+    inputs[2].value = (price * qty).toFixed(2);
+  }
+}
+
+function onBulkQtyChange(qtyInput, rowIdx) {
+  const row       = document.getElementById('bulk-row-' + rowIdx);
+  const inputs    = row.querySelectorAll('input');
+  const unitPrice = parseFloat(inputs[4].value);
+  if (!isNaN(unitPrice) && unitPrice > 0) {
+    const qty = parseInt(qtyInput.value) || 1;
+    inputs[2].value = (unitPrice * qty).toFixed(2);
+  }
+}
+
+function filterPicker(searchInput, rowIdx) {
+  const q = searchInput.value.toLowerCase().trim();
   _pickerDrop.querySelectorAll('.picker-cat').forEach(catEl => {
-    const itemsBox = catEl.querySelector('.picker-cat-items');
-    const catArrow = catEl.querySelector('.picker-cat-header .picker-arrow');
+    const itemsBox  = catEl.querySelector('.picker-cat-items');
+    const catArrow  = catEl.querySelector('.picker-cat-header .picker-arrow');
     let anyCatMatch = false;
 
-    // Single-variant items (direct .picker-item inside cat-items)
-    catEl.querySelectorAll('.picker-cat-items > .picker-item').forEach(el => {
-      const match = !q || el.textContent.toLowerCase().includes(q);
-      el.style.display = match ? '' : 'none';
+    catEl.querySelectorAll('.picker-item').forEach(itemEl => {
+      const match = !q || itemEl.textContent.toLowerCase().includes(q);
+      itemEl.style.display = match ? '' : 'none';
       if (match) anyCatMatch = true;
     });
 
-    // Multi-variant items (.picker-sub)
     catEl.querySelectorAll('.picker-sub').forEach(subEl => {
       const hdr         = subEl.querySelector('.picker-item-header');
       const variantsBox = subEl.querySelector('.picker-item-variants');
@@ -2294,4 +2579,17 @@ function onPickerSearch(input) {
       catEl.style.display    = '';
       itemsBox.style.display  = 'block';
       catArrow.textContent    = '▼';
-    } e
+    } else {
+      catEl.style.display = 'none';
+    }
+  });
+}
+
+// Close picker on outside click
+document.addEventListener('click', () => {
+  _pickerDrop.style.display = 'none';
+  _pickerActiveRow = null;
+});
+</script>
+</body>
+</html>
