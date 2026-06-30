@@ -1714,11 +1714,12 @@ async function deleteExpo(id) {
 
 function viewExpoSales(from, to, encodedName) {
   const name = decodeURIComponent(encodedName);
-  // Navigate to sales page with custom date range pre-set
+  // Set filter state BEFORE navigating so renderSales picks it up
+  salesFilter = 'custom';
   document.getElementById('sales-from').value = from;
   document.getElementById('sales-to').value   = to;
   navigate('sales');
-  salesFilter = 'custom';
+  // Deactivate preset pills after navigate (navigate resets them)
   document.querySelectorAll('#sales-filter-bar .filter-btn').forEach(b => b.classList.remove('active'));
   toast(`Showing sales for ${name}`, 'info');
 }
