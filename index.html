@@ -1204,15 +1204,18 @@ function renderSales() {
     const share = lineItems.length || 1;
     lineItems.forEach(li => {
       let colour = null;
-      // 1. New format: "PLA Filament (Black)" — variant in parentheses
-      const parenMatch = li.name.match(/\(([^)]+)\)\s*$/);
+      // Extract variant from parentheses e.g. "Snake Glow (Large / Blue)" or "Mouth Snake (Purple Pink)"
+      const parenMatch = li.name.match(/\(([^)]+)\)/);
       if (parenMatch) {
-        colour = parenMatch[1].trim();
+        // Split on "/" and strip size words — keep only colour parts
+        const SIZE_WORDS = ['small','medium','large','xl','xxl','mini','xs','tiny','sml','lge','med','sm','lg'];
+        const parts = parenMatch[1].split('/').map(p => p.trim()).filter(p => !SIZE_WORDS.includes(p.toLowerCase()));
+        if (parts.length) colour = parts.join(' / ');
       } else {
-        // 2. Fallback: look up by item_name in _loyverseItems
+        // Fallback: look up by item_name in _loyverseItems (unambiguous single-variant items)
         const baseName = li.name.toLowerCase().trim();
         const variants = itemVariantMap[baseName];
-        if (variants && variants.length === 1) colour = variants[0]; // only if unambiguous
+        if (variants && variants.length === 1) colour = variants[0];
       }
       if (colour) {
         if (!byColour[colour]) byColour[colour] = { rev: 0, qty: 0 };
