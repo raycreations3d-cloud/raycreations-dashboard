@@ -120,6 +120,12 @@
     .chart-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 1rem; margin-bottom: 1.5rem; }
     .chart-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem; }
     .chart-card h3 { font-size: .85rem; color: var(--muted); margin-bottom: 1rem; text-transform: uppercase; letter-spacing: .06em; }
+    .top5-row { display:flex; align-items:center; gap:.6rem; font-size:.85rem; }
+    .top5-rank { width:1.2rem; color:var(--muted); font-size:.75rem; text-align:right; flex-shrink:0; }
+    .top5-bar-wrap { flex:1; background:rgba(255,255,255,.06); border-radius:4px; height:6px; overflow:hidden; }
+    .top5-bar { height:100%; border-radius:4px; }
+    .top5-name { min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:2; }
+    .top5-val { color:var(--muted); font-size:.78rem; white-space:nowrap; flex-shrink:0; }
     .chart-wrap { position: relative; }
 
     /* ── Tables ── */
@@ -411,11 +417,11 @@
       <div class="chart-grid">
         <div class="chart-card">
           <h3>Sales vs Expenses — Last 6 Months</h3>
-          <div class="chart-wrap"><canvas id="chart-monthly" height="200"></canvas></div>
+          <div class="chart-wrap"><canvas id="chart-monthly" height="130"></canvas></div>
         </div>
         <div class="chart-card">
           <h3>Expenses by Category</h3>
-          <div class="chart-wrap"><canvas id="chart-categories" height="200"></canvas></div>
+          <div class="chart-wrap"><canvas id="chart-categories" height="130"></canvas></div>
         </div>
       </div>
 
@@ -473,7 +479,23 @@
 
       <div class="chart-card" style="margin-bottom:1.5rem">
         <h3 id="sales-chart-label">Sales Over Time</h3>
-        <div class="chart-wrap"><canvas id="chart-sales-line" height="140"></canvas></div>
+        <div class="chart-wrap"><canvas id="chart-sales-line" height="100"></canvas></div>
+      </div>
+
+      <!-- Top 5 grids -->
+      <div class="chart-grid" style="margin-bottom:1.5rem">
+        <div class="chart-card">
+          <h3>Top 5 Items Sold</h3>
+          <div id="top-items-list" style="display:flex;flex-direction:column;gap:.5rem">
+            <div style="color:var(--muted);font-size:.85rem">Loading...</div>
+          </div>
+        </div>
+        <div class="chart-card">
+          <h3>Top 5 Colours Sold</h3>
+          <div id="top-colours-list" style="display:flex;flex-direction:column;gap:.5rem">
+            <div style="color:var(--muted);font-size:.85rem">Loading...</div>
+          </div>
+        </div>
       </div>
 
       <div class="section-header">
@@ -511,7 +533,7 @@
 
       <div class="chart-card" style="margin-bottom:1.5rem">
         <h3>Expenses by Category</h3>
-        <div class="chart-wrap"><canvas id="chart-exp-bar" height="140"></canvas></div>
+        <div class="chart-wrap"><canvas id="chart-exp-bar" height="100"></canvas></div>
       </div>
 
       <div class="section-header">
@@ -1144,6 +1166,52 @@ function renderSales() {
   document.getElementById('sales-top-item').textContent      = topItem ? topItem[0] : '—';
   document.getElementById('sales-top-item-amt').textContent  = topItem ? fmt(topItem[1]) + ' revenue' : '';
   document.getElementById('sales-row-count').textContent     = sales.length ? `(${sales.length} records)` : '';
+
+  // ── Top 5 Items ──
+  const COLOURS = ['#6366f1','#22d3ee','#22c55e','#f59e0b','#ef4444'];
+  const byItemFull = {};
+  sales.forEach(r => {
+    parseSaleItems(r.item_name).forEach(li => {
+      const name = li.name.replace(/^\d+[×x]\s*/,'').trim() || 'Unknown';
+      if (!byItemFull[name]) byItemFull[name] = { rev: 0, qty: 0 };
+      byItemFull[name].rev += +r.amount / (parseSaleItems(r.item_name).length || 1);
+      byItemFull[name].qty += li.qty;
+    });
+  });
+  const topItems = Object.entries(byItemFull).sort((a,b) => b[1].rev - a[1].rev).slice(0,5);
+  const maxItemRev = topItems[0]?.[1].rev || 1;
+  document.getElementById('top-items-list').innerHTML = topItems.length ? topItems.map(([name, d], i) => `
+    <div class="top5-row">
+      <span class="top5-rank">${i+1}</span>
+      <span class="top5-name" title="${name}">${name}</span>
+      <div class="top5-bar-wrap"><div class="top5-bar" style="width:${(d.rev/maxItemRev*100).toFixed(1)}%;background:${COLOURS[i]}"></div></div>
+      <span class="top5-val">${fmt(d.rev)}</span>
+    </div>`).join('') : '<div style="color:var(--muted);font-size:.85rem">No data</div>';
+
+  // ── Top 5 Colours ──
+  const COLOUR_NAMES = ['black','white','grey','gray','silver','red','blue','green','yellow','orange','purple','pink','brown','gold','natural','clear','transparent','navy','teal','lime','cyan','magenta','beige','ivory','maroon','violet','indigo'];
+  const byColour = {};
+  sales.forEach(r => {
+    parseSaleItems(r.item_name).forEach(li => {
+      const words = li.name.toLowerCase().split(/[\s\-_,/]+/);
+      const found = words.find(w => COLOUR_NAMES.includes(w));
+      if (found) {
+        const col = found.charAt(0).toUpperCase() + found.slice(1);
+        if (!byColour[col]) byColour[col] = { rev: 0, qty: 0 };
+        byColour[col].rev += +r.amount / (parseSaleItems(r.item_name).length || 1);
+        byColour[col].qty += li.qty;
+      }
+    });
+  });
+  const topColours = Object.entries(byColour).sort((a,b) => b[1].rev - a[1].rev).slice(0,5);
+  const maxColRev = topColours[0]?.[1].rev || 1;
+  document.getElementById('top-colours-list').innerHTML = topColours.length ? topColours.map(([col, d], i) => `
+    <div class="top5-row">
+      <span class="top5-rank">${i+1}</span>
+      <span class="top5-name">${col}</span>
+      <div class="top5-bar-wrap"><div class="top5-bar" style="width:${(d.rev/maxColRev*100).toFixed(1)}%;background:${COLOURS[i]}"></div></div>
+      <span class="top5-val">${fmt(d.rev)}</span>
+    </div>`).join('') : '<div style="color:var(--muted);font-size:.85rem">No colour data in item names</div>';
 
   // Summary strip
   const allTotal = all.reduce((s,r) => s + +r.amount, 0);
