@@ -491,7 +491,7 @@
           </div>
         </div>
         <div class="chart-card">
-          <h3>Top 5 Colours Sold</h3>
+          <h3>Top 5 Variants Sold</h3>
           <div id="top-colours-list" style="display:flex;flex-direction:column;gap:.5rem">
             <div style="color:var(--muted);font-size:.85rem">Loading...</div>
           </div>
@@ -1022,10 +1022,23 @@ function categoryBadge(cat) {
 function destroyChart(id) { if (charts[id]) { charts[id].destroy(); delete charts[id]; } }
 
 // ─────────────────── OVERVIEW ───────────────────
+async function fetchAllPages(table) {
+  const PAGE = 1000;
+  let all = [], from = 0;
+  while (true) {
+    const { data, error } = await db.from(table).select('*').order('date', { ascending: false }).range(from, from + PAGE - 1);
+    if (error || !data || data.length === 0) break;
+    all = all.concat(data);
+    if (data.length < PAGE) break;
+    from += PAGE;
+  }
+  return all;
+}
+
 async function loadOverview() {
-  const [{ data: sales }, { data: expenses }] = await Promise.all([
-    db.from('sales').select('*').order('date', { ascending: false }),
-    db.from('expenses').select('*').order('date', { ascending: false })
+  const [sales, expenses] = await Promise.all([
+    fetchAllPages('sales'),
+    fetchAllPages('expenses')
   ]);
 
   const totalSales    = (sales    || []).reduce((s, r) => s + +r.amount, 0);
@@ -1125,8 +1138,7 @@ function setSalesFilter(f) {
 
 async function loadSales() {
   if (!allSalesCache) {
-    const { data } = await db.from('sales').select('*').order('date', { ascending: false });
-    allSalesCache = data || [];
+    allSalesCache = await fetchAllPages('sales');
   }
   renderSales();
 }
@@ -1204,13 +1216,10 @@ function renderSales() {
     const share = lineItems.length || 1;
     lineItems.forEach(li => {
       let colour = null;
-      // Extract variant from parentheses e.g. "Snake Glow (Large / Blue)" or "Mouth Snake (Purple Pink)"
+      // Extract full variant from parentheses e.g. "Snake Glow (Large / Blue)" → "Large / Blue"
       const parenMatch = li.name.match(/\(([^)]+)\)/);
       if (parenMatch) {
-        // Split on "/" and strip size words — keep only colour parts
-        const SIZE_WORDS = ['small','medium','large','xl','xxl','mini','xs','tiny','sml','lge','med','sm','lg'];
-        const parts = parenMatch[1].split('/').map(p => p.trim()).filter(p => !SIZE_WORDS.includes(p.toLowerCase()));
-        if (parts.length) colour = parts.join(' / ');
+        colour = parenMatch[1].trim(); // keep all variant data (size, colour, etc.)
       } else {
         // Fallback: look up by item_name in _loyverseItems (unambiguous single-variant items)
         const baseName = li.name.toLowerCase().trim();
@@ -1232,7 +1241,7 @@ function renderSales() {
       <span class="top5-name">${col}</span>
       <div class="top5-bar-wrap"><div class="top5-bar" style="width:${(d.rev/maxColRev*100).toFixed(1)}%;background:${COLOURS[i]}"></div></div>
       <span class="top5-val">${fmt(d.rev)}</span>
-    </div>`).join('') : '<div style="color:var(--muted);font-size:.85rem">Run loyverse-sync.js to populate colour data</div>';
+    </div>`).join('') : '<div style="color:var(--muted);font-size:.85rem">No variant data in this period — try a wider date range or run loyverse-sync.js</div>';
 
   // Summary strip
   const allTotal = all.reduce((s,r) => s + +r.amount, 0);
