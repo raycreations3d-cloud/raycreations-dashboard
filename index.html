@@ -1189,17 +1189,35 @@ function renderSales() {
     </div>`).join('') : '<div style="color:var(--muted);font-size:.85rem">No data</div>';
 
   // ── Top 5 Colours ──
-  const COLOUR_NAMES = ['black','white','grey','gray','silver','red','blue','green','yellow','orange','purple','pink','brown','gold','natural','clear','transparent','navy','teal','lime','cyan','magenta','beige','ivory','maroon','violet','indigo'];
+  // Build a lookup: item_name (lowercase) → [variant_names] from loyverse_items
+  const itemVariantMap = {};
+  _loyverseItems.forEach(it => {
+    if (!it.variant_name) return;
+    const key = (it.item_name || '').toLowerCase().trim();
+    if (!itemVariantMap[key]) itemVariantMap[key] = [];
+    if (!itemVariantMap[key].includes(it.variant_name)) itemVariantMap[key].push(it.variant_name);
+  });
+
   const byColour = {};
   sales.forEach(r => {
-    parseSaleItems(r.item_name).forEach(li => {
-      const words = li.name.toLowerCase().split(/[\s\-_,/]+/);
-      const found = words.find(w => COLOUR_NAMES.includes(w));
-      if (found) {
-        const col = found.charAt(0).toUpperCase() + found.slice(1);
-        if (!byColour[col]) byColour[col] = { rev: 0, qty: 0 };
-        byColour[col].rev += +r.amount / (parseSaleItems(r.item_name).length || 1);
-        byColour[col].qty += li.qty;
+    const lineItems = parseSaleItems(r.item_name);
+    const share = lineItems.length || 1;
+    lineItems.forEach(li => {
+      let colour = null;
+      // 1. New format: "PLA Filament (Black)" — variant in parentheses
+      const parenMatch = li.name.match(/\(([^)]+)\)\s*$/);
+      if (parenMatch) {
+        colour = parenMatch[1].trim();
+      } else {
+        // 2. Fallback: look up by item_name in _loyverseItems
+        const baseName = li.name.toLowerCase().trim();
+        const variants = itemVariantMap[baseName];
+        if (variants && variants.length === 1) colour = variants[0]; // only if unambiguous
+      }
+      if (colour) {
+        if (!byColour[colour]) byColour[colour] = { rev: 0, qty: 0 };
+        byColour[colour].rev += +r.amount / share;
+        byColour[colour].qty += li.qty;
       }
     });
   });
@@ -1211,7 +1229,7 @@ function renderSales() {
       <span class="top5-name">${col}</span>
       <div class="top5-bar-wrap"><div class="top5-bar" style="width:${(d.rev/maxColRev*100).toFixed(1)}%;background:${COLOURS[i]}"></div></div>
       <span class="top5-val">${fmt(d.rev)}</span>
-    </div>`).join('') : '<div style="color:var(--muted);font-size:.85rem">No colour data in item names</div>';
+    </div>`).join('') : '<div style="color:var(--muted);font-size:.85rem">Run loyverse-sync.js to populate colour data</div>';
 
   // Summary strip
   const allTotal = all.reduce((s,r) => s + +r.amount, 0);
