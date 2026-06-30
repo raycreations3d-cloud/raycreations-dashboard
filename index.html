@@ -1397,14 +1397,19 @@ function renderSales() {
   const buckets = range.buckets;
   let labels = [], data = [];
   if (buckets === 'day') {
-    const days7 = [];
+    // Use range.from / range.to so custom date ranges work correctly
     const now = new Date();
-    const daysBack = salesFilter === 'week' ? 6 : new Date(now.getFullYear(), now.getMonth()+1, 0).getDate()-1;
-    const start = salesFilter === 'month'
-      ? new Date(now.getFullYear(), now.getMonth(), 1)
-      : new Date(now); start.setDate(now.getDate() - (salesFilter==='week'?6:0));
-    const cur = new Date(salesFilter==='month' ? new Date(now.getFullYear(),now.getMonth(),1) : (() => { const d=new Date(now); d.setDate(now.getDate()-6); return d; })());
-    while (cur <= now) {
+    let curStart;
+    if (range.from) {
+      curStart = new Date(range.from + 'T00:00:00');
+    } else if (salesFilter === 'month') {
+      curStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    } else {
+      curStart = new Date(now); curStart.setDate(now.getDate() - 6);
+    }
+    const curEnd = range.to ? new Date(range.to + 'T00:00:00') : now;
+    const cur = new Date(curStart);
+    while (cur <= curEnd) {
       const iso = `${cur.getFullYear()}-${String(cur.getMonth()+1).padStart(2,'0')}-${String(cur.getDate()).padStart(2,'0')}`;
       labels.push(cur.toLocaleString('default',{day:'numeric',month:'short'}));
       data.push(sales.filter(r => r.date === iso).reduce((s,r)=>s+ +r.amount,0));
@@ -1414,10 +1419,21 @@ function renderSales() {
     // monthly buckets
     const monthSet = [];
     const now = new Date();
-    const monthsBack = salesFilter === 'year' ? 11 : salesFilter === 'quarter' ? 2 : 11;
-    for (let i = monthsBack; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
-      monthSet.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);
+    if (salesFilter === 'custom' && range.from && range.to) {
+      // Enumerate months between range.from and range.to
+      const mStart = new Date(range.from.substring(0,7) + '-01');
+      const mEnd   = new Date(range.to.substring(0,7)   + '-01');
+      const mCur   = new Date(mStart);
+      while (mCur <= mEnd) {
+        monthSet.push(`${mCur.getFullYear()}-${String(mCur.getMonth()+1).padStart(2,'0')}`);
+        mCur.setMonth(mCur.getMonth()+1);
+      }
+    } else {
+      const monthsBack = salesFilter === 'year' ? 11 : salesFilter === 'quarter' ? 2 : 11;
+      for (let i = monthsBack; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
+        monthSet.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);
+      }
     }
     labels = monthSet.map(m => { const [y,mo]=m.split('-'); return new Date(y,mo-1).toLocaleString('default',{month:'short',year:'2-digit'}); });
     data   = monthSet.map(m => sales.filter(r=>r.date?.startsWith(m)).reduce((s,r)=>s+ +r.amount,0));
@@ -2532,6 +2548,109 @@ function onBulkQtyChange(qtyInput, rowIdx) {
   }
 }
 
+// ── Bulk Import ──────────────────────────────────────────────
+let _bulkRowCount = 0;
+
+function openBulkImport() {
+  _bulkRowCount = 0;
+  Object.keys(_bulkSelections).forEach(k => delete _bulkSelections[k]);
+  document.getElementById('bulk-tbody').innerHTML = '';
+  document.getElementById('bulk-error').textContent = '';
+  document.getElementById('bulk-row-count').textContent = '';
+  // Start with 3 rows
+  addBulkRow(); addBulkRow(); addBulkRow();
+  document.getElementById('modal-bulk-import').classList.add('active');
+}
+
+function closeBulkImport() {
+  document.getElementById('modal-bulk-import').classList.remove('active');
+}
+
+function addBulkRow() {
+  const idx  = _bulkRowCount++;
+  const today = new Date().toISOString().slice(0,10);
+  const tbody = document.getElementById('bulk-tbody');
+  const tr = document.createElement('tr');
+  tr.id = 'bulk-row-' + idx;
+  tr.style.cssText = 'border-bottom:1px solid rgba(255,255,255,.04)';
+  tr.innerHTML = `
+    <td style="padding:.3rem .4rem"><input type="number" min="1" value="${Math.floor(idx/1)+1}" style="width:46px;background:var(--card);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:.25rem .35rem;font-size:.82rem;text-align:center"></td>
+    <td style="padding:.3rem .4rem"><input type="date" value="${today}" style="background:var(--card);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:.25rem .35rem;font-size:.82rem;width:112px"></td>
+    <td style="padding:.3rem .4rem"><input type="number" min="0" step="0.01" placeholder="0.00" style="width:82px;background:var(--card);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:.25rem .35rem;font-size:.82rem;text-align:right"></td>
+    <td style="padding:.3rem .4rem">${buildItemPicker(idx)}</td>
+    <td style="padding:.3rem .4rem"><input type="number" min="1" value="1" style="width:40px;background:var(--card);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:.25rem .35rem;font-size:.82rem;text-align:center" oninput="onBulkQtyChange(this,${idx})"></td>
+    <td style="padding:.3rem .4rem"><input type="number" min="0" step="0.01" placeholder="0.00" style="width:74px;background:var(--card);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:.25rem .35rem;font-size:.82rem;text-align:right" oninput="onBulkUnitChange(this,${idx})"></td>
+    <td style="padding:.3rem .4rem">
+      <select style="background:var(--card);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:.25rem .3rem;font-size:.78rem;width:72px">
+        <option>Cash</option><option>Card</option><option>Yoco</option><option>EFT</option><option>Other</option>
+      </select>
+    </td>
+    <td style="padding:.3rem .2rem;text-align:center"><button type="button" onclick="this.closest('tr').remove();updateBulkCount()" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:1rem;line-height:1">✕</button></td>`;
+  tbody.appendChild(tr);
+  updateBulkCount();
+}
+
+function updateBulkCount() {
+  const n = document.getElementById('bulk-tbody').children.length;
+  document.getElementById('bulk-row-count').textContent = `${n} row${n!==1?'s':''}`;
+}
+
+function onBulkUnitChange(unitInput, rowIdx) {
+  const row = document.getElementById('bulk-row-' + rowIdx);
+  const inputs = row.querySelectorAll('input');
+  const qty = parseInt(inputs[3].value) || 1;
+  const unit = parseFloat(unitInput.value);
+  if (!isNaN(unit) && unit > 0) inputs[2].value = (unit * qty).toFixed(2);
+}
+
+async function submitBulkImport() {
+  const errEl = document.getElementById('bulk-error');
+  errEl.textContent = '';
+  const rows = [...document.getElementById('bulk-tbody').children];
+  if (!rows.length) { errEl.textContent = 'No rows to save.'; return; }
+
+  const receiptMap = {};
+  let hasErr = false;
+  rows.forEach((tr, i) => {
+    const inputs  = tr.querySelectorAll('input');
+    const saleNum = inputs[0].value.trim();
+    const date    = inputs[1].value;
+    const amount  = parseFloat(inputs[2].value);
+    const payment = tr.querySelector('select').value;
+    const rowIdx  = tr.id.replace('bulk-row-','');
+    const sel     = _bulkSelections[rowIdx];
+
+    if (!date) { errEl.textContent = `Row ${i+1}: Date is required.`; hasErr = true; return; }
+    if (isNaN(amount) || amount <= 0) { errEl.textContent = `Row ${i+1}: Amount must be > 0.`; hasErr = true; return; }
+
+    const itemName = sel ? sel.label : '';
+    if (!receiptMap[saleNum]) receiptMap[saleNum] = { date, payment, items: [], total: 0 };
+    receiptMap[saleNum].items.push(itemName);
+    receiptMap[saleNum].total += amount;
+  });
+  if (hasErr) return;
+
+  const records = Object.values(receiptMap).map(r => ({
+    date:         r.date,
+    amount:       parseFloat(r.total.toFixed(2)),
+    item_name:    r.items.filter(Boolean).join(', ') || null,
+    payment_type: r.payment,
+    source:       'manual'
+  }));
+
+  const btn = document.querySelector('#modal-bulk-import .btn-green');
+  btn.disabled = true; btn.textContent = 'Saving…';
+  const { error } = await db.from('sales').insert(records);
+  btn.disabled = false; btn.textContent = '💾 Save All Sales';
+
+  if (error) { errEl.textContent = 'Save failed: ' + error.message; return; }
+
+  closeBulkImport();
+  allSalesCache = null;
+  toast(`${records.length} sale${records.length!==1?'s':''} saved`, 'success');
+  loadSales();
+}
+
 function filterPicker(searchInput, rowIdx) {
   const q = searchInput.value.toLowerCase().trim();
   _pickerDrop.querySelectorAll('.picker-cat').forEach(catEl => {
@@ -2573,24 +2692,12 @@ function filterPicker(searchInput, rowIdx) {
     });
 
     if (!q) {
-      catEl.style.display    = '';
-      itemsBox.style.display  = 'none';
-      catArrow.textContent    = '▶';
+      catEl.style.display = '';
     } else if (anyCatMatch) {
-      catEl.style.display    = '';
-      itemsBox.style.display  = 'block';
-      catArrow.textContent    = '▼';
+      catEl.style.display = '';
     } else {
       catEl.style.display = 'none';
     }
   });
 }
-
-// Close picker on outside click
-document.addEventListener('click', () => {
-  _pickerDrop.style.display = 'none';
-  _pickerActiveRow = null;
-});
-</script>
-</body>
-</html>
+</script></body></html>
