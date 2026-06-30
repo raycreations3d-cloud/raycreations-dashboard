@@ -296,7 +296,12 @@
     #toast.show { transform: translateY(0); opacity: 1; }
 
     /* ── Filter Bar ── */
-    .filter-bar { display: flex; gap: .4rem; flex-wrap: wrap; margin-bottom: 1.25rem; }
+    .filter-bar { display: flex; gap: .4rem; flex-wrap: wrap; margin-bottom: 1.25rem; align-items: center; }
+    .custom-range { display:flex; align-items:center; gap:.4rem; margin-left:.25rem; }
+    .custom-range span { color:var(--muted); font-size:.85rem; }
+    .custom-range input[type=date] { background:var(--card); border:1px solid var(--border); border-radius:8px; color:var(--text); padding:.32rem .55rem; font-size:.82rem; cursor:pointer; }
+    .custom-range input[type=date]:focus { border-color:var(--accent); outline:none; }
+    .custom-range input[type=date]::-webkit-calendar-picker-indicator { filter: invert(.6); }
     .filter-btn {
       padding: .35rem .85rem; border-radius: 999px; border: 1px solid var(--border);
       background: transparent; color: var(--muted); font-size: .8rem; font-weight: 600;
@@ -442,12 +447,17 @@
     <div id="page-sales" class="page">
 
       <!-- Filter bar -->
-      <div class="filter-bar">
-        <button class="filter-btn" onclick="setSalesFilter('week')">This Week</button>
-        <button class="filter-btn active" onclick="setSalesFilter('month')">This Month</button>
-        <button class="filter-btn" onclick="setSalesFilter('quarter')">Last 3 Months</button>
-        <button class="filter-btn" onclick="setSalesFilter('year')">This Year</button>
-        <button class="filter-btn" onclick="setSalesFilter('all')">All Time</button>
+      <div class="filter-bar" id="sales-filter-bar">
+        <button class="filter-btn" onclick="setSalesFilter('week',this)">This Week</button>
+        <button class="filter-btn active" onclick="setSalesFilter('month',this)">This Month</button>
+        <button class="filter-btn" onclick="setSalesFilter('quarter',this)">Last 3 Months</button>
+        <button class="filter-btn" onclick="setSalesFilter('year',this)">This Year</button>
+        <button class="filter-btn" onclick="setSalesFilter('all',this)">All Time</button>
+        <div class="custom-range">
+          <input type="date" id="sales-from" placeholder="From" onchange="setSalesCustomRange()">
+          <span>→</span>
+          <input type="date" id="sales-to" placeholder="To" onchange="setSalesCustomRange()">
+        </div>
       </div>
 
       <!-- Summary strip -->
@@ -513,16 +523,34 @@
 
     <!-- ── EXPENSES PAGE ── -->
     <div id="page-expenses" class="page">
+
+      <!-- Filter bar -->
+      <div class="filter-bar" id="exp-filter-bar">
+        <button class="filter-btn" onclick="setExpFilter('week',this)">This Week</button>
+        <button class="filter-btn active" onclick="setExpFilter('month',this)">This Month</button>
+        <button class="filter-btn" onclick="setExpFilter('quarter',this)">Last 3 Months</button>
+        <button class="filter-btn" onclick="setExpFilter('year',this)">This Year</button>
+        <button class="filter-btn" onclick="setExpFilter('all',this)">All Time</button>
+        <div class="custom-range">
+          <input type="date" id="exp-from" onchange="setExpCustomRange()">
+          <span>→</span>
+          <input type="date" id="exp-to" onchange="setExpCustomRange()">
+        </div>
+      </div>
+
+      <!-- Summary strip -->
+      <div class="summary-strip" id="exp-summary-strip"></div>
+
       <div class="kpi-grid">
         <div class="kpi-card kpi-red">
-          <div class="kpi-label">Total Expenses</div>
+          <div class="kpi-label" id="exp-period-label">Period Expenses</div>
           <div class="kpi-value" id="exp-total">—</div>
           <div class="kpi-sub" id="exp-count-label">—</div>
         </div>
         <div class="kpi-card kpi-yellow">
-          <div class="kpi-label">This Month</div>
-          <div class="kpi-value" id="exp-month">—</div>
-          <div class="kpi-sub" id="exp-month-label">—</div>
+          <div class="kpi-label">Avg Expense</div>
+          <div class="kpi-value" id="exp-avg">—</div>
+          <div class="kpi-sub">per entry</div>
         </div>
         <div class="kpi-card kpi-blue">
           <div class="kpi-label">Top Category</div>
@@ -532,12 +560,12 @@
       </div>
 
       <div class="chart-card" style="margin-bottom:1.5rem">
-        <h3>Expenses by Category</h3>
+        <h3 id="exp-chart-label">Expenses by Category</h3>
         <div class="chart-wrap"><canvas id="chart-exp-bar" height="100"></canvas></div>
       </div>
 
       <div class="section-header">
-        <h2>All Expenses</h2>
+        <h2>Expenses <span id="exp-row-count" style="color:var(--muted);font-size:.85rem;font-weight:400"></span></h2>
         <button class="btn btn-sm btn-outline" onclick="openModal('expense')">+ Add Expense</button>
       </div>
       <div class="table-card">
@@ -1108,31 +1136,48 @@ async function loadOverview() {
 let salesFilter = 'month';
 let allSalesCache = null;
 
-function getDateRange(filter) {
+function getDateRange(filter, fromVal, toVal) {
   const now = new Date();
   const pad = n => String(n).padStart(2,'0');
   const toISO = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  const today = toISO(now);
   if (filter === 'week') {
     const start = new Date(now); start.setDate(now.getDate() - 6);
-    return { from: toISO(start), label: 'This Week', buckets: 'day' };
+    return { from: toISO(start), to: today, label: 'This Week', buckets: 'day' };
   }
   if (filter === 'month') {
-    return { from: `${now.getFullYear()}-${pad(now.getMonth()+1)}-01`, label: 'This Month', buckets: 'day' };
+    return { from: `${now.getFullYear()}-${pad(now.getMonth()+1)}-01`, to: today, label: 'This Month', buckets: 'day' };
   }
   if (filter === 'quarter') {
     const start = new Date(now); start.setMonth(now.getMonth() - 2); start.setDate(1);
-    return { from: toISO(start), label: 'Last 3 Months', buckets: 'month' };
+    return { from: toISO(start), to: today, label: 'Last 3 Months', buckets: 'month' };
   }
   if (filter === 'year') {
-    return { from: `${now.getFullYear()}-01-01`, label: `${now.getFullYear()}`, buckets: 'month' };
+    return { from: `${now.getFullYear()}-01-01`, to: today, label: `${now.getFullYear()}`, buckets: 'month' };
   }
-  return { from: null, label: 'All Time', buckets: 'month' };
+  if (filter === 'custom' && fromVal && toVal) {
+    const days = Math.ceil((new Date(toVal) - new Date(fromVal)) / (1000*60*60*24));
+    return { from: fromVal, to: toVal, label: `${fmtD(fromVal)} → ${fmtD(toVal)}`, buckets: days <= 31 ? 'day' : 'month' };
+  }
+  return { from: null, to: null, label: 'All Time', buckets: 'month' };
 }
 
-function setSalesFilter(f) {
+function setSalesFilter(f, btn) {
   salesFilter = f;
-  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-  event.target.classList.add('active');
+  document.querySelectorAll('#sales-filter-bar .filter-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  // Clear custom inputs when using preset buttons
+  document.getElementById('sales-from').value = '';
+  document.getElementById('sales-to').value = '';
+  renderSales();
+}
+
+function setSalesCustomRange() {
+  const from = document.getElementById('sales-from').value;
+  const to   = document.getElementById('sales-to').value;
+  if (!from || !to) return;
+  salesFilter = 'custom';
+  document.querySelectorAll('#sales-filter-bar .filter-btn').forEach(b => b.classList.remove('active'));
   renderSales();
 }
 
@@ -1145,11 +1190,13 @@ async function loadSales() {
 
 function renderSales() {
   const all = allSalesCache || [];
-  const range = getDateRange(salesFilter);
+  const customFrom = document.getElementById('sales-from')?.value;
+  const customTo   = document.getElementById('sales-to')?.value;
+  const range = getDateRange(salesFilter, customFrom, customTo);
 
   // Filter by date range
   const sales = range.from
-    ? all.filter(r => r.date >= range.from)
+    ? all.filter(r => r.date >= range.from && (!range.to || r.date <= range.to))
     : all;
 
   const total = sales.reduce((s,r) => s + +r.amount, 0);
@@ -1336,22 +1383,68 @@ function renderSales() {
 }
 
 // ─────────────────── EXPENSES ───────────────────
+let expFilter = 'month';
+let allExpCache = null;
+
+function setExpFilter(f, btn) {
+  expFilter = f;
+  document.querySelectorAll('#exp-filter-bar .filter-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  document.getElementById('exp-from').value = '';
+  document.getElementById('exp-to').value = '';
+  renderExpenses();
+}
+
+function setExpCustomRange() {
+  const from = document.getElementById('exp-from').value;
+  const to   = document.getElementById('exp-to').value;
+  if (!from || !to) return;
+  expFilter = 'custom';
+  document.querySelectorAll('#exp-filter-bar .filter-btn').forEach(b => b.classList.remove('active'));
+  renderExpenses();
+}
+
 async function loadExpenses() {
-  const { data: expenses } = await db.from('expenses').select('*').order('date', { ascending: false });
-  const total    = (expenses||[]).reduce((s,r) => s + +r.amount, 0);
-  const ym       = thisMonth();
-  const monthAmt = (expenses||[]).filter(r => r.date?.startsWith(ym)).reduce((s,r) => s + +r.amount, 0);
-  const cats     = {};
-  (expenses||[]).forEach(e => { cats[e.category||'other'] = (cats[e.category||'other']||0) + +e.amount; });
-  const topCat   = Object.entries(cats).sort((a,b) => b[1]-a[1])[0];
+  if (!allExpCache) {
+    allExpCache = await fetchAllPages('expenses');
+  }
+  renderExpenses();
+}
 
-  document.getElementById('exp-total').textContent       = fmt(total);
-  document.getElementById('exp-count-label').textContent = `${(expenses||[]).length} entries`;
-  document.getElementById('exp-month').textContent       = fmt(monthAmt);
-  document.getElementById('exp-month-label').textContent = 'this month';
-  document.getElementById('exp-top-cat').textContent     = topCat ? topCat[0] : '—';
+function renderExpenses() {
+  const all = allExpCache || [];
+  const customFrom = document.getElementById('exp-from')?.value;
+  const customTo   = document.getElementById('exp-to')?.value;
+  const range = getDateRange(expFilter, customFrom, customTo);
 
-  // Bar chart by category
+  const expenses = range.from
+    ? all.filter(r => r.date >= range.from && (!range.to || r.date <= range.to))
+    : all;
+
+  const total  = expenses.reduce((s,r) => s + +r.amount, 0);
+  const avg    = expenses.length ? total / expenses.length : 0;
+  const cats   = {};
+  expenses.forEach(e => { cats[e.category||'other'] = (cats[e.category||'other']||0) + +e.amount; });
+  const topCat = Object.entries(cats).sort((a,b) => b[1]-a[1])[0];
+  const allTotal = all.reduce((s,r) => s + +r.amount, 0);
+  const pct = allTotal ? ((total/allTotal)*100).toFixed(1) : 0;
+
+  document.getElementById('exp-period-label').textContent  = range.label + ' Expenses';
+  document.getElementById('exp-total').textContent         = fmt(total);
+  document.getElementById('exp-count-label').textContent   = `${expenses.length} entries`;
+  document.getElementById('exp-avg').textContent           = fmt(avg);
+  document.getElementById('exp-top-cat').textContent       = topCat ? topCat[0] : '—';
+  document.getElementById('exp-row-count').textContent     = expenses.length ? `(${expenses.length} records)` : '';
+  document.getElementById('exp-chart-label').textContent   = `Expenses by Category — ${range.label}`;
+  document.getElementById('exp-summary-strip').innerHTML   = `
+    <span>Period: <strong>${range.label}</strong></span>
+    <span>Total: <strong>${fmt(total)}</strong></span>
+    <span>Avg: <strong>${fmt(avg)}</strong></span>
+    ${allTotal ? `<span>% of all-time: <strong>${pct}%</strong></span>` : ''}
+    <span>Entries: <strong>${expenses.length}</strong></span>
+  `;
+
+  // Bar chart by category (filtered)
   destroyChart('exp-bar');
   charts['exp-bar'] = new Chart(document.getElementById('chart-exp-bar'), {
     type: 'bar',
@@ -1359,10 +1452,10 @@ async function loadExpenses() {
       labels: Object.keys(cats),
       datasets: [{ label: 'Amount', data: Object.values(cats), backgroundColor: 'rgba(239,68,68,.7)', borderRadius: 4 }]
     },
-    options: { responsive: true, indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#94a3b8', callback: v => 'R '+v }, grid: { color: '#334155' } }, y: { ticks: { color: '#94a3b8' }, grid: { color: '#1e293b' } } } }
+    options: { responsive: true, indexAxis: 'y', plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ' R' + ctx.raw.toLocaleString() } } }, scales: { x: { ticks: { color: '#94a3b8', callback: v => 'R '+v.toLocaleString() }, grid: { color: '#334155' } }, y: { ticks: { color: '#94a3b8' }, grid: { color: '#1e293b' } } } }
   });
 
-  document.getElementById('expenses-tbody').innerHTML = (expenses||[]).length ? (expenses||[]).map(r => `
+  document.getElementById('expenses-tbody').innerHTML = expenses.length ? expenses.map(r => `
     <tr>
       <td>${fmtD(r.date)}</td>
       <td>${r.vendor||'—'}</td>
@@ -1370,8 +1463,8 @@ async function loadExpenses() {
       <td>${categoryBadge(r.category)}</td>
       <td style="color:var(--red);font-weight:600">-${fmt(r.amount)}</td>
       <td><span class="badge badge-blue">${r.source}</span></td>
-      <td><button class="btn btn-sm btn-outline" style="color:var(--red);border-color:var(--red)" onclick="deleteRecord('expenses','${r.id}',loadExpenses)">✕</button></td>
-    </tr>`).join('') : `<tr><td colspan="7" class="empty-state"><div class="icon">📋</div>No expenses yet — add one above</td></tr>`;
+      <td><button class="btn btn-sm btn-outline" style="color:var(--red);border-color:var(--red)" onclick="deleteRecord('expenses','${r.id}',()=>{allExpCache=null;loadExpenses();})">✕</button></td>
+    </tr>`).join('') : `<tr><td colspan="7" class="empty-state"><div class="icon">📋</div>No expenses in this period</td></tr>`;
 }
 
 // ─────────────────── CURRENCY CONVERSION ───────────────────
@@ -1705,6 +1798,7 @@ async function submitExpense() {
   if (error) { toast('Error: ' + error.message, 'error'); return; }
   toast('Expense saved! 📋', 'success');
   closeModal('expense');
+  allExpCache = null;
   loadExpenses();
 }
 
@@ -2200,241 +2294,4 @@ function onPickerSearch(input) {
       catEl.style.display    = '';
       itemsBox.style.display  = 'block';
       catArrow.textContent    = '▼';
-    } else {
-      catEl.style.display = 'none';
-    }
-  });
-}
-
-function togglePicker(e, rowIdx) {
-  e.stopPropagation();
-  if (_pickerActiveRow === rowIdx && _pickerDrop.style.display !== 'none') {
-    _pickerDrop.style.display = 'none';
-    _pickerActiveRow = null;
-    return;
-  }
-  const btn  = document.getElementById('picker-btn-' + rowIdx);
-  const rect = btn.getBoundingClientRect();
-  _pickerDrop.innerHTML  = _buildPickerContent(rowIdx);
-  _pickerDrop.style.left = rect.left + 'px';
-  _pickerDrop.style.top  = (rect.bottom + 3) + 'px';
-  _pickerDrop.style.width = Math.max(rect.width, 260) + 'px';
-  _pickerDrop.style.display = 'block';
-  _pickerActiveRow = rowIdx;
-  // Auto-focus search
-  const searchEl = _pickerDrop.querySelector('.picker-search');
-  if (searchEl) setTimeout(() => searchEl.focus(), 30);
-}
-
-function togglePickerCat(header) {
-  const items = header.nextElementSibling;
-  const arrow = header.querySelector('.picker-arrow');
-  const open  = items.style.display !== 'none';
-  items.style.display = open ? 'none' : 'block';
-  arrow.textContent   = open ? '▶' : '▼';
-}
-
-function selectPickerItemEl(el) {
-  const rowIdx    = el.dataset.row;
-  const variantId = el.dataset.variant;
-  const itemName  = el.dataset.name;
-  const itemLabel = el.dataset.label;
-  const price     = el.dataset.price !== '' ? parseFloat(el.dataset.price) : null;
-
-  _bulkSelections[rowIdx] = { variantId, itemName, label: itemLabel, price };
-
-  const btn = document.getElementById('picker-btn-' + rowIdx);
-  const lbl = document.getElementById('picker-label-' + rowIdx);
-  lbl.textContent = itemLabel;
-  btn.classList.add('has-value');
-
-  _pickerDrop.style.display = 'none';
-  _pickerActiveRow = null;
-
-  // Auto-fill unit price + amount
-  const row    = document.getElementById('bulk-row-' + rowIdx);
-  const inputs = row.querySelectorAll('input');
-  // [0]=saleNum [1]=date [2]=amount [3]=qty [4]=unitPrice [5]=customer
-  if (price != null) {
-    inputs[4].value = price.toFixed(2);
-    const qty = parseInt(inputs[3].value) || 1;
-    inputs[2].value = (price * qty).toFixed(2);
-  }
-}
-
-function onBulkQtyChange(qtyInput, rowIdx) {
-  const row       = document.getElementById('bulk-row-' + rowIdx);
-  const inputs    = row.querySelectorAll('input');
-  const unitPrice = parseFloat(inputs[4].value);
-  if (!isNaN(unitPrice) && unitPrice > 0) {
-    const qty = parseInt(qtyInput.value) || 1;
-    inputs[2].value = (unitPrice * qty).toFixed(2);
-  }
-}
-
-// Close picker on outside click
-document.addEventListener('click', () => {
-  _pickerDrop.style.display = 'none';
-  _pickerActiveRow = null;
-});
-
-// ─────────────────── BULK IMPORT ───────────────────
-const cellStyle = 'padding:.35rem .4rem;background:var(--input-bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:.82rem;width:100%;outline:none;box-sizing:border-box';
-
-function makeBulkRow(idx, saleNum) {
-  const today = new Date().toISOString().split('T')[0];
-  const saleNumStyle = cellStyle + ';text-align:center;font-weight:600;color:var(--accent)';
-  return `<tr id="bulk-row-${idx}">
-    <td style="padding:.25rem .25rem"><input type="number" min="1" value="${saleNum}" style="${saleNumStyle}" title="Sale number — same number = same receipt" /></td>
-    <td style="padding:.25rem .25rem"><input type="date" value="${today}" style="${cellStyle}" /></td>
-    <td style="padding:.25rem .25rem"><input type="number" placeholder="0.00" step="0.01" min="0" style="${cellStyle}" /></td>
-    <td style="padding:.25rem .25rem">${buildItemPicker(idx)}</td>
-    <td style="padding:.25rem .25rem"><input type="number" placeholder="1" min="1" value="1" style="${cellStyle}" oninput="onBulkQtyChange(this,${idx})" /></td>
-    <td style="padding:.25rem .25rem"><input type="number" placeholder="0.00" step="0.01" min="0" style="${cellStyle}" /></td>
-    <td style="padding:.25rem .25rem">
-      <select class="bulk-payment" style="${cellStyle}">
-        <option value="cash">💵 Cash</option>
-        <option value="card">💳 Card</option>
-      </select>
-    </td>
-    <td style="padding:.25rem .25rem;text-align:center">
-      <button onclick="removeBulkRow(${idx})" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem;line-height:1" title="Remove">✕</button>
-    </td>
-  </tr>`;
-}
-
-let _bulkRowIdx = 0;
-let _bulkSaleNum = 0;
-
-function openBulkImport() {
-  _bulkRowIdx = 0;
-  _bulkSaleNum = 0;
-  Object.keys(_bulkSelections).forEach(k => delete _bulkSelections[k]);
-  const tbody = document.getElementById('bulk-tbody');
-  tbody.innerHTML = '';
-  document.getElementById('bulk-error').textContent = '';
-  // Start with 5 blank rows, each its own sale
-  for (let i = 0; i < 5; i++) addBulkRow();
-  document.getElementById('modal-bulk-import').classList.add('open');
-}
-
-function closeBulkImport() {
-  document.getElementById('modal-bulk-import').classList.remove('open');
-}
-
-function _nextSaleNum() {
-  // Find the max sale # currently in the table, then +1
-  let max = _bulkSaleNum;
-  document.getElementById('bulk-tbody').querySelectorAll('tr').forEach(row => {
-    const v = parseInt(row.querySelectorAll('input')[0]?.value);
-    if (!isNaN(v) && v > max) max = v;
-  });
-  _bulkSaleNum = max + 1;
-  return _bulkSaleNum;
-}
-
-function addBulkRow() {
-  const tbody = document.getElementById('bulk-tbody');
-  const div = document.createElement('tbody');
-  div.innerHTML = makeBulkRow(_bulkRowIdx++, _nextSaleNum());
-  tbody.appendChild(div.firstElementChild);
-  updateBulkCount();
-}
-
-function removeBulkRow(idx) {
-  const row = document.getElementById('bulk-row-' + idx);
-  if (row) row.remove();
-  updateBulkCount();
-}
-
-function updateBulkCount() {
-  const count = document.getElementById('bulk-tbody').querySelectorAll('tr').length;
-  document.getElementById('bulk-row-count').textContent = count + ' row' + (count !== 1 ? 's' : '');
-}
-
-async function submitBulkImport() {
-  const rows  = document.getElementById('bulk-tbody').querySelectorAll('tr');
-  const errEl = document.getElementById('bulk-error');
-  errEl.textContent = '';
-
-  // ── Pass 1: validate & collect line items ──
-  const lineItems = [];
-  let hasError = false;
-
-  rows.forEach((row, i) => {
-    if (hasError) return;
-    const rowIdx  = row.id.replace('bulk-row-', '');
-    const inputs  = row.querySelectorAll('input');
-    const sel     = _bulkSelections[rowIdx];
-    const payEl   = row.querySelector('.bulk-payment');
-    // inputs: [0]=saleNum [1]=date [2]=amount [3]=qty [4]=unitPrice
-    const saleNum    = parseInt(inputs[0].value) || (i + 1);
-    const date       = inputs[1].value;
-    const amount     = parseFloat(inputs[2].value);
-    const item_name  = sel?.itemName || null;
-    const variant_id = sel?.variantId || null;
-    const quantity   = parseInt(inputs[3].value) || 1;
-    const payment_type = payEl?.value || 'cash';
-
-    // Skip completely empty rows
-    if (!inputs[2].value && !variant_id) return;
-
-    if (!date)                       { errEl.textContent = `Row ${i+1}: date is required.`;          hasError = true; return; }
-    if (isNaN(amount) || amount <= 0){ errEl.textContent = `Row ${i+1}: enter a valid amount (R).`;  hasError = true; return; }
-    if (!variant_id)                  { errEl.textContent = `Row ${i+1}: select an item.`;            hasError = true; return; }
-
-    lineItems.push({ saleNum, date, amount, item_name, quantity, payment_type });
-  });
-
-  if (hasError) return;
-  if (lineItems.length === 0) { errEl.textContent = 'No rows to import — fill in at least one row.'; return; }
-
-  // ── Pass 2: group by sale # → one DB record per receipt ──
-  const saleGroups = {};
-  lineItems.forEach(li => {
-    if (!saleGroups[li.saleNum]) {
-      saleGroups[li.saleNum] = { date: li.date, items: [], totalAmount: 0, totalQty: 0, payment_type: li.payment_type };
-    }
-    const g = saleGroups[li.saleNum];
-    g.totalAmount += li.amount;
-    g.totalQty    += li.quantity;
-    g.items.push(li.quantity > 1 ? `${li.quantity}× ${li.item_name}` : li.item_name);
-  });
-
-  const records = Object.entries(saleGroups).map(([saleNum, g]) => ({
-    date:            g.date,
-    amount:          Math.round(g.totalAmount * 100) / 100,
-    item_name:       g.items.join(', '),
-    quantity:        g.totalQty,
-    unit_price:      null,
-    receipt_number:  'MAN-' + String(parseInt(saleNum)).padStart(3, '0'),
-    payment_type:    g.payment_type,
-    source:          'manual'
-  }));
-
-  const btn = document.querySelector('#modal-bulk-import .btn-green');
-  btn.textContent = 'Saving…';
-  btn.disabled = true;
-
-  const { error } = await db.from('sales').insert(records);
-  btn.textContent = '💾 Save All Sales';
-  btn.disabled = false;
-
-  if (error) { errEl.textContent = 'Error: ' + error.message; return; }
-
-  toast(`✅ ${records.length} sale${records.length !== 1 ? 's' : ''} imported!`, 'success');
-  closeBulkImport();
-  allSalesCache = null;
-  loadSales();
-}
-
-// Close bulk modal on overlay click
-document.getElementById('modal-bulk-import').addEventListener('click', e => {
-  if (e.target === document.getElementById('modal-bulk-import')) closeBulkImport();
-});
-
-// ─────────────────── INIT ───────────────────
-checkSession();
-</script>
-</body>
-</html>
+    } e
