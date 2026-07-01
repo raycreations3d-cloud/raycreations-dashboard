@@ -426,11 +426,11 @@
       <div class="chart-grid">
         <div class="chart-card">
           <h3>Sales vs Expenses — Last 6 Months</h3>
-          <div class="chart-wrap"><canvas id="chart-monthly" height="130"></canvas></div>
+          <div class="chart-wrap"><canvas id="chart-monthly" height="70"></canvas></div>
         </div>
         <div class="chart-card">
           <h3>Expenses by Category</h3>
-          <div class="chart-wrap"><canvas id="chart-categories" height="130"></canvas></div>
+          <div class="chart-wrap"><canvas id="chart-categories" height="70"></canvas></div>
         </div>
       </div>
 
@@ -453,8 +453,8 @@
       <!-- Filter bar -->
       <div class="filter-bar" id="sales-filter-bar">
         <button class="filter-btn" onclick="setSalesFilter('week',this)">This Week</button>
-        <button class="filter-btn active" onclick="setSalesFilter('month',this)">This Month</button>
-        <button class="filter-btn" onclick="setSalesFilter('quarter',this)">Last 3 Months</button>
+        <button class="filter-btn" onclick="setSalesFilter('month',this)">This Month</button>
+        <button class="filter-btn active" onclick="setSalesFilter('quarter',this)">Last 3 Months</button>
         <button class="filter-btn" onclick="setSalesFilter('year',this)">This Year</button>
         <button class="filter-btn" onclick="setSalesFilter('all',this)">All Time</button>
         <div class="custom-range">
@@ -493,7 +493,7 @@
 
       <div class="chart-card" style="margin-bottom:1.5rem">
         <h3 id="sales-chart-label">Sales Over Time</h3>
-        <div class="chart-wrap"><canvas id="chart-sales-line" height="100"></canvas></div>
+        <div class="chart-wrap"><canvas id="chart-sales-line" height="65"></canvas></div>
       </div>
 
       <!-- Top 5 grids -->
@@ -531,8 +531,8 @@
       <!-- Filter bar -->
       <div class="filter-bar" id="exp-filter-bar">
         <button class="filter-btn" onclick="setExpFilter('week',this)">This Week</button>
-        <button class="filter-btn active" onclick="setExpFilter('month',this)">This Month</button>
-        <button class="filter-btn" onclick="setExpFilter('quarter',this)">Last 3 Months</button>
+        <button class="filter-btn" onclick="setExpFilter('month',this)">This Month</button>
+        <button class="filter-btn active" onclick="setExpFilter('quarter',this)">Last 3 Months</button>
         <button class="filter-btn" onclick="setExpFilter('year',this)">This Year</button>
         <button class="filter-btn" onclick="setExpFilter('all',this)">All Time</button>
         <div class="custom-range">
@@ -565,7 +565,7 @@
 
       <div class="chart-card" style="margin-bottom:1.5rem">
         <h3 id="exp-chart-label">Expenses by Category</h3>
-        <div class="chart-wrap"><canvas id="chart-exp-bar" height="100"></canvas></div>
+        <div class="chart-wrap"><canvas id="chart-exp-bar" height="65"></canvas></div>
       </div>
 
       <div class="section-header">
@@ -1222,7 +1222,7 @@ async function loadOverview() {
 }
 
 // ─────────────────── SALES ───────────────────
-let salesFilter = 'month';
+let salesFilter = 'quarter';
 let allSalesCache = null;
 
 function getDateRange(filter, fromVal, toVal) {
@@ -1494,7 +1494,7 @@ function renderSales() {
 }
 
 // ─────────────────── EXPENSES ───────────────────
-let expFilter = 'month';
+let expFilter = 'quarter';
 let allExpCache = null;
 
 function setExpFilter(f, btn) {
@@ -2559,11 +2559,11 @@ function openBulkImport() {
   document.getElementById('bulk-row-count').textContent = '';
   // Start with 3 rows
   addBulkRow(); addBulkRow(); addBulkRow();
-  document.getElementById('modal-bulk-import').classList.add('active');
+  document.getElementById('modal-bulk-import').classList.add('open');
 }
 
 function closeBulkImport() {
-  document.getElementById('modal-bulk-import').classList.remove('active');
+  document.getElementById('modal-bulk-import').classList.remove('open');
 }
 
 function addBulkRow() {
