@@ -2557,8 +2557,7 @@ function openBulkImport() {
   document.getElementById('bulk-tbody').innerHTML = '';
   document.getElementById('bulk-error').textContent = '';
   document.getElementById('bulk-row-count').textContent = '';
-  // Start with 3 rows
-  addBulkRow(); addBulkRow(); addBulkRow();
+  addBulkRow();
   document.getElementById('modal-bulk-import').classList.add('open');
 }
 
@@ -2568,14 +2567,20 @@ function closeBulkImport() {
 
 function addBulkRow() {
   const idx  = _bulkRowCount++;
-  const today = new Date().toISOString().slice(0,10);
+  // Inherit date from last existing row if one has a date set
   const tbody = document.getElementById('bulk-tbody');
+  const existingRows = tbody.querySelectorAll('tr');
+  let inheritDate = '';
+  if (existingRows.length) {
+    const lastInputs = existingRows[existingRows.length - 1].querySelectorAll('input');
+    inheritDate = lastInputs[1]?.value || '';
+  }
   const tr = document.createElement('tr');
   tr.id = 'bulk-row-' + idx;
   tr.style.cssText = 'border-bottom:1px solid rgba(255,255,255,.04)';
   tr.innerHTML = `
     <td style="padding:.3rem .4rem"><input type="number" min="1" value="${Math.floor(idx/1)+1}" style="width:46px;background:var(--card);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:.25rem .35rem;font-size:.82rem;text-align:center"></td>
-    <td style="padding:.3rem .4rem"><input type="date" value="${today}" style="background:var(--card);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:.25rem .35rem;font-size:.82rem;width:112px"></td>
+    <td style="padding:.3rem .4rem"><input type="date" value="${inheritDate}" style="background:var(--card);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:.25rem .35rem;font-size:.82rem;width:112px"></td>
     <td style="padding:.3rem .4rem"><input type="number" min="0" step="0.01" placeholder="0.00" style="width:82px;background:var(--card);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:.25rem .35rem;font-size:.82rem;text-align:right"></td>
     <td style="padding:.3rem .4rem">${buildItemPicker(idx)}</td>
     <td style="padding:.3rem .4rem"><input type="number" min="1" value="1" style="width:40px;background:var(--card);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:.25rem .35rem;font-size:.82rem;text-align:center" oninput="onBulkQtyChange(this,${idx})"></td>
