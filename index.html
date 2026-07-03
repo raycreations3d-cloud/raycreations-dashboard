@@ -2450,7 +2450,7 @@ function renderInventory() {
   <td></td>
   <td onclick="event.stopPropagation()">
     <div style="display:flex;gap:.3rem;align-items:center">
-      <button class="btn btn-sm btn-outline" onclick="openEditVariantModal('${vid}')" title="Edit variant">✏️</button>
+      <button class="btn btn-sm btn-outline" onclick="openAddVariantModal('${loyId}','${safeName}','${safeCat}')" title="Add variant">✏️</button>
       <button class="btn btn-sm btn-outline" style="color:var(--red);border-color:var(--red)" onclick="deleteInvVariant('${vid}','${safeVLabel}')">✕</button>
     </div>
   </td>
@@ -2636,11 +2636,25 @@ async function submitInvVariant() {
 
   const fromSale = _invEditContext?.fromSale;
   const { loyverseId, itemName, catName } = _invEditContext;
-  const newVarId = 'mvar-' + Date.now();
-  const row = { variant_id: newVarId, loyverse_id: loyverseId,
-    item_name: itemName, category_name: catName, variant_name: varName, sku,
-    default_price: price, cost_price: cost };
-  const { error } = await db.from('loyverse_items').insert(row);
+
+  // If item has a single no-name row, UPDATE it (preserves cost/price) instead of inserting
+  const noNameRow = _invItems.find(r => r.loyverse_id === loyverseId && !r.variant_name);
+  const itemRows  = _invItems.filter(r => r.loyverse_id === loyverseId);
+  let error;
+  if (noNameRow && itemRows.length === 1) {
+    ({ error } = await db.from('loyverse_items').update({
+      variant_name:  varName,
+      default_price: price  ?? noNameRow.default_price,
+      cost_price:    cost   ?? noNameRow.cost_price,
+      sku:           sku    ?? noNameRow.sku
+    }).eq('variant_id', noNameRow.variant_id));
+  } else {
+    const newVarId = 'mvar-' + Date.now();
+    const row = { variant_id: newVarId, loyverse_id: loyverseId,
+      item_name: itemName, category_name: catName, variant_name: varName, sku,
+      default_price: price, cost_price: cost };
+    ({ error } = await db.from('loyverse_items').insert(row));
+  }
   if (error) { toast('Failed to add variant: ' + error.message, 'error'); return; }
   document.getElementById('modal-inv-variant').classList.remove('open');
   toast('Variant added — select it in the sale form', 'success');
