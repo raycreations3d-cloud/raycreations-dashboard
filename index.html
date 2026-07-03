@@ -2538,12 +2538,13 @@ async function submitInvItem() {
   let catName = catSel === '__new__'
     ? (document.getElementById('inv-f-newcat').value.trim() || null)
     : (catSel || null);
+  const cost        = parseFloat(document.getElementById('inv-f-cost').value) || null;
   const price       = parseFloat(document.getElementById('inv-f-price').value) || null;
   const sku         = document.getElementById('inv-f-sku').value.trim() || null;
   if (_invEditContext?.mode === 'edit-item') {
     const { loyverseId } = _invEditContext;
     const { error } = await db.from('loyverse_items').update({
-      item_name: name, category_name: catName
+      item_name: name, category_name: catName, cost_price: cost, default_price: price
     }).eq('loyverse_id', loyverseId);
     if (error) { toast('Failed to update: ' + error.message, 'error'); return; }
     document.getElementById('modal-inv-item').classList.remove('open');
