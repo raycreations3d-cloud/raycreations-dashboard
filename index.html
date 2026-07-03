@@ -942,7 +942,7 @@
     </div>
     <div class="form-group" style="margin-top:.75rem">
       <label>Variant Name <span style="color:var(--muted);font-weight:400">(optional — e.g. Red, Large)</span></label>
-      <input id="inv-f-variant" type="text" placeholder="Leave blank if no variants"
+      <input id="inv-f-variant" type="text" placeholder="e.g. Pink, White, Black  (comma-separated for multiple)"
         style="width:100%;padding:.65rem .9rem;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:.95rem;outline:none;">
     </div>
     <div style="display:flex;gap:.5rem;margin-top:1.25rem">
@@ -2292,7 +2292,7 @@ async function loadLoyverseItems() {
   try {
     const { data, error } = await db
       .from('loyverse_items')
-      .select('variant_id,loyverse_id,item_name,category_name,variant_name,default_price')
+      .select('variant_id,loyverse_id,item_name,category_name,variant_name,default_price,cost_price')
       .order('category_name', { ascending: true })
       .order('item_name',     { ascending: true });
     if (error) { console.warn('loyverse_items table not found or empty — run loyverse-sync.js first'); return; }
@@ -2516,6 +2516,7 @@ function openInvItemModal() {
   _invEditContext = { mode: 'create-item' };
   document.getElementById('inv-modal-title').textContent = 'Add Item';
   document.getElementById('inv-f-name').value    = '';
+  document.getElementById('inv-f-cost').value    = '';
   document.getElementById('inv-f-price').value   = '';
   document.getElementById('inv-f-sku').value     = '';
   document.getElementById('inv-f-variant').value = '';
@@ -2539,8 +2540,6 @@ async function submitInvItem() {
     : (catSel || null);
   const price       = parseFloat(document.getElementById('inv-f-price').value) || null;
   const sku         = document.getElementById('inv-f-sku').value.trim() || null;
-  const variantName = document.getElementById('inv-f-variant').value.trim() || null;
-
   if (_invEditContext?.mode === 'edit-item') {
     const { loyverseId } = _invEditContext;
     const { error } = await db.from('loyverse_items').update({
@@ -2553,15 +2552,25 @@ async function submitInvItem() {
     return;
   }
 
-  const loyverseId  = 'manual-' + Date.now();
-  const variantId   = 'mvar-' + Date.now();
-  const row = { variant_id: variantId, loyverse_id: loyverseId, item_name: name,
-    category_name: catName, variant_name: variantName, sku, default_price: price };
-  const { error } = await db.from('loyverse_items').insert(row);
+  const loyverseId = 'manual-' + Date.now();
+  // Split comma-separated variants into individual rows
+  const variantRaw = document.getElementById('inv-f-variant').value.trim();
+  const variantList = variantRaw ? variantRaw.split(',').map(v => v.trim()).filter(Boolean) : [null];
+  const rows = variantList.map((v, i) => ({
+    variant_id:    'mvar-' + Date.now() + '-' + i,
+    loyverse_id:   loyverseId,
+    item_name:     name,
+    category_name: catName,
+    variant_name:  v,
+    sku,
+    default_price: price,
+    cost_price:    cost
+  }));
+  const { error } = await db.from('loyverse_items').insert(rows);
   if (error) { toast('Failed to save: ' + error.message, 'error'); return; }
   document.getElementById('modal-inv-item').classList.remove('open');
-  toast('Item added', 'success');
-  await loadInventory();
+  toast(rows.length > 1 ? `Item added with ${rows.length} variants ✅` : 'Item added ✅', 'success');
+  await loadInventory(); await loadLoyverseItems();
 }
 
 function openEditInvItemModal(loyverseId) {
