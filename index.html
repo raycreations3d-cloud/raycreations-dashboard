@@ -669,17 +669,17 @@
         <div class="inv-cat-pills" id="inv-cat-pills"></div>
       </div>
       <div class="table-card">
-        <table id="inv-table">
+        <table id="inv-table" style="table-layout:fixed;width:100%">
           <thead>
             <tr>
-              <th style="width:28%">Item</th>
-              <th>Category</th>
-              <th>SKU</th>
-              <th>Cost Price</th>
-              <th>Sell Price</th>
-              <th>Margin</th>
-              <th>Variants</th>
-              <th></th>
+              <th style="width:26%">Item</th>
+              <th style="width:11%">Category</th>
+              <th style="width:8%">SKU</th>
+              <th style="width:12%">Cost Price</th>
+              <th style="width:12%">Sell Price</th>
+              <th style="width:8%">Margin</th>
+              <th style="width:7%">Variants</th>
+              <th style="width:16%"></th>
             </tr>
           </thead>
           <tbody id="inv-tbody">
@@ -904,7 +904,7 @@
 <div class="modal-overlay" id="modal-inv-item">
   <div class="modal">
     <div class="modal-header">
-      <h2 id="inv-modal-title">Add Item</h2>
+      <h2 id="inv-item-modal-title">Add Item</h2>
       <button class="modal-close" onclick="document.getElementById('modal-inv-item').classList.remove('open')">✕</button>
     </div>
     <div class="form-group">
@@ -940,7 +940,7 @@
       <input id="inv-f-sku" type="text" placeholder="Optional"
         style="width:100%;padding:.65rem .9rem;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:.95rem;outline:none;">
     </div>
-    <div class="form-group" style="margin-top:.75rem">
+    <div id="inv-f-variant-wrap" class="form-group" style="margin-top:.75rem">
       <label>Variant Name <span style="color:var(--muted);font-weight:400">(optional — e.g. Red, Large)</span></label>
       <input id="inv-f-variant" type="text" placeholder="e.g. Pink, White, Black  (comma-separated for multiple)"
         style="width:100%;padding:.65rem .9rem;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:.95rem;outline:none;">
@@ -985,7 +985,7 @@
         style="width:100%;padding:.65rem .9rem;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:.95rem;outline:none;">
     </div>
     <div style="display:flex;gap:.5rem;margin-top:1.25rem">
-      <button class="btn btn-primary" onclick="submitInvVariant()">Add Variant</button>
+      <button id="inv-var-submit-btn" class="btn btn-primary" onclick="submitInvVariant()">Add Variant</button>
       <button class="btn btn-outline" onclick="document.getElementById('modal-inv-variant').classList.remove('open')">Cancel</button>
     </div>
   </div>
@@ -2408,7 +2408,7 @@ function renderInventory() {
   <td>${hasVar ? `<span class="inv-count">${vCount}</span>` : '—'}</td>
   <td onclick="event.stopPropagation()">
     <div style="display:flex;gap:.3rem;align-items:center">
-      <button class="btn btn-sm btn-outline" onclick="openEditInvItemModal('${loyId}')" title="Edit item">✏️</button>
+      <button class="btn btn-sm btn-outline" onclick="openEditInvItemModal('${loyId}')" title="Edit Item">✏️</button>
       <button class="btn btn-sm btn-outline" onclick="openAddVariantModal('${loyId}','${safeName}','${safeCat}')" title="Add variant">＋</button>
       <button class="btn btn-sm btn-outline" style="color:var(--red);border-color:var(--red)" onclick="deleteInvItem('${loyId}','${safeName}')">✕</button>
     </div>
@@ -2450,7 +2450,7 @@ function renderInventory() {
   <td></td>
   <td onclick="event.stopPropagation()">
     <div style="display:flex;gap:.3rem;align-items:center">
-      <button class="btn btn-sm btn-outline" onclick="openAddVariantModal('${loyId}','${safeName}','${safeCat}')" title="Add variant">✏️</button>
+      <button class="btn btn-sm btn-outline" onclick="openEditVariantModal('${vid}')" title="Edit Variant">✏️</button>
       <button class="btn btn-sm btn-outline" style="color:var(--red);border-color:var(--red)" onclick="deleteInvVariant('${vid}','${safeVLabel}')">✕</button>
     </div>
   </td>
@@ -2514,12 +2514,13 @@ function _buildCatOptions(selectedVal = '') {
 
 function openInvItemModal() {
   _invEditContext = { mode: 'create-item' };
-  document.getElementById('inv-modal-title').textContent = 'Add Item';
+  document.getElementById('inv-item-modal-title').textContent = 'Add Item';
   document.getElementById('inv-f-name').value    = '';
   document.getElementById('inv-f-cost').value    = '';
   document.getElementById('inv-f-price').value   = '';
   document.getElementById('inv-f-sku').value     = '';
   document.getElementById('inv-f-variant').value = '';
+  document.getElementById('inv-f-variant-wrap').style.display = 'block';
   document.getElementById('inv-f-cat').innerHTML = _buildCatOptions();
   document.getElementById('inv-new-cat-wrap').style.display = 'none';
   document.getElementById('inv-f-newcat').value = '';
@@ -2579,7 +2580,7 @@ function openEditInvItemModal(loyverseId) {
   if (!rows.length) return;
   const first = rows[0];
   _invEditContext = { mode: 'edit-item', loyverseId };
-  document.getElementById('inv-modal-title').textContent = 'Edit Item';
+  document.getElementById('inv-item-modal-title').textContent = 'Edit Item';
   document.getElementById('inv-f-name').value    = first.item_name || '';
   document.getElementById('inv-f-cat').innerHTML = _buildCatOptions(first.category_name);
   document.getElementById('inv-new-cat-wrap').style.display = 'none';
@@ -2587,7 +2588,8 @@ function openEditInvItemModal(loyverseId) {
   // prices/sku from first variant (read-only context for item-level edit)
   document.getElementById('inv-f-price').value   = first.default_price ?? '';
   document.getElementById('inv-f-sku').value     = first.sku || '';
-  document.getElementById('inv-f-variant').value = rows.length === 1 ? (first.variant_name || '') : '';
+  document.getElementById('inv-f-cost').value    = first.cost_price ?? '';
+  document.getElementById('inv-f-variant-wrap').style.display = 'none';
   document.getElementById('modal-inv-item').classList.add('open');
 }
 
@@ -2596,10 +2598,17 @@ function openEditVariantModal(variantId) {
   if (!v) return;
   _invEditContext = { mode: 'edit-variant', variantId };
   document.getElementById('inv-var-modal-title').textContent = 'Edit Variant';
+  document.getElementById('inv-var-submit-btn').textContent  = 'Save Changes';
   document.getElementById('inv-var-modal-subtitle').textContent = v.item_name || '';
   document.getElementById('inv-fv-name').value  = v.variant_name || '';
-  document.getElementById('inv-fv-cost').value  = v.cost_price ?? '';
-  document.getElementById('inv-fv-price').value = v.default_price ?? '';
+  const costEl  = document.getElementById('inv-fv-cost');
+  const priceEl = document.getElementById('inv-fv-price');
+  costEl.value  = v.cost_price ?? '';
+  priceEl.value = v.default_price ?? '';
+  costEl.readOnly  = false;
+  priceEl.readOnly = false;
+  costEl.style.opacity  = '';
+  priceEl.style.opacity = '';
   document.getElementById('inv-fv-sku').value   = v.sku || '';
   document.getElementById('modal-inv-variant').classList.add('open');
 }
@@ -2607,11 +2616,20 @@ function openEditVariantModal(variantId) {
 function openAddVariantModal(loyverseId, itemName, catName) {
   _invEditContext = { mode: 'add-variant', loyverseId, itemName, catName };
   document.getElementById('inv-var-modal-title').textContent = 'Add Variant';
+  document.getElementById('inv-var-submit-btn').textContent  = 'Add Variant';
   document.getElementById('inv-var-modal-subtitle').textContent = itemName;
   document.getElementById('inv-fv-name').value  = '';
-  document.getElementById('inv-fv-cost').value  = '';
-  document.getElementById('inv-fv-price').value = '';
   document.getElementById('inv-fv-sku').value   = '';
+  // Pre-fill prices from existing item rows and lock them
+  const existingRow = _invItems.find(r => r.loyverse_id === loyverseId);
+  const costEl  = document.getElementById('inv-fv-cost');
+  const priceEl = document.getElementById('inv-fv-price');
+  costEl.value  = existingRow?.cost_price  ?? '';
+  priceEl.value = existingRow?.default_price ?? '';
+  costEl.readOnly  = true;
+  priceEl.readOnly = true;
+  costEl.style.opacity  = '0.5';
+  priceEl.style.opacity = '0.5';
   document.getElementById('modal-inv-variant').classList.add('open');
 }
 
