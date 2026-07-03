@@ -605,9 +605,27 @@
       </div>
 
       <!-- Expo cards grid -->
-      <div class="section-header" style="margin-bottom:.75rem">
+      <div class="section-header" style="margin-bottom:.6rem">
         <h2>All Expos</h2>
         <button class="btn btn-sm btn-outline" onclick="openExpoModal()">+ Add Expo</button>
+      </div>
+      <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;margin-bottom:1rem">
+        <div class="filter-bar" style="margin-bottom:0;gap:.35rem">
+          <button class="filter-btn active" id="expo-f-all"  onclick="setExpoFilter('all',this)">All</button>
+          <button class="filter-btn" id="expo-f-past"     onclick="setExpoFilter('past',this)">Past</button>
+          <button class="filter-btn" id="expo-f-live"     onclick="setExpoFilter('live',this)">Live</button>
+          <button class="filter-btn" id="expo-f-upcoming" onclick="setExpoFilter('upcoming',this)">Upcoming</button>
+        </div>
+        <div style="margin-left:auto;display:flex;align-items:center;gap:.4rem">
+          <span style="font-size:.8rem;color:var(--muted)">Sort:</span>
+          <select id="expo-sort" onchange="renderExpos()" style="background:var(--card);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:.28rem .5rem;font-size:.82rem;cursor:pointer">
+            <option value="date-desc">Date (Newest)</option>
+            <option value="date-asc">Date (Oldest)</option>
+            <option value="rev-desc">Revenue (High)</option>
+            <option value="rev-asc">Revenue (Low)</option>
+            <option value="name">Name (A–Z)</option>
+          </select>
+        </div>
       </div>
       <div id="expo-cards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:1rem;margin-bottom:1.5rem">
         <div style="color:var(--muted);padding:2rem;text-align:center">Loading...</div>
@@ -1580,6 +1598,14 @@ function renderExpenses() {
 
 // ─────────────────── EXPOS ───────────────────
 let _exposCache = null;
+let _expoFilter = 'all';
+
+function setExpoFilter(f, btn) {
+  _expoFilter = f;
+  document.querySelectorAll('[id^="expo-f-"]').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  renderExpos();
+}
 
 function openExpoModal(expo = null) {
   document.getElementById('expo-modal-title').textContent = expo ? 'Edit Expo' : 'Add Expo';
@@ -1661,12 +1687,30 @@ function renderExpos() {
   document.getElementById('expo-best-name').textContent      = best?.name || '—';
   document.getElementById('expo-best-rev').textContent       = best ? fmt(best.rev) : 'no sales yet';
 
+  // Filter + sort
+  const sortVal = document.getElementById('expo-sort')?.value || 'date-desc';
+  let display = enriched.filter(e => {
+    if (_expoFilter === 'past')     return e.isPast;
+    if (_expoFilter === 'live')     return e.isNow;
+    if (_expoFilter === 'upcoming') return !e.isPast && !e.isNow;
+    return true;
+  });
+  display.sort((a, b) => {
+    if (sortVal === 'date-desc') return b.date_from.localeCompare(a.date_from);
+    if (sortVal === 'date-asc')  return a.date_from.localeCompare(b.date_from);
+    if (sortVal === 'rev-desc')  return b.rev - a.rev;
+    if (sortVal === 'rev-asc')   return a.rev - b.rev;
+    if (sortVal === 'name')      return a.name.localeCompare(b.name);
+    return 0;
+  });
+
   // Cards
   const cardsEl = document.getElementById('expo-cards');
-  if (!enriched.length) {
-    cardsEl.innerHTML = `<div style="color:var(--muted);padding:3rem;text-align:center;grid-column:1/-1"><div style="font-size:2.5rem">🎪</div><div style="margin-top:.5rem">No expos yet — add your first one</div></div>`;
+  if (!display.length) {
+    const msg = _expoFilter !== 'all' ? `No ${_expoFilter} expos` : 'No expos yet — add your first one';
+    cardsEl.innerHTML = `<div style="color:var(--muted);padding:3rem;text-align:center;grid-column:1/-1"><div style="font-size:2.5rem">🎪</div><div style="margin-top:.5rem">${msg}</div></div>`;
   } else {
-    cardsEl.innerHTML = enriched.map(e => {
+    cardsEl.innerHTML = display.map(e => {
       const statusBadge = e.isNow
         ? `<span class="badge badge-green">Live Now</span>`
         : e.isPast
@@ -1700,10 +1744,11 @@ function renderExpos() {
 
   // Comparison table
   const tbody = document.getElementById('expo-table-body');
-  if (!enriched.length) {
-    tbody.innerHTML = `<tr><td colspan="7" class="empty-state">No expos yet</td></tr>`;
+  if (!display.length) {
+    const msg = _expoFilter !== 'all' ? `No ${_expoFilter} expos` : 'No expos yet';
+    tbody.innerHTML = `<tr><td colspan="7" class="empty-state">${msg}</td></tr>`;
   } else {
-    tbody.innerHTML = enriched.map(e => {
+    tbody.innerHTML = display.map(e => {
       const multiDay = e.date_from !== e.date_to;
       const dateStr  = multiDay ? `${fmtD(e.date_from)} → ${fmtD(e.date_to)}` : fmtD(e.date_from);
       return `<tr>
@@ -2587,7 +2632,7 @@ function addBulkRow() {
     <td style="padding:.3rem .4rem"><input type="number" min="0" step="0.01" placeholder="0.00" style="width:74px;background:var(--card);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:.25rem .35rem;font-size:.82rem;text-align:right" oninput="onBulkUnitChange(this,${idx})"></td>
     <td style="padding:.3rem .4rem">
       <select style="background:var(--card);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:.25rem .3rem;font-size:.78rem;width:72px">
-        <option>Cash</option><option>Card</option><option>Yoco</option><option>EFT</option><option>Other</option>
+        <option>Card</option><option>Cash</option><option>Yoco</option><option>EFT</option><option>Other</option>
       </select>
     </td>
     <td style="padding:.3rem .2rem;text-align:center"><button type="button" onclick="this.closest('tr').remove();updateBulkCount()" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:1rem;line-height:1">✕</button></td>`;
