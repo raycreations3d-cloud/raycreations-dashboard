@@ -43,7 +43,7 @@
     .form-group input {
       width: 100%; padding: .65rem .9rem; background: var(--input-bg);
       border: 1px solid var(--border); border-radius: 8px; color: var(--text);
-      font-size: .95rem; outline: none; transition: border-color .2s;
+      font-size: .95rem; outline: none; transition: border-color .2s; color-scheme: dark;
     }
     .form-group input:focus { border-color: var(--accent); }
     .btn {
@@ -241,21 +241,7 @@
     .inv-save-btn.dirty { opacity:1; }
     .inv-count { display:inline-block; padding:.15rem .5rem; border-radius:999px; font-size:.72rem;
       background:rgba(99,102,241,.15); color:var(--accent); font-weight:600; }
-    .inv-action-cell { display:flex; gap:.35rem; align-items:center; }
-    .inv-btn-del {
-      padding:.2rem .5rem; font-size:.72rem; border-radius:5px;
-      background:rgba(239,68,68,.12); color:var(--red); border:1px solid rgba(239,68,68,.25);
-      cursor:pointer; white-space:nowrap; opacity:0; transition:opacity .15s;
-    }
-    .inv-btn-add-var {
-      padding:.2rem .5rem; font-size:.72rem; border-radius:5px;
-      background:rgba(99,102,241,.12); color:var(--accent); border:1px solid rgba(99,102,241,.25);
-      cursor:pointer; white-space:nowrap; opacity:0; transition:opacity .15s;
-    }
-    tr:hover .inv-btn-del,
-    tr:hover .inv-btn-add-var { opacity:1; }
-    .inv-btn-del:hover { background:var(--red); color:#fff; }
-    .inv-btn-add-var:hover { background:var(--accent); color:#fff; }
+
 
     /* ── Modal / Form Drawer ── */
     .modal-overlay {
@@ -711,7 +697,7 @@
 <div class="modal-overlay" id="modal-sale">
   <div class="modal">
     <div class="modal-header">
-      <h2>Add Sale</h2>
+      <h2 id="sale-modal-title">Add Sale</h2>
       <button class="modal-close" onclick="closeModal('sale')">✕</button>
     </div>
     <div class="form-row">
@@ -726,7 +712,14 @@
     </div>
     <div class="form-group">
       <label>Item / Product Name</label>
-      <input type="text" id="sale-item" placeholder="e.g. Custom Keychain" />
+      <div style="display:flex;gap:.4rem;align-items:center;margin-bottom:.4rem">
+        <button type="button" id="sale-item-picker-btn" class="picker-btn" onclick="toggleSalePicker(event)" style="flex:1;min-width:0">
+          <span id="sale-item-picker-label">— pick from inventory —</span>
+          <span style="font-size:.6rem;flex-shrink:0">▾</span>
+        </button>
+        <button type="button" id="sale-create-var-btn" class="btn btn-sm btn-outline" style="display:none;white-space:nowrap;font-size:.78rem" onclick="openCreateVariantFromSale()">＋ New Variant</button>
+      </div>
+      <input type="text" id="sale-item" placeholder="Or type item name manually…" />
     </div>
     <div class="form-row">
       <div class="form-group">
@@ -741,6 +734,16 @@
     <div class="form-group">
       <label>Customer Name (optional)</label>
       <input type="text" id="sale-customer" placeholder="Walk-in / name" />
+    </div>
+    <div class="form-group">
+      <label>Payment Type</label>
+      <select id="sale-payment">
+        <option value="card">Card</option>
+        <option value="cash">Cash</option>
+        <option value="yoco">Yoco</option>
+        <option value="eft">EFT</option>
+        <option value="other">Other</option>
+      </select>
     </div>
     <div class="form-group">
       <label>Notes (optional)</label>
@@ -954,7 +957,7 @@
   <div class="modal">
     <div class="modal-header">
       <div>
-        <h2>Add Variant</h2>
+        <h2 id="inv-var-modal-title">Add Variant</h2>
         <div id="inv-var-modal-subtitle" style="font-size:.8rem;color:var(--muted);margin-top:.15rem"></div>
       </div>
       <button class="modal-close" onclick="document.getElementById('modal-inv-variant').classList.remove('open')">✕</button>
@@ -1249,6 +1252,7 @@ async function loadOverview() {
 let salesFilter = 'quarter';
 let salesItemFilter = null;
 let allSalesCache = null;
+let _editSaleId = null;
 
 function getDateRange(filter, fromVal, toVal) {
   const now = new Date();
@@ -1264,7 +1268,7 @@ function getDateRange(filter, fromVal, toVal) {
   }
   if (filter === 'quarter') {
     const start = new Date(now); start.setMonth(now.getMonth() - 2); start.setDate(1);
-    return { from: toISO(start), to: today, label: 'Last 3 Months', buckets: 'month' };
+    return { from: toISO(start), to: today, label: 'Last 3 Months', buckets: 'week' };
   }
   if (filter === 'year') {
     return { from: `${now.getFullYear()}-01-01`, to: today, label: `${now.getFullYear()}`, buckets: 'month' };
@@ -1470,6 +1474,28 @@ function renderSales() {
       data.push(sales.filter(r => r.date === iso).reduce((s,r)=>s+ +r.amount,0));
       cur.setDate(cur.getDate()+1);
     }
+  } else if (buckets === 'week') {
+    // weekly buckets — 7-day periods, label = start of week
+    const now2 = new Date();
+    const wStart = range.from ? new Date(range.from + 'T00:00:00') : new Date(now2 - 84*24*60*60*1000);
+    const wEnd   = range.to   ? new Date(range.to   + 'T00:00:00') : now2;
+    // align to Monday
+    const mondayOf = d => { const x = new Date(d); const day = x.getDay(); x.setDate(x.getDate() - (day === 0 ? 6 : day - 1)); return x; };
+    const cur2 = mondayOf(wStart);
+    while (cur2 <= wEnd) {
+      const ws = new Date(cur2);
+      const we = new Date(cur2); we.setDate(we.getDate() + 6);
+      const wsIso = `${ws.getFullYear()}-${String(ws.getMonth()+1).padStart(2,'0')}-${String(ws.getDate()).padStart(2,'0')}`;
+      const weIso = `${we.getFullYear()}-${String(we.getMonth()+1).padStart(2,'0')}-${String(we.getDate()).padStart(2,'0')}`;
+      // Label as "Jun 1–7" or "May 28–Jun 3" when spanning months
+      const sameMonth = ws.getMonth() === we.getMonth();
+      const wLabel = sameMonth
+        ? `${ws.toLocaleString('default',{month:'short'})} ${ws.getDate()}–${we.getDate()}`
+        : `${ws.toLocaleString('default',{day:'numeric',month:'short'})}–${we.toLocaleString('default',{day:'numeric',month:'short'})}`;
+      labels.push(wLabel);
+      data.push(sales.filter(r => r.date >= wsIso && r.date <= weIso).reduce((s,r)=>s+ +r.amount,0));
+      cur2.setDate(cur2.getDate() + 7);
+    }
   } else {
     // monthly buckets
     const monthSet = [];
@@ -1532,7 +1558,10 @@ function renderSales() {
       <td style="font-size:.78rem;color:var(--muted)">${r.receipt_number||'—'}</td>
       <td>${payBadge}</td>
       <td><span class="badge badge-blue">${r.source}</span></td>
-      <td><button class="btn btn-sm btn-outline" style="color:var(--red);border-color:var(--red)" onclick="event.stopPropagation();deleteRecord('sales','${r.id}',()=>{allSalesCache=null;loadSales();})">✕</button></td>
+      <td style="display:flex;gap:.3rem">
+        <button class="btn btn-sm btn-outline" onclick="event.stopPropagation();openEditSale('${r.id}')" title="Edit">✏️</button>
+        <button class="btn btn-sm btn-outline" style="color:var(--red);border-color:var(--red)" onclick="event.stopPropagation();deleteRecord('sales','${r.id}',()=>{allSalesCache=null;loadSales();})">✕</button>
+      </td>
     </tr>`;
     if (hasMulti) {
       lineItems.forEach((li, li_idx) => {
@@ -2097,6 +2126,12 @@ async function rejectInvoice(id) {
 function openModal(type) {
   const today = new Date().toISOString().split('T')[0];
   if (type === 'sale') {
+    _editSaleId = null;
+    _salePicker = null;
+    document.getElementById('sale-modal-title').textContent = 'Add Sale';
+    document.getElementById('sale-item-picker-label').textContent = '— pick from inventory —';
+    document.getElementById('sale-item-picker-btn').classList.remove('has-value');
+    document.getElementById('sale-create-var-btn').style.display = 'none';
     document.getElementById('sale-date').value = today;
     document.getElementById('sale-amount').value = '';
     document.getElementById('sale-item').value = '';
@@ -2104,6 +2139,7 @@ function openModal(type) {
     document.getElementById('sale-unit-price').value = '';
     document.getElementById('sale-customer').value = '';
     document.getElementById('sale-desc').value = '';
+    document.getElementById('sale-payment').value = 'card';
   } else {
     document.getElementById('exp-date').value = today;
     document.getElementById('exp-amount').value = '';
@@ -2125,17 +2161,80 @@ async function submitSale() {
   const unit_price = parseFloat(document.getElementById('sale-unit-price').value) || null;
   const customer   = document.getElementById('sale-customer').value.trim();
   const desc       = document.getElementById('sale-desc').value.trim();
+  const payment    = document.getElementById('sale-payment').value;
 
   if (!date || isNaN(amount) || amount <= 0) { toast('Please enter a date and valid amount', 'error'); return; }
 
-  const { error } = await db.from('sales').insert([{
-    date, amount, item_name: item_name||null, quantity, unit_price,
-    customer_name: customer||null, description: desc||null, source: 'manual'
-  }]);
+  let error;
+  if (_editSaleId) {
+    ({ error } = await db.from('sales').update({
+      date, amount, item_name: item_name||null, quantity, unit_price,
+      customer_name: customer||null, description: desc||null, payment_type: payment
+    }).eq('id', _editSaleId));
+  } else {
+    ({ error } = await db.from('sales').insert([{
+      date, amount, item_name: item_name||null, quantity, unit_price,
+      customer_name: customer||null, description: desc||null, payment_type: payment, source: 'manual'
+    }]));
+  }
   if (error) { toast('Error: ' + error.message, 'error'); return; }
-  toast('Sale saved! 💰', 'success');
+  toast(_editSaleId ? 'Sale updated! ✏️' : 'Sale saved! 💰', 'success');
   closeModal('sale');
   loadSales();
+}
+
+let _salePicker = null;
+
+function toggleSalePicker(e) {
+  e.stopPropagation();
+  const rowId = 'sale-modal';
+  if (_pickerActiveRow === rowId && _pickerDrop.style.display !== 'none') {
+    _pickerDrop.style.display = 'none'; _pickerActiveRow = null; return;
+  }
+  const btn  = document.getElementById('sale-item-picker-btn');
+  const rect = btn.getBoundingClientRect();
+  _pickerDrop.innerHTML  = _buildPickerContent(rowId);
+  _pickerDrop.style.left  = rect.left + 'px';
+  _pickerDrop.style.top   = (rect.bottom + 3) + 'px';
+  _pickerDrop.style.width = Math.max(rect.width, 280) + 'px';
+  _pickerDrop.style.display = 'block';
+  _pickerDrop.querySelector('.picker-search')?.focus();
+  _pickerActiveRow = rowId;
+}
+
+function openCreateVariantFromSale() {
+  if (!_salePicker) return;
+  const itemRow = _loyverseItems.find(r => r.item_name === _salePicker.itemName);
+  if (!itemRow) { toast('Item not found in inventory', 'error'); return; }
+  // Store flag so submitInvVariant knows to refresh sale picker after
+  _invEditContext = { mode: 'add-variant', loyverseId: itemRow.loyverse_id, itemName: itemRow.item_name, catName: itemRow.category_name || '', fromSale: true };
+  document.getElementById('inv-var-modal-title').textContent = 'Add Variant';
+  document.getElementById('inv-var-modal-subtitle').textContent = itemRow.item_name;
+  document.getElementById('inv-fv-name').value  = '';
+  document.getElementById('inv-fv-cost').value  = '';
+  document.getElementById('inv-fv-price').value = _salePicker.price != null ? _salePicker.price : '';
+  document.getElementById('inv-fv-sku').value   = '';
+  document.getElementById('modal-inv-variant').classList.add('open');
+}
+
+async function openEditSale(id) {
+  const r = (allSalesCache || []).find(x => x.id === id);
+  if (!r) { toast('Sale not found', 'error'); return; }
+  _editSaleId = id;
+  _salePicker = null;
+  document.getElementById('sale-modal-title').textContent = 'Edit Sale';
+  document.getElementById('sale-item-picker-label').textContent = r.item_name ? r.item_name : '— pick from inventory —';
+  if (r.item_name) document.getElementById('sale-item-picker-btn').classList.add('has-value');
+  document.getElementById('sale-create-var-btn').style.display = 'none';
+  document.getElementById('sale-date').value = r.date || '';
+  document.getElementById('sale-amount').value = r.amount || '';
+  document.getElementById('sale-item').value = r.item_name || '';
+  document.getElementById('sale-qty').value = r.quantity || 1;
+  document.getElementById('sale-unit-price').value = r.unit_price || '';
+  document.getElementById('sale-customer').value = r.customer_name || '';
+  document.getElementById('sale-desc').value = r.description || '';
+  document.getElementById('sale-payment').value = (r.payment_type || 'card').toLowerCase();
+  document.getElementById('modal-sale').classList.add('open');
 }
 
 async function submitExpense() {
@@ -2308,9 +2407,10 @@ function renderInventory() {
   <td>${marginBadge(avgSell, avgCost)}</td>
   <td>${hasVar ? `<span class="inv-count">${vCount}</span>` : '—'}</td>
   <td onclick="event.stopPropagation()">
-    <div class="inv-action-cell">
-      ${hasVar ? `<button class="inv-btn-add-var" onclick="openAddVariantModal('${loyId}','${safeName}','${safeCat}')">+ Variant</button>` : ''}
-      <button class="inv-btn-del" onclick="deleteInvItem('${loyId}','${safeName}')">Delete</button>
+    <div style="display:flex;gap:.3rem;align-items:center">
+      <button class="btn btn-sm btn-outline" onclick="openEditInvItemModal('${loyId}')" title="Edit item">✏️</button>
+      <button class="btn btn-sm btn-outline" onclick="openAddVariantModal('${loyId}','${safeName}','${safeCat}')" title="Add variant">＋</button>
+      <button class="btn btn-sm btn-outline" style="color:var(--red);border-color:var(--red)" onclick="deleteInvItem('${loyId}','${safeName}')">✕</button>
     </div>
   </td>
 </tr>`;
@@ -2349,7 +2449,10 @@ function renderInventory() {
   <td>${marginBadge(parseFloat(vPrice)||0, parseFloat(vCost)||0)}</td>
   <td></td>
   <td onclick="event.stopPropagation()">
-    <button class="inv-btn-del" onclick="deleteInvVariant('${vid}','${safeVLabel}')">Delete</button>
+    <div style="display:flex;gap:.3rem;align-items:center">
+      <button class="btn btn-sm btn-outline" onclick="openEditVariantModal('${vid}')" title="Edit variant">✏️</button>
+      <button class="btn btn-sm btn-outline" style="color:var(--red);border-color:var(--red)" onclick="deleteInvVariant('${vid}','${safeVLabel}')">✕</button>
+    </div>
   </td>
 </tr>`;
       });
@@ -2437,6 +2540,19 @@ async function submitInvItem() {
   const price       = parseFloat(document.getElementById('inv-f-price').value) || null;
   const sku         = document.getElementById('inv-f-sku').value.trim() || null;
   const variantName = document.getElementById('inv-f-variant').value.trim() || null;
+
+  if (_invEditContext?.mode === 'edit-item') {
+    const { loyverseId } = _invEditContext;
+    const { error } = await db.from('loyverse_items').update({
+      item_name: name, category_name: catName
+    }).eq('loyverse_id', loyverseId);
+    if (error) { toast('Failed to update: ' + error.message, 'error'); return; }
+    document.getElementById('modal-inv-item').classList.remove('open');
+    toast('Item updated ✏️', 'success');
+    await loadInventory();
+    return;
+  }
+
   const loyverseId  = 'manual-' + Date.now();
   const variantId   = 'mvar-' + Date.now();
   const row = { variant_id: variantId, loyverse_id: loyverseId, item_name: name,
@@ -2448,10 +2564,42 @@ async function submitInvItem() {
   await loadInventory();
 }
 
+function openEditInvItemModal(loyverseId) {
+  const rows = _invItems.filter(r => r.loyverse_id === loyverseId);
+  if (!rows.length) return;
+  const first = rows[0];
+  _invEditContext = { mode: 'edit-item', loyverseId };
+  document.getElementById('inv-modal-title').textContent = 'Edit Item';
+  document.getElementById('inv-f-name').value    = first.item_name || '';
+  document.getElementById('inv-f-cat').innerHTML = _buildCatOptions(first.category_name);
+  document.getElementById('inv-new-cat-wrap').style.display = 'none';
+  document.getElementById('inv-f-newcat').value  = '';
+  // prices/sku from first variant (read-only context for item-level edit)
+  document.getElementById('inv-f-price').value   = first.default_price ?? '';
+  document.getElementById('inv-f-sku').value     = first.sku || '';
+  document.getElementById('inv-f-variant').value = rows.length === 1 ? (first.variant_name || '') : '';
+  document.getElementById('modal-inv-item').classList.add('open');
+}
+
+function openEditVariantModal(variantId) {
+  const v = _invItems.find(r => r.variant_id === variantId);
+  if (!v) return;
+  _invEditContext = { mode: 'edit-variant', variantId };
+  document.getElementById('inv-var-modal-title').textContent = 'Edit Variant';
+  document.getElementById('inv-var-modal-subtitle').textContent = v.item_name || '';
+  document.getElementById('inv-fv-name').value  = v.variant_name || '';
+  document.getElementById('inv-fv-cost').value  = v.cost_price ?? '';
+  document.getElementById('inv-fv-price').value = v.default_price ?? '';
+  document.getElementById('inv-fv-sku').value   = v.sku || '';
+  document.getElementById('modal-inv-variant').classList.add('open');
+}
+
 function openAddVariantModal(loyverseId, itemName, catName) {
   _invEditContext = { mode: 'add-variant', loyverseId, itemName, catName };
+  document.getElementById('inv-var-modal-title').textContent = 'Add Variant';
   document.getElementById('inv-var-modal-subtitle').textContent = itemName;
   document.getElementById('inv-fv-name').value  = '';
+  document.getElementById('inv-fv-cost').value  = '';
   document.getElementById('inv-fv-price').value = '';
   document.getElementById('inv-fv-sku').value   = '';
   document.getElementById('modal-inv-variant').classList.add('open');
@@ -2461,15 +2609,36 @@ async function submitInvVariant() {
   const varName = document.getElementById('inv-fv-name').value.trim();
   if (!varName) { toast('Variant name is required', 'error'); return; }
   const price = parseFloat(document.getElementById('inv-fv-price').value) || null;
+  const cost  = parseFloat(document.getElementById('inv-fv-cost').value) || null;
   const sku   = document.getElementById('inv-fv-sku').value.trim() || null;
+
+  if (_invEditContext?.mode === 'edit-variant') {
+    const { variantId } = _invEditContext;
+    const { error } = await db.from('loyverse_items').update({
+      variant_name: varName, default_price: price, cost_price: cost, sku
+    }).eq('variant_id', variantId);
+    if (error) { toast('Failed to update: ' + error.message, 'error'); return; }
+    document.getElementById('modal-inv-variant').classList.remove('open');
+    toast('Variant updated ✏️', 'success');
+    await loadInventory(); await loadLoyverseItems();
+    return;
+  }
+
+  const fromSale = _invEditContext?.fromSale;
   const { loyverseId, itemName, catName } = _invEditContext;
-  const row = { variant_id: 'mvar-' + Date.now(), loyverse_id: loyverseId,
-    item_name: itemName, category_name: catName, variant_name: varName, sku, default_price: price };
+  const newVarId = 'mvar-' + Date.now();
+  const row = { variant_id: newVarId, loyverse_id: loyverseId,
+    item_name: itemName, category_name: catName, variant_name: varName, sku,
+    default_price: price, cost_price: cost };
   const { error } = await db.from('loyverse_items').insert(row);
   if (error) { toast('Failed to add variant: ' + error.message, 'error'); return; }
   document.getElementById('modal-inv-variant').classList.remove('open');
-  toast('Variant added', 'success');
-  await loadInventory();
+  toast('Variant added — select it in the sale form', 'success');
+  await loadInventory(); await loadLoyverseItems();
+  // If triggered from sale modal, hide "new variant" btn (variants now exist)
+  if (fromSale) {
+    document.getElementById('sale-create-var-btn').style.display = 'none';
+  }
 }
 
 async function deleteInvItem(loyverseId, itemName) {
@@ -2505,7 +2674,7 @@ function _catMap() {
     const cat = it.category_name || 'Uncategorised';
     if (!map[cat]) map[cat] = [];
     const label = it.variant_name ? `${it.item_name} — ${it.variant_name}` : it.item_name;
-    map[cat].push({ label, variantId: it.variant_id, name: it.item_name, price: it.default_price });
+    map[cat].push({ label, variantId: it.variant_id, name: it.item_name, price: it.default_price, variantName: it.variant_name });
   });
   return map;
 }
@@ -2542,7 +2711,7 @@ function _buildPickerContent(rowIdx) {
         const safeItem = itemName.replace(/"/g,'&quot;');
         const variantsHtml = opts.map(o => {
           const pr = o.price != null ? o.price : '';
-          return `<div class="picker-variant" data-row="${rowIdx}" data-variant="${o.variantId}" data-name="${safeItem}" data-label="${o.label.replace(/"/g,'&quot;')}" data-price="${pr}" onclick="selectPickerItemEl(this)">${o.variant_name || o.label}</div>`;
+          return `<div class="picker-variant" data-row="${rowIdx}" data-variant="${o.variantId}" data-name="${safeItem}" data-label="${o.label.replace(/"/g,'&quot;')}" data-price="${pr}" onclick="selectPickerItemEl(this)">${o.variantName || o.label}</div>`;
         }).join('');
         return `<div class="picker-sub">
           <div class="picker-item-header" onclick="togglePickerItem(event,this)">
@@ -2553,9 +2722,9 @@ function _buildPickerContent(rowIdx) {
       }).join('');
       return `<div class="picker-cat">
         <div class="picker-cat-header" onclick="togglePickerCat(this)">
-          <span class="picker-arrow">▶</span>${cat}
+          <span class="picker-arrow">▼</span>${cat}
         </div>
-        <div class="picker-cat-items" style="display:none">${itemsHtml}</div>
+        <div class="picker-cat-items" style="display:block">${itemsHtml}</div>
       </div>`;
     }).join('');
 }
@@ -2574,6 +2743,7 @@ function togglePicker(e, rowIdx) {
   _pickerDrop.style.top  = (rect.bottom + 3) + 'px';
   _pickerDrop.style.width = Math.max(rect.width, 260) + 'px';
   _pickerDrop.style.display = 'block';
+  _pickerDrop.querySelector('.picker-search')?.focus();
   _pickerActiveRow = rowIdx;
 }
 
@@ -2601,15 +2771,32 @@ function selectPickerItemEl(el) {
   const itemLabel = el.dataset.label;
   const price     = el.dataset.price !== '' ? parseFloat(el.dataset.price) : null;
 
-  _bulkSelections[rowIdx] = { variantId, itemName, label: itemLabel, price };
+  _pickerDrop.style.display = 'none';
+  _pickerActiveRow = null;
 
+  // ── Sale modal picker ──
+  if (rowIdx === 'sale-modal') {
+    _salePicker = { variantId, itemName, label: itemLabel, price };
+    document.getElementById('sale-item-picker-label').textContent = itemLabel;
+    document.getElementById('sale-item-picker-btn').classList.add('has-value');
+    document.getElementById('sale-item').value = itemLabel;
+    if (price != null) {
+      document.getElementById('sale-unit-price').value = price.toFixed(2);
+      const qty = parseInt(document.getElementById('sale-qty').value) || 1;
+      document.getElementById('sale-amount').value = (price * qty).toFixed(2);
+    }
+    // Show "＋ New Variant" only if this item has no named variants
+    const hasNamedVariant = _loyverseItems.some(r => r.item_name === itemName && r.variant_name);
+    document.getElementById('sale-create-var-btn').style.display = hasNamedVariant ? 'none' : '';
+    return;
+  }
+
+  // ── Bulk import picker ──
+  _bulkSelections[rowIdx] = { variantId, itemName, label: itemLabel, price };
   const btn = document.getElementById('picker-btn-' + rowIdx);
   const lbl = document.getElementById('picker-label-' + rowIdx);
   lbl.textContent = itemLabel;
   btn.classList.add('has-value');
-
-  _pickerDrop.style.display = 'none';
-  _pickerActiveRow = null;
 
   const row    = document.getElementById('bulk-row-' + rowIdx);
   const inputs = row.querySelectorAll('input');
