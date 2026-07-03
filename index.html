@@ -2379,7 +2379,7 @@ function renderInventory() {
   let html = '';
   items.forEach(([loyId, item], idx) => {
     const vCount   = item.variants.length;
-    const hasVar   = vCount > 1 || (vCount === 1 && item.variants[0].variant_name);
+    const hasVar   = !!(vCount > 1 || (vCount === 1 && item.variants[0].variant_name));
     const prices   = item.variants.map(v => v.default_price ?? 0);
     const costs    = item.variants.map(v => v.cost_price ?? 0);
     const minP = Math.min(...prices), maxP = Math.max(...prices);
