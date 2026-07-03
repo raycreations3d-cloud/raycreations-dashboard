@@ -464,6 +464,12 @@
         </div>
       </div>
 
+      <!-- Item filter banner -->
+      <div id="sales-item-banner" style="display:none;background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.3);border-radius:8px;padding:.5rem .85rem;margin-bottom:.75rem;font-size:.85rem;display:none;align-items:center;gap:.6rem">
+        <span>🔍 Filtered by item:</span>
+        <strong id="sales-item-banner-name" style="color:var(--accent)"></strong>
+        <button onclick="clearSalesItemFilter()" style="margin-left:auto;background:none;border:1px solid var(--border);border-radius:6px;color:var(--muted);padding:.15rem .5rem;cursor:pointer;font-size:.78rem">✕ Clear</button>
+      </div>
       <!-- Summary strip -->
       <div class="summary-strip" id="sales-summary-strip"></div>
 
@@ -1241,6 +1247,7 @@ async function loadOverview() {
 
 // ─────────────────── SALES ───────────────────
 let salesFilter = 'quarter';
+let salesItemFilter = null;
 let allSalesCache = null;
 
 function getDateRange(filter, fromVal, toVal) {
@@ -1279,6 +1286,16 @@ function setSalesFilter(f, btn) {
   renderSales();
 }
 
+function setSalesItemFilter(name) {
+  // Toggle: clicking the same item clears the filter
+  salesItemFilter = (salesItemFilter === name) ? null : name;
+  renderSales();
+}
+function clearSalesItemFilter() {
+  salesItemFilter = null;
+  renderSales();
+}
+
 function setSalesCustomRange() {
   const from = document.getElementById('sales-from').value;
   const to   = document.getElementById('sales-to').value;
@@ -1303,9 +1320,26 @@ function renderSales() {
   const range = getDateRange(salesFilter, customFrom, customTo);
 
   // Filter by date range
-  const sales = range.from
+  const dateFiltered = range.from
     ? all.filter(r => r.date >= range.from && (!range.to || r.date <= range.to))
     : all;
+
+  // Filter by item (drill-down)
+  const sales = salesItemFilter
+    ? dateFiltered.filter(r => {
+        const items = parseSaleItems(r.item_name);
+        return items.some(li => li.name.replace(/^\d+[×x]\s*/,'').trim().toLowerCase() === salesItemFilter.toLowerCase())
+          || (r.item_name || '').toLowerCase().includes(salesItemFilter.toLowerCase());
+      })
+    : dateFiltered;
+
+  // Show/hide item banner
+  const banner = document.getElementById('sales-item-banner');
+  if (banner) {
+    banner.style.display = salesItemFilter ? 'flex' : 'none';
+    const nameEl = document.getElementById('sales-item-banner-name');
+    if (nameEl) nameEl.textContent = salesItemFilter || '';
+  }
 
   const total = sales.reduce((s,r) => s + +r.amount, 0);
   const avg   = sales.length ? total / sales.length : 0;
@@ -1347,13 +1381,16 @@ function renderSales() {
   });
   const topItems = Object.entries(byItemFull).sort((a,b) => b[1].rev - a[1].rev).slice(0,5);
   const maxItemRev = topItems[0]?.[1].rev || 1;
-  document.getElementById('top-items-list').innerHTML = topItems.length ? topItems.map(([name, d], i) => `
-    <div class="top5-row">
+  document.getElementById('top-items-list').innerHTML = topItems.length ? topItems.map(([name, d], i) => {
+    const isActive = salesItemFilter && salesItemFilter.toLowerCase() === name.toLowerCase();
+    const safeName = name.replace(/'/g, "\'");
+    return `<div class="top5-row" onclick="setSalesItemFilter('${safeName}')" style="cursor:pointer;border-radius:6px;padding:.2rem .3rem;margin:0 -.3rem;transition:background .15s;${isActive ? 'background:rgba(99,102,241,.18);outline:1px solid rgba(99,102,241,.4);' : ''}">
       <span class="top5-rank">${i+1}</span>
-      <span class="top5-name" title="${name}">${name}</span>
+      <span class="top5-name" title="${name}" style="${isActive ? 'color:var(--accent);font-weight:600' : ''}">${name}</span>
       <div class="top5-bar-wrap"><div class="top5-bar" style="width:${(d.rev/maxItemRev*100).toFixed(1)}%;background:${COLOURS[i]}"></div></div>
       <span class="top5-val">${fmt(d.rev)}</span>
-    </div>`).join('') : '<div style="color:var(--muted);font-size:.85rem">No data</div>';
+    </div>`;
+  }).join('') : '<div style="color:var(--muted);font-size:.85rem">No data</div>';
 
   // ── Top 5 Colours ──
   // Build a lookup: item_name (lowercase) → [variant_names] from loyverse_items
