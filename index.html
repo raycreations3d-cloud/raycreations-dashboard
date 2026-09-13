@@ -146,6 +146,8 @@
     .badge-yellow { background: rgba(245,158,11,.15); color: var(--yellow); }
     .badge-blue   { background: rgba(99,102,241,.15); color: var(--accent); }
     .badge-cyan   { background: rgba(34,211,238,.15); color: var(--accent2); }
+    .badge-purple { background: rgba(168,85,247,.15); color: #a855f7; }
+    .badge-orange { background: rgba(249,115,22,.15); color: #f97316; }
     .empty-state { text-align: center; padding: 3rem 1rem; color: var(--muted); }
     .empty-state .icon { font-size: 2.5rem; margin-bottom: .75rem; }
 
@@ -517,9 +519,17 @@
         </div>
       </div>
 
-      <div class="section-header" style="align-items:center">
-        <h2>Transactions <span id="sales-row-count" style="color:var(--muted);font-size:.85rem;font-weight:400"></span></h2>
-        <div style="display:flex;gap:.4rem;margin-left:auto">
+      <div class="section-header" style="align-items:center;flex-wrap:wrap;gap:.5rem">
+        <h2 style="margin:0">Transactions <span id="sales-row-count" style="color:var(--muted);font-size:.85rem;font-weight:400"></span></h2>
+        <div style="display:flex;gap:.4rem;align-items:center;margin-left:auto;flex-wrap:wrap">
+          <div style="position:relative;display:flex;align-items:center">
+            <span style="position:absolute;left:.5rem;color:var(--muted);pointer-events:none;font-size:.85rem">🔍</span>
+            <input id="sales-search" type="text" placeholder="Search items, customer, payment…"
+              style="padding:.3rem .6rem .3rem 1.8rem;font-size:.82rem;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--text);width:220px"
+              oninput="setSalesSearch(this.value)" />
+            <button id="sales-search-clear" onclick="clearSalesSearch()" title="Clear"
+              style="display:none;position:absolute;right:.4rem;background:none;border:none;color:var(--muted);cursor:pointer;font-size:.85rem;line-height:1;padding:0">✕</button>
+          </div>
           <button class="btn btn-sm sales-view-btn active" data-mode="transactions" onclick="setSalesViewMode('transactions')">By Transaction</button>
           <button class="btn btn-sm sales-view-btn" data-mode="by-item" onclick="setSalesViewMode('by-item')">By Item</button>
         </div>
@@ -751,7 +761,7 @@
 
 <!-- Add Sale Modal -->
 <div class="modal-overlay" id="modal-sale">
-  <div class="modal">
+  <div class="modal" style="max-width:580px">
     <div class="modal-header">
       <h2 id="sale-modal-title">Add Sale</h2>
       <button class="modal-close" onclick="closeModal('sale')">✕</button>
@@ -762,44 +772,38 @@
         <input type="date" id="sale-date" />
       </div>
       <div class="form-group">
-        <label>Total Amount (R)</label>
-        <input type="number" id="sale-amount" placeholder="0.00" step="0.01" min="0" />
+        <label>Payment Type</label>
+        <select id="sale-payment">
+          <option value="card">Card</option>
+          <option value="cash">Cash</option>
+          <option value="yoco">Yoco</option>
+          <option value="eft">EFT</option>
+          <option value="other">Other</option>
+        </select>
       </div>
     </div>
     <div class="form-group">
-      <label>Item / Product Name</label>
-      <div style="display:flex;gap:.4rem;align-items:center;margin-bottom:.4rem">
-        <button type="button" id="sale-item-picker-btn" class="picker-btn" onclick="toggleSalePicker(event)" style="flex:1;min-width:0">
-          <span id="sale-item-picker-label">— pick from inventory —</span>
-          <span style="font-size:.6rem;flex-shrink:0">▾</span>
-        </button>
-        <button type="button" id="sale-create-var-btn" class="btn btn-sm btn-outline" style="display:none;white-space:nowrap;font-size:.78rem" onclick="openCreateVariantFromSale()">＋ New Variant</button>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.4rem">
+        <label style="margin:0">Items</label>
+        <button type="button" class="btn btn-sm btn-outline" onclick="addSaleLineItem()">＋ Add Item</button>
       </div>
-      <input type="text" id="sale-item" placeholder="Or type item name manually…" />
+      <div style="display:grid;grid-template-columns:1fr 54px 82px 70px 26px;gap:.35rem;padding:0 .1rem;margin-bottom:.2rem">
+        <span style="font-size:.7rem;color:var(--muted)">Item</span>
+        <span style="font-size:.7rem;color:var(--muted)">Qty</span>
+        <span style="font-size:.7rem;color:var(--muted)">Price (R)</span>
+        <span style="font-size:.7rem;color:var(--muted)">Subtotal</span>
+        <span></span>
+      </div>
+      <div id="sale-line-items"></div>
     </div>
-    <div class="form-row">
-      <div class="form-group">
-        <label>Quantity</label>
-        <input type="number" id="sale-qty" placeholder="1" min="1" value="1" />
-      </div>
-      <div class="form-group">
-        <label>Unit Price (R)</label>
-        <input type="number" id="sale-unit-price" placeholder="0.00" step="0.01" min="0" />
-      </div>
+    <div class="form-group">
+      <label>Total Amount (R) <span id="sale-total-hint" style="color:var(--muted);font-size:.76rem;font-weight:400"></span></label>
+      <input type="number" id="sale-amount" placeholder="0.00" step="0.01" min="0"
+        oninput="document.getElementById('sale-total-hint').textContent='(manual override)'" />
     </div>
     <div class="form-group">
       <label>Customer Name (optional)</label>
       <input type="text" id="sale-customer" placeholder="Walk-in / name" />
-    </div>
-    <div class="form-group">
-      <label>Payment Type</label>
-      <select id="sale-payment">
-        <option value="card">Card</option>
-        <option value="cash">Cash</option>
-        <option value="yoco">Yoco</option>
-        <option value="eft">EFT</option>
-        <option value="other">Other</option>
-      </select>
     </div>
     <div class="form-group">
       <label>Notes (optional)</label>
@@ -1330,10 +1334,27 @@ async function loadOverview() {
 // ─────────────────── SALES ───────────────────
 let salesFilter = 'quarter';
 let salesItemFilter = null;
+let salesSearch = '';
 let allSalesCache = null;
 let _editSaleId = null;
-let salesSort = { field: 'date', dir: 'desc' };
+let salesSort = { field: 'created_at', dir: 'desc' };
 let salesViewMode = 'transactions'; // 'transactions' | 'by-item'
+
+function setSalesSearch(val) {
+  salesSearch = val.trim();
+  const clearBtn = document.getElementById('sales-search-clear');
+  if (clearBtn) clearBtn.style.display = salesSearch ? 'block' : 'none';
+  renderSales();
+}
+
+function clearSalesSearch() {
+  salesSearch = '';
+  const inp = document.getElementById('sales-search');
+  if (inp) inp.value = '';
+  const clearBtn = document.getElementById('sales-search-clear');
+  if (clearBtn) clearBtn.style.display = 'none';
+  renderSales();
+}
 
 function setSalesViewMode(mode) {
   salesViewMode = mode;
@@ -1443,20 +1464,16 @@ function setSalesSort(field) {
     salesSort.dir = salesSort.dir === 'asc' ? 'desc' : 'asc';
   } else {
     salesSort.field = field;
-    salesSort.dir = (field === 'amount' || field === 'date') ? 'desc' : 'asc';
+    salesSort.dir = (field === 'amount' || field === 'created_at') ? 'desc' : 'asc';
   }
   renderSales();
 }
 
 function _updateSalesSortIndicators() {
-  ['date','quantity','amount','payment_type','source'].forEach(f => {
+  ['created_at','quantity','amount','payment_type','source'].forEach(f => {
     const el = document.getElementById('ssort-' + f);
     if (!el) return;
-    if (salesSort.field === f) {
-      el.textContent = salesSort.dir === 'desc' ? '▼' : '▲';
-    } else {
-      el.textContent = '';
-    }
+    el.textContent = salesSort.field === f ? (salesSort.dir === 'desc' ? '▼' : '▲') : '';
   });
 }
 
@@ -1544,8 +1561,24 @@ function renderSales() {
       })
     : dateFiltered;
 
+  // Filter by search query
+  const searchFiltered = salesSearch
+    ? (() => {
+        const q = salesSearch.toLowerCase();
+        return itemFiltered.filter(r =>
+          (r.item_name      || '').toLowerCase().includes(q) ||
+          (r.customer_name  || '').toLowerCase().includes(q) ||
+          (r.payment_type   || '').toLowerCase().includes(q) ||
+          (r.source         || '').toLowerCase().includes(q) ||
+          (r.description    || '').toLowerCase().includes(q) ||
+          (r.date           || '').includes(q) ||
+          String(r.amount   || '').includes(q)
+        );
+      })()
+    : itemFiltered;
+
   // Sort
-  const sales = [...itemFiltered].sort((a, b) => {
+  const sales = [...searchFiltered].sort((a, b) => {
     const { field, dir } = salesSort;
     let va = a[field] ?? '';
     let vb = b[field] ?? '';
@@ -1812,7 +1845,7 @@ function renderSales() {
 
   // Restore transaction-mode thead (in case we switched back from grouped)
   document.getElementById('sales-thead').innerHTML = `<tr>
-    <th class="sortable-th" onclick="setSalesSort('date')">Date <span class="sort-ind" id="ssort-date"></span></th>
+    <th class="sortable-th" onclick="setSalesSort('created_at')">Date <span class="sort-ind" id="ssort-created_at"></span></th>
     <th>Item</th>
     <th class="sortable-th" onclick="setSalesSort('quantity')">Qty <span class="sort-ind" id="ssort-quantity"></span></th>
     <th class="sortable-th" onclick="setSalesSort('amount')">Total <span class="sort-ind" id="ssort-amount"></span></th>
@@ -1828,11 +1861,14 @@ function renderSales() {
 
   // Table
   document.getElementById('sales-tbody').innerHTML = sales.length ? sales.map((r, idx) => {
-    const payBadge = r.payment_type === 'card'
-      ? '<span class="badge badge-blue">💳 Card</span>'
-      : r.payment_type === 'cash'
-        ? '<span class="badge badge-green">💵 Cash</span>'
-        : '—';
+    const _pt = (r.payment_type || '').toLowerCase().trim();
+    const payBadge = _pt === 'card'  ? '<span class="badge badge-blue">💳 Card</span>'
+      : _pt === 'cash'   ? '<span class="badge badge-green">💵 Cash</span>'
+      : _pt === 'yoco'   ? '<span class="badge badge-purple">📱 Yoco</span>'
+      : _pt === 'eft'    ? '<span class="badge badge-orange">🏦 EFT</span>'
+      : _pt === 'other'  ? '<span class="badge">Other</span>'
+      : _pt              ? `<span class="badge">${r.payment_type}</span>`
+      : '—';
     const expo = expoList.find(e => r.date >= e.date_from && r.date <= e.date_to);
     const expoBadge = expo ? `<span class="badge" style="background:rgba(168,85,247,.18);color:#c084fc;font-size:.72rem">🎪 ${expo.name}</span>` : '';
     const lineItems  = parseSaleItems(r.item_name);
@@ -2513,23 +2549,127 @@ async function rejectInvoice(id) {
 }
 
 // ─────────────────── CRUD ───────────────────
+
+// ── Sale line-item state ──────────────────────────────────────
+let _saleLineItems = [];   // [{ label, itemName, variantId, price, qty }]
+let _saleLineCount = 0;    // ever-incrementing row id
+
+function _saleRowId(idx) { return 'sale-li-' + idx; }
+
+function addSaleLineItem(prefill) {
+  const idx = _saleLineCount++;
+  _saleLineItems.push({ idx, label: '', itemName: '', variantId: null, price: null, qty: 1, ...prefill });
+  _renderSaleLineItems();
+  return idx;
+}
+
+function removeSaleLineItem(idx) {
+  _saleLineItems = _saleLineItems.filter(r => r.idx !== idx);
+  _renderSaleLineItems();
+  _recalcSaleTotal();
+}
+
+function _renderSaleLineItems() {
+  const container = document.getElementById('sale-line-items');
+  if (!container) return;
+  if (_saleLineItems.length === 0) {
+    container.innerHTML = '<div style="color:var(--muted);font-size:.8rem;padding:.4rem .1rem">No items yet — click ＋ Add Item</div>';
+    return;
+  }
+  container.innerHTML = _saleLineItems.map(row => {
+    const sub = row.price != null ? (row.price * row.qty).toFixed(2) : '';
+    const pickerLabel = row.label || '— pick item —';
+    const hasVal = row.label ? ' has-value' : '';
+    return `<div id="sli-row-${row.idx}" style="display:grid;grid-template-columns:1fr 54px 82px 70px 26px;gap:.35rem;align-items:center;margin-bottom:.3rem">
+      <button type="button" class="picker-btn${hasVal}" id="sli-pbtn-${row.idx}" onclick="toggleSaleLinePicker(event,${row.idx})" style="min-width:0;font-size:.78rem;padding:.22rem .4rem">
+        <span id="sli-plabel-${row.idx}" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${pickerLabel}</span>
+        <span style="font-size:.6rem;flex-shrink:0">▾</span>
+      </button>
+      <input type="number" id="sli-qty-${row.idx}" value="${row.qty}" min="1" step="1"
+        style="width:100%;padding:.22rem .3rem;font-size:.82rem"
+        oninput="onSaleLineQtyChange(${row.idx})" />
+      <input type="number" id="sli-price-${row.idx}" value="${row.price != null ? row.price.toFixed(2) : ''}" min="0" step="0.01" placeholder="0.00"
+        style="width:100%;padding:.22rem .3rem;font-size:.82rem"
+        oninput="onSaleLinePriceChange(${row.idx})" />
+      <span id="sli-sub-${row.idx}" style="font-size:.8rem;color:var(--muted);text-align:right">${sub ? 'R'+sub : ''}</span>
+      <button type="button" onclick="removeSaleLineItem(${row.idx})" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:.9rem;padding:0;line-height:1" title="Remove">✕</button>
+    </div>`;
+  }).join('');
+}
+
+function onSaleLineQtyChange(idx) {
+  const row = _saleLineItems.find(r => r.idx === idx);
+  if (!row) return;
+  row.qty = parseInt(document.getElementById('sli-qty-' + idx)?.value) || 1;
+  const sub = row.price != null ? (row.price * row.qty).toFixed(2) : '';
+  const subEl = document.getElementById('sli-sub-' + idx);
+  if (subEl) subEl.textContent = sub ? 'R' + sub : '';
+  _recalcSaleTotal();
+}
+
+function onSaleLinePriceChange(idx) {
+  const row = _saleLineItems.find(r => r.idx === idx);
+  if (!row) return;
+  const val = parseFloat(document.getElementById('sli-price-' + idx)?.value);
+  row.price = isNaN(val) ? null : val;
+  const sub = row.price != null ? (row.price * row.qty).toFixed(2) : '';
+  const subEl = document.getElementById('sli-sub-' + idx);
+  if (subEl) subEl.textContent = sub ? 'R' + sub : '';
+  _recalcSaleTotal();
+}
+
+function _recalcSaleTotal() {
+  const allHavePrice = _saleLineItems.every(r => r.price != null);
+  if (!allHavePrice) return; // don't override a manually entered total
+  const total = _saleLineItems.reduce((s, r) => s + (r.price ?? 0) * r.qty, 0);
+  const amtEl = document.getElementById('sale-amount');
+  if (amtEl) { amtEl.value = total.toFixed(2); }
+  const hint = document.getElementById('sale-total-hint');
+  if (hint) hint.textContent = '(auto-calculated)';
+}
+
+function _encodeSaleItemName() {
+  // Build "2× ItemName@130.00, 1× OtherItem@100.00" format
+  return _saleLineItems.map(r => {
+    const name = r.label || r.itemName || 'Unknown';
+    const priceStr = r.price != null ? '@' + r.price.toFixed(2) : '';
+    return `${r.qty}× ${name}${priceStr}`;
+  }).join(', ');
+}
+
+function toggleSaleLinePicker(e, idx) {
+  e.stopPropagation();
+  const rowId = _saleRowId(idx);
+  if (_pickerActiveRow === rowId && _pickerDrop.style.display !== 'none') {
+    _pickerDrop.style.display = 'none'; _pickerActiveRow = null; return;
+  }
+  const btn  = document.getElementById('sli-pbtn-' + idx);
+  const rect = btn.getBoundingClientRect();
+  _pickerDrop.innerHTML  = _buildPickerContent(rowId);
+  _pickerDrop.style.left  = rect.left + 'px';
+  _pickerDrop.style.top   = (rect.bottom + 3) + 'px';
+  _pickerDrop.style.width = Math.max(rect.width, 260) + 'px';
+  _pickerDrop.style.display = 'block';
+  _pickerDrop.querySelector('.picker-search')?.focus();
+  _pickerActiveRow = rowId;
+}
+
 function openModal(type) {
   const today = new Date().toISOString().split('T')[0];
   if (type === 'sale') {
     _editSaleId = null;
-    _salePicker = null;
+    _saleLineItems = [];
+    _saleLineCount = 0;
     document.getElementById('sale-modal-title').textContent = 'Add Sale';
-    document.getElementById('sale-item-picker-label').textContent = '— pick from inventory —';
-    document.getElementById('sale-item-picker-btn').classList.remove('has-value');
-    document.getElementById('sale-create-var-btn').style.display = 'none';
     document.getElementById('sale-date').value = today;
     document.getElementById('sale-amount').value = '';
-    document.getElementById('sale-item').value = '';
-    document.getElementById('sale-qty').value = '1';
-    document.getElementById('sale-unit-price').value = '';
     document.getElementById('sale-customer').value = '';
     document.getElementById('sale-desc').value = '';
     document.getElementById('sale-payment').value = 'card';
+    const hint = document.getElementById('sale-total-hint');
+    if (hint) hint.textContent = '';
+    // Start with one empty line item
+    addSaleLineItem();
   } else {
     document.getElementById('exp-date').value = today;
     document.getElementById('exp-amount').value = '';
@@ -2544,16 +2684,31 @@ function closeModal(type) {
 }
 
 async function submitSale() {
-  const date       = document.getElementById('sale-date').value;
-  const amount     = parseFloat(document.getElementById('sale-amount').value);
-  const item_name  = document.getElementById('sale-item').value.trim();
-  const quantity   = parseInt(document.getElementById('sale-qty').value) || 1;
-  const unit_price = parseFloat(document.getElementById('sale-unit-price').value) || null;
-  const customer   = document.getElementById('sale-customer').value.trim();
-  const desc       = document.getElementById('sale-desc').value.trim();
-  const payment    = document.getElementById('sale-payment').value;
+  const date     = document.getElementById('sale-date').value;
+  const customer = document.getElementById('sale-customer').value.trim();
+  const desc     = document.getElementById('sale-desc').value.trim();
+  const payment  = document.getElementById('sale-payment').value;
+  const amtRaw   = parseFloat(document.getElementById('sale-amount').value);
 
-  if (!date || isNaN(amount) || amount <= 0) { toast('Please enter a date and valid amount', 'error'); return; }
+  if (!date) { toast('Please enter a date', 'error'); return; }
+  if (_saleLineItems.length === 0) { toast('Add at least one item', 'error'); return; }
+
+  // Build item_name string from line items
+  const item_name = _encodeSaleItemName();
+
+  // Total: use auto-calc if all prices known, else use manual field
+  let amount = amtRaw;
+  const allHavePrice = _saleLineItems.every(r => r.price != null);
+  if (allHavePrice) {
+    amount = _saleLineItems.reduce((s, r) => s + r.price * r.qty, 0);
+  }
+  if (isNaN(amount) || amount <= 0) { toast('Please enter a valid total amount', 'error'); return; }
+
+  // quantity = total units across all line items
+  const quantity = _saleLineItems.reduce((s, r) => s + r.qty, 0);
+  // unit_price: only meaningful if single line item
+  const unit_price = _saleLineItems.length === 1 && _saleLineItems[0].price != null
+    ? _saleLineItems[0].price : null;
 
   let error;
   if (_editSaleId) {
@@ -2573,57 +2728,33 @@ async function submitSale() {
   loadSales();
 }
 
-let _salePicker = null;
-
-function toggleSalePicker(e) {
-  e.stopPropagation();
-  const rowId = 'sale-modal';
-  if (_pickerActiveRow === rowId && _pickerDrop.style.display !== 'none') {
-    _pickerDrop.style.display = 'none'; _pickerActiveRow = null; return;
-  }
-  const btn  = document.getElementById('sale-item-picker-btn');
-  const rect = btn.getBoundingClientRect();
-  _pickerDrop.innerHTML  = _buildPickerContent(rowId);
-  _pickerDrop.style.left  = rect.left + 'px';
-  _pickerDrop.style.top   = (rect.bottom + 3) + 'px';
-  _pickerDrop.style.width = Math.max(rect.width, 280) + 'px';
-  _pickerDrop.style.display = 'block';
-  _pickerDrop.querySelector('.picker-search')?.focus();
-  _pickerActiveRow = rowId;
-}
-
-function openCreateVariantFromSale() {
-  if (!_salePicker) return;
-  const itemRow = _loyverseItems.find(r => r.item_name === _salePicker.itemName);
-  if (!itemRow) { toast('Item not found in inventory', 'error'); return; }
-  // Store flag so submitInvVariant knows to refresh sale picker after
-  _invEditContext = { mode: 'add-variant', loyverseId: itemRow.loyverse_id, itemName: itemRow.item_name, catName: itemRow.category_name || '', fromSale: true };
-  document.getElementById('inv-var-modal-title').textContent = 'Add Variant';
-  document.getElementById('inv-var-modal-subtitle').textContent = itemRow.item_name;
-  document.getElementById('inv-fv-name').value  = '';
-  document.getElementById('inv-fv-cost').value  = '';
-  document.getElementById('inv-fv-price').value = _salePicker.price != null ? _salePicker.price : '';
-  document.getElementById('inv-fv-sku').value   = '';
-  document.getElementById('modal-inv-variant').classList.add('open');
-}
-
 async function openEditSale(id) {
   const r = (allSalesCache || []).find(x => x.id === id);
   if (!r) { toast('Sale not found', 'error'); return; }
   _editSaleId = id;
-  _salePicker = null;
+  _saleLineItems = [];
+  _saleLineCount = 0;
+
   document.getElementById('sale-modal-title').textContent = 'Edit Sale';
-  document.getElementById('sale-item-picker-label').textContent = r.item_name ? r.item_name : '— pick from inventory —';
-  if (r.item_name) document.getElementById('sale-item-picker-btn').classList.add('has-value');
-  document.getElementById('sale-create-var-btn').style.display = 'none';
   document.getElementById('sale-date').value = r.date || '';
   document.getElementById('sale-amount').value = r.amount || '';
-  document.getElementById('sale-item').value = r.item_name || '';
-  document.getElementById('sale-qty').value = r.quantity || 1;
-  document.getElementById('sale-unit-price').value = r.unit_price || '';
   document.getElementById('sale-customer').value = r.customer_name || '';
   document.getElementById('sale-desc').value = r.description || '';
   document.getElementById('sale-payment').value = (r.payment_type || 'card').toLowerCase();
+  const hint = document.getElementById('sale-total-hint');
+  if (hint) hint.textContent = '';
+
+  // Parse existing item_name into line items
+  if (r.item_name) {
+    const lineItems = parseSaleItems(r.item_name);
+    lineItems.forEach(li => {
+      addSaleLineItem({ label: li.name, itemName: li.name, qty: li.qty, price: li.price ?? lookupLineItemPrice(li.name) });
+    });
+  } else {
+    // No item data — start with one blank row
+    addSaleLineItem();
+  }
+
   document.getElementById('modal-sale').classList.add('open');
 }
 
@@ -3067,10 +3198,8 @@ async function submitInvVariant() {
   document.getElementById('modal-inv-variant').classList.remove('open');
   toast('Variant added — select it in the sale form', 'success');
   await loadInventory(); await loadLoyverseItems();
-  // If triggered from sale modal, hide "new variant" btn (variants now exist)
-  if (fromSale) {
-    document.getElementById('sale-create-var-btn').style.display = 'none';
-  }
+  // If triggered from sale modal context, nothing extra to do (old single-picker removed)
+  // fromSale is kept for future use
 }
 
 async function deleteInvItem(loyverseId, itemName) {
@@ -3206,20 +3335,28 @@ function selectPickerItemEl(el) {
   _pickerDrop.style.display = 'none';
   _pickerActiveRow = null;
 
-  // ── Sale modal picker ──
-  if (rowIdx === 'sale-modal') {
-    _salePicker = { variantId, itemName, label: itemLabel, price };
-    document.getElementById('sale-item-picker-label').textContent = itemLabel;
-    document.getElementById('sale-item-picker-btn').classList.add('has-value');
-    document.getElementById('sale-item').value = itemLabel;
-    if (price != null) {
-      document.getElementById('sale-unit-price').value = price.toFixed(2);
-      const qty = parseInt(document.getElementById('sale-qty').value) || 1;
-      document.getElementById('sale-amount').value = (price * qty).toFixed(2);
-    }
-    // Show "＋ New Variant" only if this item has no named variants
-    const hasNamedVariant = _loyverseItems.some(r => r.item_name === itemName && r.variant_name);
-    document.getElementById('sale-create-var-btn').style.display = hasNamedVariant ? 'none' : '';
+  // ── Sale line item picker ──
+  if (rowIdx.startsWith('sale-li-')) {
+    const idx = parseInt(rowIdx.replace('sale-li-', ''));
+    const row = _saleLineItems.find(r => r.idx === idx);
+    if (!row) return;
+    row.label     = itemLabel;
+    row.itemName  = itemName;
+    row.variantId = variantId;
+    row.price     = price;
+    // Update button label
+    const pbtn  = document.getElementById('sli-pbtn-' + idx);
+    const plabel = document.getElementById('sli-plabel-' + idx);
+    if (plabel) plabel.textContent = itemLabel;
+    if (pbtn)   pbtn.classList.add('has-value');
+    // Set price field
+    const priceEl = document.getElementById('sli-price-' + idx);
+    if (priceEl && price != null) priceEl.value = price.toFixed(2);
+    // Update subtotal
+    const sub = price != null ? (price * row.qty).toFixed(2) : '';
+    const subEl = document.getElementById('sli-sub-' + idx);
+    if (subEl) subEl.textContent = sub ? 'R' + sub : '';
+    _recalcSaleTotal();
     return;
   }
 
