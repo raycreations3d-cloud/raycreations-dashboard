@@ -370,6 +370,10 @@
       <div class="nav-item" onclick="navigate('invoices')">
         <span class="nav-icon">📧</span> Invoice Inbox
       </div>
+      <div class="nav-label">Settings</div>
+      <div class="nav-item" onclick="navigate('backup')">
+        <span class="nav-icon">💾</span> Backup & Restore
+      </div>
     </div>
     <div class="sidebar-footer">
       <div class="user-row">
@@ -677,6 +681,36 @@
             <tr><td colspan="7" class="empty-state">Loading...</td></tr>
           </tbody>
         </table>
+      </div>
+    </div>
+
+    <!-- ── BACKUP PAGE ── -->
+    <div id="page-backup" class="page">
+      <div style="max-width:600px">
+
+        <!-- Export -->
+        <div class="chart-card" style="margin-bottom:1.5rem">
+          <h3>📤 Export Data</h3>
+          <p style="color:var(--muted);font-size:.875rem;margin:.5rem 0 1rem">
+            Downloads all your sales, expenses, inventory, expos, and invoice records as a single JSON file. Keep this somewhere safe as a backup.
+          </p>
+          <button class="btn btn-primary" onclick="exportBackup()">Download Backup JSON</button>
+          <div id="backup-export-status" style="margin-top:.75rem;font-size:.85rem;color:var(--muted)"></div>
+        </div>
+
+        <!-- Restore -->
+        <div class="chart-card">
+          <h3>📥 Restore Data</h3>
+          <p style="color:var(--muted);font-size:.875rem;margin:.5rem 0 1rem">
+            Upload a previously exported backup JSON file. Existing records with matching IDs are updated; new records are inserted. <strong style="color:var(--yellow)">This does not delete any existing data.</strong>
+          </p>
+          <label class="btn btn-outline" style="cursor:pointer;display:inline-block">
+            Choose Backup File
+            <input type="file" id="backup-file-input" accept=".json" style="display:none" onchange="previewRestore(event)">
+          </label>
+          <div id="backup-restore-preview" style="margin-top:1rem"></div>
+        </div>
+
       </div>
     </div>
 
@@ -1116,7 +1150,7 @@ function navigate(page) {
   document.getElementById('page-' + page).classList.add('active');
   document.querySelector(`.nav-item[onclick="navigate('${page}')"]`).classList.add('active');
 
-  const titles = { overview: 'Overview', sales: 'Sales', expenses: 'Expenses', invoices: 'Invoice Inbox', inventory: 'Inventory', expos: 'Expos' };
+  const titles = { overview: 'Overview', sales: 'Sales', expenses: 'Expenses', invoices: 'Invoice Inbox', inventory: 'Inventory', expos: 'Expos', backup: 'Backup & Restore' };
   document.getElementById('page-title').textContent = titles[page] || page;
 
   const actions = document.getElementById('topbar-actions');
@@ -2135,6 +2169,105 @@ function convertUSDToZAR(usdStr) {
 const USD_VENDORS_RE = /anthropic|cults3d|loyverse/i;
 function isUSDVendor(vendor, snippet) {
   return USD_VENDORS_RE.test(vendor||'') || /USD|\$\d/.test(snippet||'');
+}
+
+// ─────────────────── BACKUP & RESTORE ───────────────────
+const BACKUP_TABLES = [
+  { name: 'sales',          conflict: 'id' },
+  { name: 'expenses',       conflict: 'id' },
+  { name: 'loyverse_items', conflict: 'id' },
+  { name: 'expos',          conflict: 'id' },
+  { name: 'invoice_log',    conflict: 'gmail_message_id' },
+];
+
+async function exportBackup() {
+  const statusEl = document.getElementById('backup-export-status');
+  statusEl.textContent = 'Fetching data…';
+  try {
+    const bundle = { exported_at: new Date().toISOString(), tables: {} };
+    for (const t of BACKUP_TABLES) {
+      let all = [], page = 0, pageSize = 1000, done = false;
+      while (!done) {
+        const { data, error } = await db.from(t.name).select('*').range(page * pageSize, (page + 1) * pageSize - 1);
+        if (error) throw new Error(`${t.name}: ${error.message}`);
+        all = all.concat(data || []);
+        done = !data || data.length < pageSize;
+        page++;
+      }
+      bundle.tables[t.name] = all;
+    }
+    const json     = JSON.stringify(bundle, null, 2);
+    const blob     = new Blob([json], { type: 'application/json' });
+    const url      = URL.createObjectURL(blob);
+    const a        = document.createElement('a');
+    const dateStr  = new Date().toISOString().slice(0, 10);
+    a.href         = url;
+    a.download     = `raycreations-backup-${dateStr}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    const totals = BACKUP_TABLES.map(t => `${t.name}: ${bundle.tables[t.name].length}`).join(', ');
+    statusEl.textContent = `✅ Exported — ${totals}`;
+  } catch (err) {
+    statusEl.textContent = `❌ Export failed: ${err.message}`;
+  }
+}
+
+function previewRestore(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const previewEl = document.getElementById('backup-restore-preview');
+  previewEl.innerHTML = '<span style="color:var(--muted)">Reading file…</span>';
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const bundle = JSON.parse(e.target.result);
+      if (!bundle.exported_at || !bundle.tables) throw new Error('Not a valid backup file');
+      const rows = BACKUP_TABLES.map(t => {
+        const count = bundle.tables[t.name]?.length ?? 0;
+        return `<tr><td style="padding:.3rem .5rem">${t.name}</td><td style="padding:.3rem .5rem;color:var(--green)">${count} records</td></tr>`;
+      }).join('');
+      previewEl.innerHTML = `
+        <p style="font-size:.85rem;color:var(--muted);margin-bottom:.75rem">
+          Backup from <strong style="color:var(--text)">${new Date(bundle.exported_at).toLocaleString()}</strong>
+        </p>
+        <table style="font-size:.85rem;margin-bottom:1rem">${rows}</table>
+        <button class="btn btn-primary" onclick="runRestore(${JSON.stringify(JSON.stringify(bundle)).slice(1,-1)})">
+          Restore This Backup
+        </button>
+        <div id="backup-restore-status" style="margin-top:.75rem;font-size:.85rem"></div>`;
+      // Store parsed bundle for runRestore
+      window._pendingRestoreBundle = bundle;
+      previewEl.querySelector('button').onclick = () => runRestore(window._pendingRestoreBundle);
+    } catch (err) {
+      previewEl.innerHTML = `<span style="color:var(--red)">❌ Invalid file: ${err.message}</span>`;
+    }
+  };
+  reader.readAsText(file);
+}
+
+async function runRestore(bundle) {
+  const statusEl = document.getElementById('backup-restore-status');
+  if (!statusEl) return;
+  statusEl.textContent = 'Restoring…';
+  let totalInserted = 0, errors = [];
+  for (const t of BACKUP_TABLES) {
+    const records = bundle.tables[t.name];
+    if (!records?.length) continue;
+    // Upsert in chunks of 500
+    for (let i = 0; i < records.length; i += 500) {
+      const chunk = records.slice(i, i + 500);
+      const { error } = await db.from(t.name).upsert(chunk, { onConflict: t.conflict, ignoreDuplicates: false });
+      if (error) { errors.push(`${t.name}: ${error.message}`); }
+      else { totalInserted += chunk.length; }
+    }
+  }
+  if (errors.length) {
+    statusEl.innerHTML = `⚠️ Partially restored (${totalInserted} records). Errors:<br>${errors.map(e=>`<code>${e}</code>`).join('<br>')}`;
+  } else {
+    statusEl.textContent = `✅ Restored ${totalInserted} records successfully. Refresh the page to see the data.`;
+    // Clear caches so next navigation fetches fresh data
+    allSalesCache = null; allExpCache = null; _invItems = []; _loyverseItems = []; _exposCache = null;
+  }
 }
 
 // ─────────────────── INVOICES ───────────────────
