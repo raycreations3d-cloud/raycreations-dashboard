@@ -221,6 +221,9 @@
     .inv-cat-pill.active { background:var(--accent); color:#fff; border-color:var(--accent); }
     .inv-item-row { cursor:pointer; }
     .inv-item-row.expanded > td { background:rgba(99,102,241,.06); }
+    .sortable-th { cursor:pointer; user-select:none; white-space:nowrap; }
+    .sortable-th:hover { color:var(--text); }
+    .sort-ind { font-size:.7rem; color:var(--accent); margin-left:.2rem; }
     .inv-expand-icon { font-size:.6rem; color:var(--muted); margin-right:.4rem; display:inline-block; transition:transform .15s; }
     .inv-expand-icon.open { transform:rotate(90deg); }
     .inv-variant-row { display:none; }
@@ -488,6 +491,12 @@
         <div class="chart-wrap"><canvas id="chart-sales-line" height="65"></canvas></div>
       </div>
 
+      <!-- Revenue by Category -->
+      <div class="chart-card" style="margin-bottom:1.5rem">
+        <h3 id="sales-cat-chart-label">Revenue by Category</h3>
+        <div class="chart-wrap"><canvas id="chart-sales-cat" height="55"></canvas></div>
+      </div>
+
       <!-- Top 5 grids -->
       <div class="chart-grid" style="margin-bottom:1.5rem">
         <div class="chart-card">
@@ -504,12 +513,25 @@
         </div>
       </div>
 
-      <div class="section-header">
+      <div class="section-header" style="align-items:center">
         <h2>Transactions <span id="sales-row-count" style="color:var(--muted);font-size:.85rem;font-weight:400"></span></h2>
+        <div style="display:flex;gap:.4rem;margin-left:auto">
+          <button class="btn btn-sm sales-view-btn active" data-mode="transactions" onclick="setSalesViewMode('transactions')">By Transaction</button>
+          <button class="btn btn-sm sales-view-btn" data-mode="by-item" onclick="setSalesViewMode('by-item')">By Item</button>
+        </div>
       </div>
       <div class="table-card">
-        <table>
-          <thead><tr><th>Date</th><th>Item</th><th>Qty</th><th>Total</th><th>Receipt</th><th>Payment</th><th>Source</th><th></th></tr></thead>
+        <table id="sales-table">
+          <thead id="sales-thead"><tr>
+            <th class="sortable-th" onclick="setSalesSort('date')">Date <span class="sort-ind" id="ssort-date">▼</span></th>
+            <th>Item</th>
+            <th class="sortable-th" onclick="setSalesSort('quantity')">Qty <span class="sort-ind" id="ssort-quantity"></span></th>
+            <th class="sortable-th" onclick="setSalesSort('amount')">Total <span class="sort-ind" id="ssort-amount"></span></th>
+            <th>Receipt</th>
+            <th class="sortable-th" onclick="setSalesSort('payment_type')">Payment <span class="sort-ind" id="ssort-payment_type"></span></th>
+            <th class="sortable-th" onclick="setSalesSort('source')">Source <span class="sort-ind" id="ssort-source"></span></th>
+            <th></th>
+          </tr></thead>
           <tbody id="sales-tbody">
             <tr><td colspan="8" class="empty-state">Loading...</td></tr>
           </tbody>
@@ -1121,15 +1143,38 @@ function navigate(page) {
 const fmt  = v => 'R ' + (v ?? 0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 const fmtD = d => { if (!d) return '—'; const [y,m,day] = d.split('-'); return `${m}/${day}/${y}`; };
 
+// Look up sell price for a line-item name from inventory
+function lookupLineItemPrice(liName) {
+  const inv = _loyverseItems || [];
+  const name = liName.toLowerCase().trim();
+  // Try "Item — Variant" match
+  let hit = inv.find(r => {
+    const full = r.variant_name ? `${r.item_name} — ${r.variant_name}` : r.item_name;
+    return full.toLowerCase() === name;
+  });
+  // Fallback: just item_name
+  if (!hit) hit = inv.find(r => (r.item_name||'').toLowerCase() === name);
+  return hit?.default_price ?? null;
+}
+
 // Parse a stored item_name string back into individual line items.
-// Handles both manual format "2× Item" and Loyverse format "2x Item", joined by ", "
+// Handles "2× Item@80.00" (with encoded price), "2× Item", "2x Item", plain "Item"
 function parseSaleItems(itemName) {
   if (!itemName) return [];
   const parts = itemName.split(', ');
   return parts.map(p => {
-    const m = p.match(/^(\d+)[×x] (.+)$/);
-    if (m) return { qty: parseInt(m[1]), name: m[2] };
-    return { qty: 1, name: p };
+    // With qty and optional price: "2× ItemName@80.00"
+    const m = p.match(/^(\d+)[×x] (.+?)(?:@([\d.]+))?$/);
+    if (m) return { qty: parseInt(m[1]), name: m[2].trim(), price: m[3] != null ? parseFloat(m[3]) : null };
+    // Plain name with optional price: "ItemName@80.00"
+    const atIdx = p.lastIndexOf('@');
+    if (atIdx > 0) {
+      const tail = p.slice(atIdx + 1);
+      if (/^\d+\.?\d*$/.test(tail)) {
+        return { qty: 1, name: p.slice(0, atIdx).trim(), price: parseFloat(tail) };
+      }
+    }
+    return { qty: 1, name: p, price: null };
   });
 }
 
@@ -1253,6 +1298,133 @@ let salesFilter = 'quarter';
 let salesItemFilter = null;
 let allSalesCache = null;
 let _editSaleId = null;
+let salesSort = { field: 'date', dir: 'desc' };
+let salesViewMode = 'transactions'; // 'transactions' | 'by-item'
+
+function setSalesViewMode(mode) {
+  salesViewMode = mode;
+  document.querySelectorAll('.sales-view-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
+  renderSales();
+}
+
+// Returns { base, variant } for a line-item name using loyverse inventory
+function _getBaseAndVariant(liName) {
+  const inv = _loyverseItems || [];
+  const nameLower = liName.toLowerCase().trim();
+  // Match full "ItemName — VariantName"
+  const variantMatch = inv.find(r => r.variant_name &&
+    `${r.item_name} — ${r.variant_name}`.toLowerCase() === nameLower);
+  if (variantMatch) return { base: variantMatch.item_name, variant: variantMatch.variant_name };
+  // Match base item only
+  const baseMatch = inv.find(r => (r.item_name||'').toLowerCase() === nameLower);
+  if (baseMatch) return { base: baseMatch.item_name, variant: null };
+  // Fallback: treat full name as base
+  return { base: liName, variant: null };
+}
+
+function _renderSalesGrouped(sales) {
+  document.getElementById('sales-thead').innerHTML = `<tr>
+    <th style="width:36%">Item</th>
+    <th style="width:20%">Variants Sold</th>
+    <th style="width:8%">Qty</th>
+    <th style="width:14%">Revenue</th>
+    <th style="width:14%">Avg / Unit</th>
+    <th style="width:8%"></th>
+  </tr>`;
+
+  // Aggregate by base item
+  const groups = {};
+  sales.forEach(r => {
+    const lineItems = parseSaleItems(r.item_name);
+    const n = lineItems.length || 1;
+    lineItems.forEach(li => {
+      const liPrice = li.price ?? lookupLineItemPrice(li.name);
+      const liRev   = liPrice != null ? liPrice * li.qty : +r.amount / n;
+      const { base, variant } = _getBaseAndVariant(li.name);
+      if (!groups[base]) groups[base] = { qty: 0, rev: 0, variants: {} };
+      groups[base].qty += li.qty;
+      groups[base].rev += liRev;
+      const vKey = variant || '—';
+      if (!groups[base].variants[vKey]) groups[base].variants[vKey] = { qty: 0, rev: 0 };
+      groups[base].variants[vKey].qty += li.qty;
+      groups[base].variants[vKey].rev += liRev;
+    });
+  });
+
+  const sorted = Object.entries(groups).sort((a, b) => b[1].rev - a[1].rev);
+  const COLOURS = ['#6366f1','#22d3ee','#22c55e','#f59e0b','#ef4444','#a855f7','#f43f5e','#0ea5e9'];
+
+  document.getElementById('sales-row-count').textContent = sorted.length ? `(${sorted.length} items)` : '';
+  document.getElementById('sales-tbody').innerHTML = sorted.length ? sorted.map(([base, g], idx) => {
+    const varEntries = Object.entries(g.variants).sort((a, b) => b[1].rev - a[1].rev);
+    const hasVariants = varEntries.length > 1 || varEntries[0]?.[0] !== '—';
+    const avgPerUnit  = g.qty ? g.rev / g.qty : 0;
+    const varLabel    = hasVariants
+      ? varEntries.length + ' variant' + (varEntries.length !== 1 ? 's' : '')
+      : (varEntries[0]?.[0] !== '—' ? varEntries[0][0] : '—');
+
+    let html = `<tr class="sale-row${hasVariants ? ' expandable' : ''}" id="sgrow-${idx}"${hasVariants ? ` onclick="toggleSaleGroupRow(${idx})"` : ''}>
+      <td><span id="sgarr-${idx}" style="margin-right:.35rem;font-size:.75rem;color:var(--accent)">${hasVariants ? '▶' : ''}</span>${base}</td>
+      <td style="color:var(--muted);font-size:.85rem">${varLabel}</td>
+      <td>${g.qty}</td>
+      <td style="color:var(--green);font-weight:600">${fmt(g.rev)}</td>
+      <td style="color:var(--muted)">${fmt(avgPerUnit)}</td>
+      <td></td>
+    </tr>`;
+    if (hasVariants) {
+      varEntries.forEach(([vName, vd], vi) => {
+        const colour = COLOURS[vi % COLOURS.length];
+        html += `<tr class="sale-item-row" id="sgitem-${idx}-${vi}" style="display:none">
+          <td></td>
+          <td style="padding-left:2rem">
+            <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${colour};margin-right:.4rem"></span>
+            ${vName}
+          </td>
+          <td>${vd.qty}</td>
+          <td style="color:var(--green)">${fmt(vd.rev)}</td>
+          <td style="color:var(--muted)">${fmt(vd.qty ? vd.rev/vd.qty : 0)}</td>
+          <td></td>
+        </tr>`;
+      });
+    }
+    return html;
+  }).join('') : `<tr><td colspan="6" class="empty-state"><div class="icon">💰</div>No sales in this period</td></tr>`;
+}
+
+function toggleSaleGroupRow(idx) {
+  const arr = document.getElementById('sgarr-' + idx);
+  const isOpen = arr?.textContent === '▼';
+  let vi = 0;
+  while (true) {
+    const row = document.getElementById(`sgitem-${idx}-${vi}`);
+    if (!row) break;
+    row.style.display = isOpen ? 'none' : 'table-row';
+    vi++;
+  }
+  if (arr) arr.textContent = isOpen ? '▶' : '▼';
+}
+
+function setSalesSort(field) {
+  if (salesSort.field === field) {
+    salesSort.dir = salesSort.dir === 'asc' ? 'desc' : 'asc';
+  } else {
+    salesSort.field = field;
+    salesSort.dir = (field === 'amount' || field === 'date') ? 'desc' : 'asc';
+  }
+  renderSales();
+}
+
+function _updateSalesSortIndicators() {
+  ['date','quantity','amount','payment_type','source'].forEach(f => {
+    const el = document.getElementById('ssort-' + f);
+    if (!el) return;
+    if (salesSort.field === f) {
+      el.textContent = salesSort.dir === 'desc' ? '▼' : '▲';
+    } else {
+      el.textContent = '';
+    }
+  });
+}
 
 function getDateRange(filter, fromVal, toVal) {
   const now = new Date();
@@ -1313,6 +1485,7 @@ async function loadSales() {
   const tasks = [];
   if (!allSalesCache) tasks.push(fetchAllPages('sales').then(d => allSalesCache = d));
   if (!_exposCache) tasks.push(db.from('expos').select('*').order('date_from').then(({ data }) => _exposCache = data || []));
+  if (!_loyverseItems.length) tasks.push(loadLoyverseItems());
   if (tasks.length) await Promise.all(tasks);
   renderSales();
 }
@@ -1329,13 +1502,25 @@ function renderSales() {
     : all;
 
   // Filter by item (drill-down)
-  const sales = salesItemFilter
+  const itemFiltered = salesItemFilter
     ? dateFiltered.filter(r => {
         const items = parseSaleItems(r.item_name);
         return items.some(li => li.name.replace(/^\d+[×x]\s*/,'').trim().toLowerCase() === salesItemFilter.toLowerCase())
           || (r.item_name || '').toLowerCase().includes(salesItemFilter.toLowerCase());
       })
     : dateFiltered;
+
+  // Sort
+  const sales = [...itemFiltered].sort((a, b) => {
+    const { field, dir } = salesSort;
+    let va = a[field] ?? '';
+    let vb = b[field] ?? '';
+    if (field === 'amount' || field === 'quantity') { va = +va; vb = +vb; }
+    else { va = String(va).toLowerCase(); vb = String(vb).toLowerCase(); }
+    if (va < vb) return dir === 'asc' ? -1 : 1;
+    if (va > vb) return dir === 'asc' ? 1 : -1;
+    return 0;
+  });
 
   // Show/hide item banner
   const banner = document.getElementById('sales-item-banner');
@@ -1353,11 +1538,17 @@ function renderSales() {
   sales.forEach(r => { byDay[r.date] = (byDay[r.date]||0) + +r.amount; });
   const bestDay = Object.entries(byDay).sort((a,b) => b[1]-a[1])[0];
 
-  // Top item (by revenue)
+  // Top item (by revenue, grouped by base item)
   const byItem = {};
   sales.forEach(r => {
-    const name = (r.item_name||'').split(',')[0].replace(/^\d+x\s*/,'').trim() || 'Unknown';
-    byItem[name] = (byItem[name]||0) + +r.amount;
+    const lineItems = parseSaleItems(r.item_name);
+    const n = lineItems.length || 1;
+    lineItems.forEach(li => {
+      const liPrice = li.price ?? lookupLineItemPrice(li.name);
+      const liRev   = liPrice != null ? liPrice * li.qty : +r.amount / n;
+      const { base } = _getBaseAndVariant(li.name.replace(/^\d+[×x]\s*/,'').trim() || 'Unknown');
+      byItem[base] = (byItem[base]||0) + liRev;
+    });
   });
   const topItem = Object.entries(byItem).sort((a,b) => b[1]-a[1])[0];
 
@@ -1376,11 +1567,15 @@ function renderSales() {
   const COLOURS = ['#6366f1','#22d3ee','#22c55e','#f59e0b','#ef4444'];
   const byItemFull = {};
   sales.forEach(r => {
-    parseSaleItems(r.item_name).forEach(li => {
-      const name = li.name.replace(/^\d+[×x]\s*/,'').trim() || 'Unknown';
-      if (!byItemFull[name]) byItemFull[name] = { rev: 0, qty: 0 };
-      byItemFull[name].rev += +r.amount / (parseSaleItems(r.item_name).length || 1);
-      byItemFull[name].qty += li.qty;
+    const lineItems = parseSaleItems(r.item_name);
+    const n = lineItems.length || 1;
+    lineItems.forEach(li => {
+      const liPrice = li.price ?? lookupLineItemPrice(li.name);
+      const liRev   = liPrice != null ? liPrice * li.qty : +r.amount / n;
+      const { base } = _getBaseAndVariant(li.name.replace(/^\d+[×x]\s*/,'').trim() || 'Unknown');
+      if (!byItemFull[base]) byItemFull[base] = { rev: 0, qty: 0 };
+      byItemFull[base].rev += liRev;
+      byItemFull[base].qty += li.qty;
     });
   });
   const topItems = Object.entries(byItemFull).sort((a,b) => b[1].rev - a[1].rev).slice(0,5);
@@ -1396,37 +1591,22 @@ function renderSales() {
     </div>`;
   }).join('') : '<div style="color:var(--muted);font-size:.85rem">No data</div>';
 
-  // ── Top 5 Colours ──
-  // Build a lookup: item_name (lowercase) → [variant_names] from loyverse_items
-  const itemVariantMap = {};
-  _loyverseItems.forEach(it => {
-    if (!it.variant_name) return;
-    const key = (it.item_name || '').toLowerCase().trim();
-    if (!itemVariantMap[key]) itemVariantMap[key] = [];
-    if (!itemVariantMap[key].includes(it.variant_name)) itemVariantMap[key].push(it.variant_name);
-  });
+  // ── Top 5 Variants (colours only) ──
+  const SIZE_WORDS = new Set(['small','medium','large','xl','xs','xxl','s','m','l','mini','tiny','extra large','extra small','regular','standard']);
+  const isSize = v => SIZE_WORDS.has(v.toLowerCase().trim());
 
   const byColour = {};
   sales.forEach(r => {
     const lineItems = parseSaleItems(r.item_name);
-    const share = lineItems.length || 1;
+    const n = lineItems.length || 1;
     lineItems.forEach(li => {
-      let colour = null;
-      // Extract full variant from parentheses e.g. "Snake Glow (Large / Blue)" → "Large / Blue"
-      const parenMatch = li.name.match(/\(([^)]+)\)/);
-      if (parenMatch) {
-        colour = parenMatch[1].trim(); // keep all variant data (size, colour, etc.)
-      } else {
-        // Fallback: look up by item_name in _loyverseItems (unambiguous single-variant items)
-        const baseName = li.name.toLowerCase().trim();
-        const variants = itemVariantMap[baseName];
-        if (variants && variants.length === 1) colour = variants[0];
-      }
-      if (colour) {
-        if (!byColour[colour]) byColour[colour] = { rev: 0, qty: 0 };
-        byColour[colour].rev += +r.amount / share;
-        byColour[colour].qty += li.qty;
-      }
+      const { variant } = _getBaseAndVariant(li.name.replace(/^\d+[×x]\s*/,'').trim());
+      if (!variant || isSize(variant)) return; // skip no-variant and size-only variants
+      const liPrice = li.price ?? lookupLineItemPrice(li.name);
+      const liRev   = liPrice != null ? liPrice * li.qty : +r.amount / n;
+      if (!byColour[variant]) byColour[variant] = { rev: 0, qty: 0 };
+      byColour[variant].rev += liRev;
+      byColour[variant].qty += li.qty;
     });
   });
   const topColours = Object.entries(byColour).sort((a,b) => b[1].rev - a[1].rev).slice(0,5);
@@ -1437,7 +1617,7 @@ function renderSales() {
       <span class="top5-name">${col}</span>
       <div class="top5-bar-wrap"><div class="top5-bar" style="width:${(d.rev/maxColRev*100).toFixed(1)}%;background:${COLOURS[i]}"></div></div>
       <span class="top5-val">${fmt(d.rev)}</span>
-    </div>`).join('') : '<div style="color:var(--muted);font-size:.85rem">No variant data in this period — try a wider date range or run loyverse-sync.js</div>';
+    </div>`).join('') : '<div style="color:var(--muted);font-size:.85rem">No variant data in this period</div>';
 
   // Summary strip
   const allTotal = all.reduce((s,r) => s + +r.amount, 0);
@@ -1535,6 +1715,80 @@ function renderSales() {
     }
   });
 
+  // ── Revenue by Category chart ──
+  {
+    // Build a lookup: item_name (lowercase) → category from loyverse_items
+    const itemCatMap = {};
+    (_loyverseItems || []).forEach(it => {
+      const key = (it.item_name || '').toLowerCase().trim();
+      if (!itemCatMap[key] && it.category_name) itemCatMap[key] = it.category_name;
+    });
+
+    const byCat = {};
+    sales.forEach(r => {
+      const lineItems = parseSaleItems(r.item_name);
+      const n = lineItems.length || 1;
+      lineItems.forEach(li => {
+        const { base } = _getBaseAndVariant(li.name.replace(/^\d+[×x]\s*/,'').trim());
+        const cat = itemCatMap[base.toLowerCase().trim()] || 'Uncategorised';
+        const liPrice = li.price ?? lookupLineItemPrice(li.name);
+        const liRev   = liPrice != null ? liPrice * li.qty : +r.amount / n;
+        byCat[cat] = (byCat[cat] || 0) + liRev;
+      });
+    });
+
+    const catEntries = Object.entries(byCat).sort((a, b) => b[1] - a[1]);
+    const catLabels  = catEntries.map(([k]) => k);
+    const catData    = catEntries.map(([, v]) => v);
+    const catColours = ['#6366f1','#22d3ee','#22c55e','#f59e0b','#ef4444','#a855f7','#f43f5e','#0ea5e9','#84cc16','#fb923c'];
+
+    document.getElementById('sales-cat-chart-label').textContent = `Revenue by Category — ${range.label}`;
+    destroyChart('sales-cat');
+    charts['sales-cat'] = new Chart(document.getElementById('chart-sales-cat'), {
+      type: 'bar',
+      data: {
+        labels: catLabels,
+        datasets: [{
+          label: 'Revenue',
+          data: catData,
+          backgroundColor: catLabels.map((_, i) => catColours[i % catColours.length]),
+          borderRadius: 4
+        }]
+      },
+      options: {
+        responsive: true,
+        indexAxis: 'y',
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: ctx => ' ' + fmt(ctx.raw) } }
+        },
+        scales: {
+          x: { ticks: { color: '#94a3b8', callback: v => 'R '+v.toLocaleString() }, grid: { color: '#334155' } },
+          y: { ticks: { color: '#94a3b8' }, grid: { color: '#1e293b' } }
+        }
+      }
+    });
+  }
+
+  // Grouped "By Item" view
+  if (salesViewMode === 'by-item') {
+    _renderSalesGrouped(sales);
+    return;
+  }
+
+  // Restore transaction-mode thead (in case we switched back from grouped)
+  document.getElementById('sales-thead').innerHTML = `<tr>
+    <th class="sortable-th" onclick="setSalesSort('date')">Date <span class="sort-ind" id="ssort-date"></span></th>
+    <th>Item</th>
+    <th class="sortable-th" onclick="setSalesSort('quantity')">Qty <span class="sort-ind" id="ssort-quantity"></span></th>
+    <th class="sortable-th" onclick="setSalesSort('amount')">Total <span class="sort-ind" id="ssort-amount"></span></th>
+    <th>Receipt</th>
+    <th class="sortable-th" onclick="setSalesSort('payment_type')">Payment <span class="sort-ind" id="ssort-payment_type"></span></th>
+    <th class="sortable-th" onclick="setSalesSort('source')">Source <span class="sort-ind" id="ssort-source"></span></th>
+    <th></th>
+  </tr>`;
+  _updateSalesSortIndicators();
+
   // Build expo lookup for badge tagging
   const expoList = _exposCache || [];
 
@@ -1565,11 +1819,14 @@ function renderSales() {
     </tr>`;
     if (hasMulti) {
       lineItems.forEach((li, li_idx) => {
+        const liPrice = li.price ?? lookupLineItemPrice(li.name);
+        const liTotal = liPrice != null ? fmt(liPrice * li.qty) : '—';
         html += `<tr class="sale-item-row" id="sitem-${idx}-${li_idx}">
           <td></td>
           <td style="padding-left:2rem">${li.name}</td>
           <td>${li.qty}</td>
-          <td colspan="5"></td>
+          <td style="color:var(--green);font-weight:600">${liTotal}</td>
+          <td colspan="4"></td>
         </tr>`;
       });
     }
@@ -2939,9 +3196,15 @@ async function submitBulkImport() {
     if (!date) { errEl.textContent = `Row ${i+1}: Date is required.`; hasErr = true; return; }
     if (isNaN(amount) || amount <= 0) { errEl.textContent = `Row ${i+1}: Amount must be > 0.`; hasErr = true; return; }
 
-    const itemName = sel ? sel.label : '';
+    const qty       = parseInt(inputs[3].value) || 1;
+    const unitPrice = parseFloat(inputs[4]?.value);
+    const itemLabel = sel ? sel.label : '';
+    // Encode as "2× Name@80.00" so price survives the round-trip
+    const qtyPrefix  = qty > 1 ? `${qty}× ` : '';
+    const priceSuffix = !isNaN(unitPrice) && unitPrice > 0 ? `@${unitPrice.toFixed(2)}` : '';
+    const itemEntry  = `${qtyPrefix}${itemLabel}${priceSuffix}`;
     if (!receiptMap[saleNum]) receiptMap[saleNum] = { date, payment, items: [], total: 0 };
-    receiptMap[saleNum].items.push(itemName);
+    receiptMap[saleNum].items.push(itemEntry);
     receiptMap[saleNum].total += amount;
   });
   if (hasErr) return;
