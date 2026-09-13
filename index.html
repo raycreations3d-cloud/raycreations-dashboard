@@ -2175,7 +2175,7 @@ function isUSDVendor(vendor, snippet) {
 const BACKUP_TABLES = [
   { name: 'sales',          conflict: 'id' },
   { name: 'expenses',       conflict: 'id' },
-  { name: 'loyverse_items', conflict: 'id' },
+  { name: 'loyverse_items', conflict: 'variant_id' },
   { name: 'expos',          conflict: 'id' },
   { name: 'invoice_log',    conflict: 'gmail_message_id' },
 ];
