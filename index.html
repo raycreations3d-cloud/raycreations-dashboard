@@ -792,6 +792,10 @@
         <div style="display:flex;align-items:center;gap:.35rem;flex-wrap:wrap">
           <span style="font-size:.72rem;color:var(--muted);width:44px;flex-shrink:0">Type</span>
           <div id="fil-type-filters" style="display:flex;gap:.3rem;flex-wrap:wrap"></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:.35rem;flex-wrap:wrap">
+          <span style="font-size:.72rem;color:var(--muted);width:44px;flex-shrink:0">Variant</span>
+          <div id="fil-variant-filters" style="display:flex;gap:.3rem;flex-wrap:wrap"></div>
           <button onclick="clearFilFilters()" id="fil-clear-filters"
             style="display:none;margin-left:.5rem;font-size:.72rem;background:none;border:1px solid var(--border);border-radius:5px;color:var(--muted);padding:.15rem .5rem;cursor:pointer">✕ Clear</button>
         </div>
@@ -802,19 +806,20 @@
           <thead>
             <tr>
               <th style="width:3%;font-size:.72rem">#</th>
-              <th style="width:15%">Brand</th>
-              <th style="width:8%">Type</th>
-              <th style="width:9%">Variant</th>
-              <th style="width:16%">Colour</th>
-              <th style="width:7%">Roll</th>
-              <th style="width:9%">Price (R)</th>
-              <th style="width:8%">R/gram</th>
-              <th style="width:8%">Qty Stock</th>
+              <th style="width:14%">Brand</th>
+              <th style="width:7%">Type</th>
+              <th style="width:8%">Variant</th>
+              <th style="width:13%">Colour</th>
+              <th style="width:4%;text-align:center" title="Colour swatch">🎨</th>
+              <th style="width:6%">Roll</th>
+              <th style="width:8%">Price (R)</th>
+              <th style="width:7%">R/gram</th>
+              <th style="width:7%">Qty Stock</th>
               <th style="width:5%"></th>
             </tr>
           </thead>
           <tbody id="fil-tbody">
-            <tr><td colspan="10" class="empty-state"><div class="icon">🧵</div>Loading…</td></tr>
+            <tr><td colspan="11" class="empty-state"><div class="icon">🧵</div>Loading…</td></tr>
           </tbody>
         </table>
       </div>
@@ -2362,19 +2367,59 @@ let _filDirty       = false;
 let _filDirtyIds    = new Set();  // IDs of rows with unsaved edits
 let _filNewIds      = new Set();  // IDs of rows inserted this session (delete on cancel)
 let _filEditingIds  = new Set();  // IDs of rows currently in edit mode
-let _filFilterBrands = new Set(); // active brand filters (empty = all)
-let _filFilterTypes  = new Set(); // active type filters  (empty = all)
+let _filFilterBrands   = new Set(); // active brand filters (empty = all)
+let _filFilterTypes    = new Set(); // active type filters  (empty = all)
+let _filFilterVariants = new Set(); // active variant filters (empty = all)
 
-const FIL_BRANDS    = ['Creality','SA Filament','Build Volume','King','Snapmaker','Wanhao','Soleyn','Filx'];
+const FIL_BRANDS    = ['Creality','SA Filament','Build Volume','King','Snapmaker','Wanhao','Soleyn','Filx','Cron'];
 const FIL_TYPES     = ['PLA','PETG','ABS','TPU'];
 const FIL_VARIANTS  = ['Single','Dual','Tri','Rainbow'];
 const FIL_VARIANT_COLOURS = {
-  'Single':  ['White','Black','Blue','Red','Green'],
+  'Single':  ['Almond Purple','Black','Blossom Pink','Blue','Brass','Brown','Charcoal','Chrome Blue','Chrome Pink','Chrome Silver','Cream','Frosted','Gemsbok','Gold','Gray','Green','Greenery','Gunmetal','Hyperskin','Ivory','Khaki','Kraft','Latte','Light Gray','Olive Drab','Olive Green','Orange','Pearl','Pink','Purple','Red','Red Copper','Sky Blue','Sunbird Green','Tan','Trans Red','White','Yellow'],
   'Dual':    ['Arctic Frost','Blue Blood','Bronze/Pink','Crimson Eclipse','Crimson Emerald','Gold/Copper','Gold/Silver','Golden Leaf','Golden Scarlet','Red/Blue','Red/Gold','Sapphire Forest','Smokey Wine'],
   'Tri':     ['Deep Space','Eclipse Steel','Golden Aurora','Golden Sapphire','Northern Lights','Solar'],
   'Rainbow': ['Ender','King','Matte'],
 };
 const FIL_ROLLS     = ['750g','1kg'];
+
+// Hex lookup for single colours (approximate; DB hex1 takes priority when set)
+const FIL_HEX_MAP = {
+  'Almond Purple':'#C3A2D0','Black':'#1C1C1C','Blue':'#1B4FCC','Blossom Pink':'#FFB7C5',
+  'Brass':'#C5A028','Brown':'#7B4B2A','Charcoal':'#36454F','Chrome Blue':'#5B8DD9',
+  'Chrome Pink':'#E87BAC','Chrome Silver':'#B8C0CC','Cream':'#FFFDD0','Frosted':'#C8E6F5',
+  'Gemsbok':'#8B7355','Gold':'#D4A017','Gray':'#808080','Green':'#2D7A2D',
+  'Greenery':'#5A7A41','Gunmetal':'#3E4C64','Hyperskin':'#F2E0C8','Ivory':'#FFFFF0',
+  'Khaki':'#C3B091','Kraft':'#B5853B','Latte':'#C8A87A','Light Gray':'#C9C9C9',
+  'Olive Drab':'#6B6914','Olive Green':'#556B2F','Orange':'#FF7518','Pearl':'#F0EAD6',
+  'Pink':'#FFB6C1','Purple':'#7B2D8B','Red':'#CC2222','Red Copper':'#B87333',
+  'Sky Blue':'#69A3F8','Sunbird Green':'#2E8B57','Tan':'#D2B48C','Trans Red':'#CC2222',
+  'White':'#F5F5F5','Yellow':'#F5C518',
+};
+
+// Hex values for multi-colour filaments keyed by colour1 name
+const FIL_MULTI_HEX = {
+  // Dual
+  'Arctic Frost':    ['#69A3F8','#FFFFFF'],
+  'Blue Blood':      ['#002FA7','#7B0D1E'],
+  'Bronze/Pink':     ['#CD7F32','#E87BAC'],
+  'Crimson Eclipse': ['#CC2222','#1A1A2E'],
+  'Crimson Emerald': ['#CC2222','#2D7A2D'],
+  'Gold/Copper':     ['#D4A017','#B87333'],
+  'Gold/Silver':     ['#D4A017','#B8C0CC'],
+  'Golden Leaf':     ['#D4A017','#8B4513'],
+  'Golden Scarlet':  ['#D4A017','#7B0D1E'],
+  'Red/Blue':        ['#CC2222','#002FA7'],
+  'Red/Gold':        ['#CC2222','#D4A017'],
+  'Sapphire Forest': ['#0F52BA','#2D7A2D'],
+  'Smokey Wine':     ['#808080','#7B0D1E'],
+  // Tri
+  'Deep Space':      ['#0A0A2E','#1B1B6B','#6A0D91'],
+  'Eclipse Steel':   ['#1C1C1C','#B8C0CC','#8B8680'],
+  'Golden Aurora':   ['#002FA7','#7B0D1E','#D4A017'],
+  'Golden Sapphire': ['#D4A017','#0F52BA','#F5F5F5'],
+  'Northern Lights': ['#7B0D1E','#002FA7','#1A472A'],
+  'Solar':           ['#FF4500','#D4A017','#FF8C00'],
+};
 const FIL_ROLL_GRAMS = { '750g': 750, '1kg': 1000 };
 
 function _filSelect(name, options, val, rowId, extraStyle='') {
@@ -2481,8 +2526,9 @@ async function loadFilaments() {
 }
 
 function _buildFilFilterBtns() {
-  const brandDiv = document.getElementById('fil-brand-filters');
-  const typeDiv  = document.getElementById('fil-type-filters');
+  const brandDiv   = document.getElementById('fil-brand-filters');
+  const typeDiv    = document.getElementById('fil-type-filters');
+  const variantDiv = document.getElementById('fil-variant-filters');
   if (!brandDiv || !typeDiv) return;
   brandDiv.innerHTML = FIL_BRANDS.map(b => {
     const active = _filFilterBrands.has(b);
@@ -2492,13 +2538,21 @@ function _buildFilFilterBtns() {
     const active = _filFilterTypes.has(t);
     return `<button class="filter-btn${active?' active':''}" onclick="toggleFilFilter('type','${t}')">${t}</button>`;
   }).join('');
-  const hasFilter = _filFilterBrands.size > 0 || _filFilterTypes.size > 0;
+  if (variantDiv) {
+    variantDiv.innerHTML = FIL_VARIANTS.map(v => {
+      const active = _filFilterVariants.has(v);
+      return `<button class="filter-btn${active?' active':''}" onclick="toggleFilFilter('variant','${v}')">${v}</button>`;
+    }).join('');
+  }
+  const hasFilter = _filFilterBrands.size > 0 || _filFilterTypes.size > 0 || _filFilterVariants.size > 0;
   const clearBtn = document.getElementById('fil-clear-filters');
   if (clearBtn) clearBtn.style.display = hasFilter ? 'inline-block' : 'none';
 }
 
 function toggleFilFilter(kind, val) {
-  const set = kind === 'brand' ? _filFilterBrands : _filFilterTypes;
+  const set = kind === 'brand' ? _filFilterBrands
+            : kind === 'type'  ? _filFilterTypes
+                               : _filFilterVariants;
   if (set.has(val)) set.delete(val); else set.add(val);
   renderFilaments();
 }
@@ -2506,6 +2560,7 @@ function toggleFilFilter(kind, val) {
 function clearFilFilters() {
   _filFilterBrands.clear();
   _filFilterTypes.clear();
+  _filFilterVariants.clear();
   renderFilaments();
 }
 
@@ -2521,14 +2576,15 @@ function renderFilaments() {
     (f.colour1||'').toLowerCase().includes(q) ||
     (f.notes||'').toLowerCase().includes(q)
   );
-  if (_filFilterBrands.size > 0) rows = rows.filter(f => _filFilterBrands.has(f.brand));
-  if (_filFilterTypes.size  > 0) rows = rows.filter(f => _filFilterTypes.has(f.material_type));
+  if (_filFilterBrands.size   > 0) rows = rows.filter(f => _filFilterBrands.has(f.brand));
+  if (_filFilterTypes.size    > 0) rows = rows.filter(f => _filFilterTypes.has(f.material_type));
+  if (_filFilterVariants.size > 0) rows = rows.filter(f => _filFilterVariants.has(f.colour_variant || 'Single'));
 
   const tbody = document.getElementById('fil-tbody');
   if (!tbody) return;
 
   if (!rows.length) {
-    tbody.innerHTML = `<tr><td colspan="10" class="empty-state"><div class="icon">🧵</div>${q ? 'No filaments match' : 'No filaments yet — click ＋ Add Row below'}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="11" class="empty-state"><div class="icon">🧵</div>${q ? 'No filaments match' : 'No filaments yet — click ＋ Add Row below'}</td></tr>`;
     return;
   }
 
@@ -2539,11 +2595,26 @@ function renderFilaments() {
   }).join('');
 }
 
+function _filSwatch(f) {
+  const v   = f.colour_variant || 'Single';
+  const col = f.colour1 || '';
+  const sz  = 'display:inline-block;width:24px;height:24px;border-radius:4px;box-shadow:0 1px 3px rgba(0,0,0,.45)';
+  if (v === 'Rainbow') {
+    return `<span style="${sz};background:linear-gradient(135deg,#FF0000,#FF7F00,#FFFF00,#00FF00,#0000FF,#8B00FF)"></span>`;
+  }
+  const multi = FIL_MULTI_HEX[col];
+  if (multi) {
+    if (multi.length === 2)
+      return `<span style="${sz};background:linear-gradient(135deg,${multi[0]} 50%,${multi[1]} 50%)"></span>`;
+    if (multi.length === 3)
+      return `<span style="${sz};background:linear-gradient(to bottom,${multi[0]} 33.33%,${multi[1]} 33.33% 66.66%,${multi[2]} 66.66%)"></span>`;
+  }
+  const hex = f.hex1 || FIL_HEX_MAP[col] || '#3E4C64';
+  return `<span style="${sz};background:${hex}"></span>`;
+}
+
 function _filViewRow(f, i) {
   const cpg = _filCostPerGram(f.cost_price, f.roll_size);
-  const swatch = f.hex1
-    ? `<span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:${f.hex1};flex-shrink:0"></span>`
-    : '';
   const variantStyle = {
     'Single':'background:rgba(99,102,241,.18);color:#a5b4fc',
     'Dual':  'background:rgba(236,72,153,.18);color:#f9a8d4',
@@ -2555,7 +2626,8 @@ function _filViewRow(f, i) {
     <td>${f.brand||'—'}</td>
     <td>${f.material_type||'—'}</td>
     <td><span style="font-size:.72rem;padding:.1rem .45rem;border-radius:20px;${variantStyle}">${f.colour_variant||'Single'}</span></td>
-    <td><div style="display:flex;align-items:center;gap:5px">${swatch}<span>${f.colour1||'—'}</span></div></td>
+    <td>${f.colour1||'—'}</td>
+    <td style="text-align:center">${_filSwatch(f)}</td>
     <td>${f.roll_size||'—'}</td>
     <td style="text-align:right">${f.cost_price != null ? 'R&nbsp;'+f.cost_price : '—'}</td>
     <td style="text-align:right;color:var(--muted);font-size:.75rem">${cpg}</td>
@@ -2575,6 +2647,7 @@ function _filEditRow(f, i) {
     <td>${_filSelect('material_type', FIL_TYPES,  f.material_type||'PLA', f.id)}</td>
     <td>${_filVariantSelect(f)}</td>
     <td>${_filColourCell(f)}</td>
+    <td style="text-align:center">${_filSwatch(f)}</td>
     <td>${_filSelect('roll_size',     FIL_ROLLS,  f.roll_size||'1kg', f.id)}</td>
     <td>${_filInput ('cost_price',    f.cost_price,  f.id, 'number', 'text-align:right')}</td>
     <td id="fil-cpg-${f.id}" style="font-size:.78rem;color:var(--muted);text-align:right">${cpg}</td>
