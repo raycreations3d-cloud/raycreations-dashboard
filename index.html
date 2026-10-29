@@ -275,6 +275,16 @@
     }
     .inv-price-input:focus ~ .inv-save-btn { opacity:1; }
     .inv-save-btn.dirty { opacity:1; }
+    /* ── Stock badges ── */
+    .stk-badge { display:inline-flex;align-items:center;gap:4px;padding:.15rem .5rem;border-radius:999px;font-size:.72rem;font-weight:600;white-space:nowrap }
+    .stk-ok    { background:rgba(16,185,129,.18);color:#6ee7b7 }
+    .stk-low   { background:rgba(251,191,36,.18);color:#fde68a }
+    .stk-zero  { background:rgba(239,68,68,.18);color:#fca5a5 }
+    .stk-adj   { background:none;border:none;cursor:pointer;color:var(--muted);font-size:.82rem;padding:0 .15rem;line-height:1;opacity:.65 }
+    .stk-adj:hover { color:var(--fg);opacity:1 }
+    .stk-take-input { width:60px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.2);border-radius:6px;color:var(--fg);padding:.2rem .35rem;font-size:.82rem;text-align:center;outline:none }
+    .stk-take-input:focus { border-color:var(--accent) }
+    .stocktake-active #inv-tbody tr.inv-item-row td { opacity:.55 }
     .inv-count { display:inline-block; padding:.15rem .5rem; border-radius:999px; font-size:.72rem;
       background:rgba(99,102,241,.15); color:var(--accent); font-weight:600; }
 
@@ -841,6 +851,12 @@
       <div class="inv-toolbar">
         <input class="inv-search" id="inv-search" type="text" placeholder="🔍  Search items…" oninput="renderInventory()">
         <div class="inv-cat-pills" id="inv-cat-pills"></div>
+        <div style="margin-left:auto;display:flex;gap:.5rem;align-items:center">
+          <button class="btn btn-sm btn-outline" onclick="openLogSaleModal()" title="Log a sale and deduct stock">🛒 Log Sale</button>
+          <button id="stk-take-btn" class="btn btn-sm btn-outline" onclick="toggleStocktakeMode()" title="Count physical stock">📋 Stocktake</button>
+          <button id="stk-apply-btn" class="btn btn-sm btn-green" onclick="applyStocktake()" style="display:none">✓ Apply Counts</button>
+          <button id="stk-cancel-btn" class="btn btn-sm btn-outline" onclick="toggleStocktakeMode(false)" style="display:none">Cancel</button>
+        </div>
       </div>
       <div class="table-card">
         <table id="inv-table" style="table-layout:fixed;width:100%">
@@ -853,11 +869,12 @@
               <th style="width:12%">Sell Price</th>
               <th style="width:8%">Margin</th>
               <th style="width:7%">Variants</th>
-              <th style="width:16%"></th>
+              <th style="width:9%;text-align:center">Stock</th>
+              <th style="width:10%"></th>
             </tr>
           </thead>
           <tbody id="inv-tbody">
-            <tr><td colspan="8" class="empty-state">Loading…</td></tr>
+            <tr><td colspan="9" class="empty-state">Loading…</td></tr>
           </tbody>
         </table>
       </div>
@@ -1064,6 +1081,55 @@
     <div class="form-actions">
       <button class="btn btn-outline btn-sm" onclick="closeModal('approve-invoice')">Cancel</button>
       <button class="btn btn-green btn-sm" id="inv-modal-submit-btn" onclick="submitApproveInvoice()">✓ Add to Expenses</button>
+    </div>
+  </div>
+</div>
+
+<!-- Log Sale Modal -->
+<div class="modal-overlay" id="modal-log-sale">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header">
+      <h2>🛒 Log Sale</h2>
+      <button class="modal-close" onclick="document.getElementById('modal-log-sale').classList.remove('open')">✕</button>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Date</label>
+        <input type="date" id="ls-date">
+      </div>
+      <div class="form-group">
+        <label>Channel</label>
+        <select id="ls-channel" style="width:100%">
+          <option value="takealot">Takealot</option>
+          <option value="expo">Expo / Market</option>
+          <option value="direct">Direct / WhatsApp</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Item</label>
+      <select id="ls-item-sel" style="width:100%" onchange="onLsSaleItemChange(this.value)">
+        <option value="">— Select item —</option>
+      </select>
+    </div>
+    <div class="form-group" id="ls-variant-wrap" style="display:none">
+      <label>Variant / Colour</label>
+      <select id="ls-variant-sel" style="width:100%"></select>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Qty Sold</label>
+        <input type="number" id="ls-qty" min="1" value="1" style="width:80px">
+      </div>
+      <div class="form-group" style="flex:1">
+        <label>Note (optional)</label>
+        <input type="text" id="ls-note" placeholder="e.g. order #12345">
+      </div>
+    </div>
+    <div style="display:flex;gap:.75rem;margin-top:1rem">
+      <button class="btn btn-green" onclick="submitLogSale()">✓ Log &amp; Deduct</button>
+      <button class="btn btn-outline" onclick="document.getElementById('modal-log-sale').classList.remove('open')">Cancel</button>
     </div>
   </div>
 </div>
@@ -3562,25 +3628,193 @@ async function loadLoyverseItems() {
 }
 
 // ─────────────────── INVENTORY PAGE ───────────────────
-let _invItems = [];
-let _invCatFilter = 'all';
+let _invItems      = [];
+let _invCatFilter  = 'all';
+let _stockLevels   = {};   // Map<variant_id, {qty_on_hand, low_stock_threshold}>
+let _stocktakeMode = false;
+let _stocktakeDraft= {};   // Map<variant_id, number> — pending counts during stocktake
 
 async function loadInventory() {
   document.getElementById('inv-tbody').innerHTML =
-    `<tr><td colspan="8" class="empty-state">Loading…</td></tr>`;
-  const { data, error } = await db
-    .from('loyverse_items')
-    .select('*')
-    .order('category_name', { ascending: true })
-    .order('item_name',     { ascending: true });
-  if (error) {
+    `<tr><td colspan="9" class="empty-state">Loading…</td></tr>`;
+  const [itemsRes, stockRes] = await Promise.all([
+    db.from('loyverse_items').select('*')
+      .order('category_name', { ascending: true })
+      .order('item_name',     { ascending: true }),
+    db.from('stock_levels').select('*'),
+  ]);
+  if (itemsRes.error) {
     document.getElementById('inv-tbody').innerHTML =
-      `<tr><td colspan="8" class="empty-state" style="color:var(--red)">Error: ${error.message}</td></tr>`;
+      `<tr><td colspan="9" class="empty-state" style="color:var(--red)">Error: ${itemsRes.error.message}</td></tr>`;
     return;
   }
-  _invItems = data || [];
+  _invItems = itemsRes.data || [];
+  _stockLevels = {};
+  (stockRes.data || []).forEach(r => { _stockLevels[r.variant_id] = r; });
   _buildInvCatPills();
   renderInventory();
+}
+
+// ── Stock helpers ──────────────────────────────────────────────────────────
+function _stkQty(variantId) {
+  return (_stockLevels[variantId]?.qty_on_hand) ?? 0;
+}
+function _stkThreshold(variantId) {
+  return (_stockLevels[variantId]?.low_stock_threshold) ?? 2;
+}
+function _stkBadgeClass(qty, threshold) {
+  if (qty <= 0) return 'stk-zero';
+  if (qty <= threshold) return 'stk-low';
+  return 'stk-ok';
+}
+function _stkParentBadge(variants) {
+  const total = variants.reduce((s, v) => s + _stkQty(v.variant_id), 0);
+  const cls   = _stkBadgeClass(total, variants.reduce((s,v) => s + _stkThreshold(v.variant_id), 0));
+  return `<span class="stk-badge ${cls}">${total}</span>`;
+}
+function _stkVariantCell(vid, itemName, variantName) {
+  if (_stocktakeMode) {
+    const cur = _stocktakeDraft[vid] ?? _stkQty(vid);
+    return `<input class="stk-take-input" type="number" min="0" value="${cur}"
+      oninput="_stocktakeDraft['${vid}']=parseInt(this.value)||0"
+      data-vid="${vid}">`;
+  }
+  const qty = _stkQty(vid);
+  const cls = _stkBadgeClass(qty, _stkThreshold(vid));
+  return `<span class="stk-badge ${cls}" style="gap:2px">
+    <button class="stk-adj" onclick="adjustStock('${vid}','${itemName.replace(/'/g,"\\'")}','${(variantName||'').replace(/'/g,"\\'")}', -1)" title="Remove 1">−</button>
+    ${qty}
+    <button class="stk-adj" onclick="adjustStock('${vid}','${itemName.replace(/'/g,"\\'")}','${(variantName||'').replace(/'/g,"\\'")}', 1)" title="Add 1">+</button>
+  </span>`;
+}
+
+async function adjustStock(variantId, itemName, variantName, delta, channel, note) {
+  channel = channel || 'manual';
+  const current = _stkQty(variantId);
+  const newQty  = Math.max(0, current + delta);
+  const { error } = await db.from('stock_levels').upsert({
+    variant_id: variantId,
+    qty_on_hand: newQty,
+    low_stock_threshold: _stkThreshold(variantId),
+    updated_at: new Date().toISOString(),
+  }, { onConflict: 'variant_id' });
+  if (error) { toast('Stock update failed: ' + error.message, 'error'); return; }
+  // Log movement
+  await db.from('stock_movements').insert([{
+    variant_id: variantId, item_name: itemName, variant_name: variantName,
+    delta, channel, note: note || null, sale_date: new Date().toISOString().slice(0,10),
+  }]);
+  if (!_stockLevels[variantId]) _stockLevels[variantId] = { qty_on_hand: 0, low_stock_threshold: 2 };
+  _stockLevels[variantId].qty_on_hand = newQty;
+  renderInventory();
+}
+
+function toggleStocktakeMode(force) {
+  _stocktakeMode = (force === false) ? false : !_stocktakeMode;
+  _stocktakeDraft = {};
+  // Pre-fill draft with current counts
+  if (_stocktakeMode) {
+    _invItems.forEach(r => { _stocktakeDraft[r.variant_id] = _stkQty(r.variant_id); });
+  }
+  document.getElementById('stk-take-btn').style.display  = _stocktakeMode ? 'none' : '';
+  document.getElementById('stk-apply-btn').style.display = _stocktakeMode ? '' : 'none';
+  document.getElementById('stk-cancel-btn').style.display= _stocktakeMode ? '' : 'none';
+  document.querySelector('#page-inventory .table-card')?.classList.toggle('stocktake-active', _stocktakeMode);
+  // Expand all rows in stocktake mode so variant inputs are visible
+  if (_stocktakeMode) {
+    renderInventory();
+    setTimeout(() => {
+      document.querySelectorAll('.inv-item-row').forEach((r, i) => {
+        const arr = document.getElementById(`inv-arr-${i}`);
+        if (arr && !arr.classList.contains('open')) {
+          const row = document.getElementById(`invrow-${i}`);
+          if (row) { row.classList.add('expanded'); arr.classList.add('open'); }
+          document.querySelectorAll(`[id^="invvar-${i}-"]`).forEach(vr => vr.classList.add('visible'));
+        }
+      });
+    }, 30);
+  } else {
+    renderInventory();
+  }
+}
+
+async function applyStocktake() {
+  const entries = Object.entries(_stocktakeDraft);
+  if (!entries.length) { toggleStocktakeMode(false); return; }
+  const today = new Date().toISOString().slice(0,10);
+  let saved = 0;
+  for (const [vid, newQty] of entries) {
+    const old = _stkQty(vid);
+    if (newQty === old) continue;
+    const delta = newQty - old;
+    const row   = _invItems.find(r => r.variant_id === vid);
+    await db.from('stock_levels').upsert({
+      variant_id: vid, qty_on_hand: newQty,
+      low_stock_threshold: _stkThreshold(vid), updated_at: new Date().toISOString(),
+    }, { onConflict: 'variant_id' });
+    await db.from('stock_movements').insert([{
+      variant_id: vid, item_name: row?.item_name, variant_name: row?.variant_name,
+      delta, channel: 'stocktake', note: `Stocktake ${today}`, sale_date: today,
+    }]);
+    if (!_stockLevels[vid]) _stockLevels[vid] = { qty_on_hand: 0, low_stock_threshold: 2 };
+    _stockLevels[vid].qty_on_hand = newQty;
+    saved++;
+  }
+  toast(`Stocktake applied — ${saved} count(s) updated`, 'success');
+  toggleStocktakeMode(false);
+}
+
+// ── Log Sale Modal ─────────────────────────────────────────────────────────
+function openLogSaleModal() {
+  // Populate item dropdown
+  const itemSel = document.getElementById('ls-item-sel');
+  const unique  = {};
+  _invItems.forEach(r => { if (!unique[r.loyverse_id]) unique[r.loyverse_id] = r.item_name; });
+  itemSel.innerHTML = '<option value="">— Select item —</option>' +
+    Object.entries(unique).map(([id,n]) => `<option value="${id}">${n}</option>`).join('');
+  document.getElementById('ls-variant-wrap').style.display = 'none';
+  document.getElementById('ls-date').value = new Date().toISOString().slice(0,10);
+  document.getElementById('ls-qty').value  = '1';
+  document.getElementById('modal-log-sale').classList.add('open');
+}
+
+function onLsSaleItemChange(loyId) {
+  const variants = _invItems.filter(r => r.loyverse_id === loyId && r.variant_name);
+  const wrap = document.getElementById('ls-variant-wrap');
+  const sel  = document.getElementById('ls-variant-sel');
+  if (variants.length) {
+    sel.innerHTML = variants.map(v =>
+      `<option value="${v.variant_id}">${v.variant_name} (stock: ${_stkQty(v.variant_id)})</option>`
+    ).join('');
+    wrap.style.display = '';
+  } else {
+    // Single variant item — find it
+    const single = _invItems.find(r => r.loyverse_id === loyId);
+    sel.innerHTML = single ? `<option value="${single.variant_id}">${single.item_name}</option>` : '';
+    wrap.style.display = 'none';
+  }
+}
+
+async function submitLogSale() {
+  const loyId   = document.getElementById('ls-item-sel').value;
+  const vid     = document.getElementById('ls-variant-sel').value;
+  const channel = document.getElementById('ls-channel').value;
+  const qty     = parseInt(document.getElementById('ls-qty').value) || 1;
+  const note    = document.getElementById('ls-note').value.trim();
+  const date    = document.getElementById('ls-date').value;
+  if (!loyId || !vid) { toast('Please select an item', 'error'); return; }
+  const row = _invItems.find(r => r.variant_id === vid);
+  await adjustStock(vid, row?.item_name||'', row?.variant_name||'', -qty, channel, note || null);
+  // Override sale_date on the movement we just inserted
+  // (adjustStock uses today — if date differs, update it)
+  if (date !== new Date().toISOString().slice(0,10)) {
+    await db.from('stock_movements')
+      .update({ sale_date: date })
+      .eq('variant_id', vid).eq('channel', channel)
+      .order('created_at', { ascending: false }).limit(1);
+  }
+  toast(`−${qty} logged for ${row?.item_name||'item'} (${channel})`, 'success');
+  document.getElementById('modal-log-sale').classList.remove('open');
 }
 
 function _buildInvCatPills() {
@@ -3625,7 +3859,7 @@ function renderInventory() {
 
   const items = Object.entries(itemMap);
   if (!items.length) {
-    tbody.innerHTML = `<tr><td colspan="8" class="empty-state">No items found</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="9" class="empty-state">No items found</td></tr>`;
     return;
   }
 
@@ -3666,6 +3900,7 @@ function renderInventory() {
   <td style="font-size:.875rem">${priceStr}</td>
   <td>${marginBadge(avgSell, avgCost)}</td>
   <td>${hasVar ? `<span class="inv-count">${vCount}</span>` : '—'}</td>
+  <td style="text-align:center" onclick="event.stopPropagation()">${_stkParentBadge(item.variants)}</td>
   <td onclick="event.stopPropagation()">
     <div style="display:flex;gap:.3rem;align-items:center">
       <button class="btn btn-sm btn-outline" onclick="openEditInvItemModal('${loyId}')" title="Edit Item">✏️</button>
@@ -3708,6 +3943,7 @@ function renderInventory() {
   </td>
   <td>${marginBadge(parseFloat(vPrice)||0, parseFloat(vCost)||0)}</td>
   <td></td>
+  <td style="text-align:center" onclick="event.stopPropagation()">${_stkVariantCell(vid, item.name, v.variant_name)}</td>
   <td onclick="event.stopPropagation()">
     <div style="display:flex;gap:.3rem;align-items:center">
       <button class="btn btn-sm btn-outline" onclick="openEditVariantModal('${vid}')" title="Edit Variant">✏️</button>
