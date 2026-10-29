@@ -814,7 +814,7 @@
               <th style="width:6%">Roll</th>
               <th style="width:8%">Price (R)</th>
               <th style="width:7%">R/gram</th>
-              <th style="width:7%">Qty Stock</th>
+              <th style="width:12%;font-size:.72rem">Open Spools</th>
               <th style="width:5%"></th>
             </tr>
           </thead>
@@ -2376,8 +2376,8 @@ const FIL_TYPES     = ['PLA','PETG','ABS','TPU'];
 const FIL_VARIANTS  = ['Single','Dual','Tri','Rainbow'];
 const FIL_VARIANT_COLOURS = {
   'Single':  ['Almond Purple','Black','Blossom Pink','Blue','Brass','Brown','Charcoal','Chrome Blue','Chrome Pink','Chrome Silver','Cream','Frosted','Gemsbok','Gold','Gray','Green','Greenery','Gunmetal','Hyperskin','Ivory','Khaki','Kraft','Latte','Light Gray','Olive Drab','Olive Green','Orange','Pearl','Pink','Purple','Red','Red Copper','Sky Blue','Sunbird Green','Tan','Trans Red','White','Yellow'],
-  'Dual':    ['Arctic Frost','Blue Blood','Bronze/Pink','Crimson Eclipse','Crimson Emerald','Gold/Copper','Gold/Silver','Golden Leaf','Golden Scarlet','Red/Blue','Red/Gold','Sapphire Forest','Smokey Wine'],
-  'Tri':     ['Deep Space','Eclipse Steel','Golden Aurora','Golden Sapphire','Northern Lights','Solar'],
+  'Dual':    ['Arctic Frost','Blue Blood','Bronze/Pink','Crimson Eclipse','Crimson Emerald','Gold/Copper','Gold/Silver','Golden Leaf','Golden Sapphire','Golden Scarlet','Red/Blue','Red/Gold','Sapphire Forest','Smokey Wine'],
+  'Tri':     ['Deep Space','Evergreen Steel','Golden Aurora','Northern Lights','Solar'],
   'Rainbow': ['Ender','King','Matte'],
 };
 const FIL_ROLLS     = ['750g','1kg'];
@@ -2402,23 +2402,24 @@ const FIL_MULTI_HEX = {
   'Arctic Frost':    ['#69A3F8','#FFFFFF'],
   'Blue Blood':      ['#002FA7','#7B0D1E'],
   'Bronze/Pink':     ['#CD7F32','#E87BAC'],
-  'Crimson Eclipse': ['#CC2222','#1A1A2E'],
-  'Crimson Emerald': ['#CC2222','#2D7A2D'],
+  'Crimson Eclipse': ['#8B0073','#CC2222'],
+  'Crimson Emerald': ['#00CED1','#CC2222'],
   'Gold/Copper':     ['#D4A017','#B87333'],
   'Gold/Silver':     ['#D4A017','#B8C0CC'],
-  'Golden Leaf':     ['#D4A017','#8B4513'],
+  'Golden Leaf':     ['#D4A017','#2D7A2D'],
   'Golden Scarlet':  ['#D4A017','#7B0D1E'],
   'Red/Blue':        ['#CC2222','#002FA7'],
   'Red/Gold':        ['#CC2222','#D4A017'],
   'Sapphire Forest': ['#0F52BA','#2D7A2D'],
-  'Smokey Wine':     ['#808080','#7B0D1E'],
+  'Smokey Wine':     ['#CC2222','#1C1C1C'],
   // Tri
   'Deep Space':      ['#0A0A2E','#1B1B6B','#6A0D91'],
-  'Eclipse Steel':   ['#1C1C1C','#B8C0CC','#8B8680'],
+  'Evergreen Steel': ['#5BB8E8','#3A9E4A','#D4682A'],
   'Golden Aurora':   ['#002FA7','#7B0D1E','#D4A017'],
-  'Golden Sapphire': ['#D4A017','#0F52BA','#F5F5F5'],
+  'Golden Sapphire': ['#002FA7','#D4A017'],
   'Northern Lights': ['#7B0D1E','#002FA7','#1A472A'],
-  'Solar':           ['#FF4500','#D4A017','#FF8C00'],
+  'Solar':           ['#00CED1','#FF69B4','#F5E642'],
+  'Solar Bloom':     ['#00CED1','#FF69B4','#F5E642'],
 };
 const FIL_ROLL_GRAMS = { '750g': 750, '1kg': 1000 };
 
@@ -2613,6 +2614,76 @@ function _filSwatch(f) {
   return `<span style="${sz};background:${hex}"></span>`;
 }
 
+// ── Spool helpers ──────────────────────────────────────────────────────────
+function _filSpoolPill(s) {
+  const isFull = String(s).toLowerCase() === 'full';
+  const bg  = isFull ? 'rgba(16,185,129,.22)' : 'rgba(99,102,241,.20)';
+  const col = isFull ? '#6ee7b7'              : '#a5b4fc';
+  return `<span style="font-size:.68rem;padding:.1rem .42rem;border-radius:12px;background:${bg};color:${col};white-space:nowrap;line-height:1.6">${s}</span>`;
+}
+
+function _filSpoolPills(f) {
+  const spools = Array.isArray(f.open_spools) ? f.open_spools : [];
+  if (!spools.length) return '<span style="color:var(--muted);font-size:.72rem">—</span>';
+  return `<div style="display:flex;flex-wrap:wrap;gap:3px;justify-content:center">${spools.map(_filSpoolPill).join('')}</div>`;
+}
+
+function _filSpoolEditor(f) {
+  const spools = Array.isArray(f.open_spools) ? f.open_spools : [];
+  const pillsHtml = spools.map((s, i) => {
+    const isFull = String(s).toLowerCase() === 'full';
+    const bg  = isFull ? 'rgba(16,185,129,.22)' : 'rgba(99,102,241,.20)';
+    const col = isFull ? '#6ee7b7'              : '#a5b4fc';
+    return `<span style="font-size:.68rem;padding:.1rem .42rem;border-radius:12px;background:${bg};color:${col};display:inline-flex;align-items:center;gap:2px;white-space:nowrap;line-height:1.6">
+      ${s}<button onclick="_filRemoveSpool('${f.id}',${i})" style="background:none;border:none;color:${col};cursor:pointer;font-size:.62rem;padding:0 0 0 1px;line-height:1;opacity:.65" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.65">✕</button>
+    </span>`;
+  }).join('');
+  return `<div id="fil-spools-${f.id}" style="min-width:100px">
+    <div id="fil-spool-pills-${f.id}" style="display:flex;flex-wrap:wrap;gap:3px;${spools.length?'margin-bottom:5px':''}">${pillsHtml}</div>
+    <div style="display:flex;gap:3px;align-items:center">
+      <input id="fil-spool-input-${f.id}" type="text" placeholder="Full / 350g"
+        style="font-size:.7rem;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);border-radius:6px;color:var(--fg);padding:.15rem .35rem;width:76px;outline:none"
+        onkeydown="if(event.key==='Enter'){event.preventDefault();_filAddSpool('${f.id}')}">
+      <button onclick="_filAddSpool('${f.id}')" style="background:rgba(99,102,241,.28);border:none;border-radius:6px;color:#a5b4fc;cursor:pointer;font-size:.8rem;padding:.12rem .4rem;line-height:1;flex-shrink:0" title="Add spool">+</button>
+    </div>
+  </div>`;
+}
+
+function _filAddSpool(id) {
+  const input = document.getElementById(`fil-spool-input-${id}`);
+  if (!input) return;
+  const val = input.value.trim();
+  if (!val) return;
+  const row = (_filamentsCache||[]).find(f => f.id === id);
+  if (!row) return;
+  if (!Array.isArray(row.open_spools)) row.open_spools = [];
+  row.open_spools.push(val);
+  _filSetDirty(id);
+  // Append pill without full re-render
+  const pillsDiv = document.getElementById(`fil-spool-pills-${id}`);
+  if (pillsDiv) {
+    if (pillsDiv.style.marginBottom !== '5px') pillsDiv.style.marginBottom = '5px';
+    const i   = row.open_spools.length - 1;
+    const isFull = val.toLowerCase() === 'full';
+    const bg  = isFull ? 'rgba(16,185,129,.22)' : 'rgba(99,102,241,.20)';
+    const col = isFull ? '#6ee7b7'              : '#a5b4fc';
+    const span = document.createElement('span');
+    span.style.cssText = `font-size:.68rem;padding:.1rem .42rem;border-radius:12px;background:${bg};color:${col};display:inline-flex;align-items:center;gap:2px;white-space:nowrap;line-height:1.6`;
+    span.innerHTML = `${val}<button onclick="_filRemoveSpool('${id}',${i})" style="background:none;border:none;color:${col};cursor:pointer;font-size:.62rem;padding:0 0 0 1px;line-height:1;opacity:.65" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.65">✕</button>`;
+    pillsDiv.appendChild(span);
+  }
+  input.value = '';
+  input.focus();
+}
+
+function _filRemoveSpool(id, index) {
+  const row = (_filamentsCache||[]).find(f => f.id === id);
+  if (!row || !Array.isArray(row.open_spools)) return;
+  row.open_spools.splice(index, 1);
+  _filSetDirty(id);
+  renderFilaments(); // indices shift, full re-render needed
+}
+
 function _filViewRow(f, i) {
   const cpg = _filCostPerGram(f.cost_price, f.roll_size);
   const variantStyle = {
@@ -2631,7 +2702,7 @@ function _filViewRow(f, i) {
     <td>${f.roll_size||'—'}</td>
     <td style="text-align:right">${f.cost_price != null ? 'R&nbsp;'+f.cost_price : '—'}</td>
     <td style="text-align:right;color:var(--muted);font-size:.75rem">${cpg}</td>
-    <td style="text-align:center">${f.qty_stock != null ? f.qty_stock : '—'}</td>
+    <td style="text-align:center;padding:.25rem .3rem">${_filSpoolPills(f)}</td>
     <td style="text-align:right;white-space:nowrap">
       <button onclick="_filStartEdit('${f.id}')" title="Edit" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:.8rem;padding:.1rem .3rem;opacity:.6" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.6">✏</button>
       <button onclick="deleteFilament('${f.id}')" title="Delete" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:.8rem;padding:.1rem .3rem;opacity:.45" onmouseover="this.style.color='var(--red)';this.style.opacity=1" onmouseout="this.style.color='var(--muted)';this.style.opacity=.45">✕</button>
@@ -2651,7 +2722,7 @@ function _filEditRow(f, i) {
     <td>${_filSelect('roll_size',     FIL_ROLLS,  f.roll_size||'1kg', f.id)}</td>
     <td>${_filInput ('cost_price',    f.cost_price,  f.id, 'number', 'text-align:right')}</td>
     <td id="fil-cpg-${f.id}" style="font-size:.78rem;color:var(--muted);text-align:right">${cpg}</td>
-    <td>${_filInput ('qty_stock',     f.qty_stock,   f.id, 'number', 'text-align:center')}</td>
+    <td style="padding:.25rem .3rem">${_filSpoolEditor(f)}</td>
     <td style="text-align:right;white-space:nowrap">
       <button onclick="_filDoneEdit('${f.id}')" title="Done" style="background:none;border:none;color:#6ee7b7;cursor:pointer;font-size:.9rem;padding:.1rem .3rem">✓</button>
       <button onclick="deleteFilament('${f.id}')" title="Delete" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:.8rem;padding:.1rem .3rem;opacity:.45" onmouseover="this.style.color='var(--red)';this.style.opacity=1" onmouseout="this.style.color='var(--muted)';this.style.opacity=.45">✕</button>
@@ -2797,7 +2868,8 @@ async function _saveFilamentRow(id) {
     cost_price:     row.cost_price      ?? null,
     bed_temp:       row.bed_temp        ?? null,
     nozzle_temp:    row.nozzle_temp     ?? null,
-    qty_stock:      row.qty_stock       ?? null,
+    open_spools:    Array.isArray(row.open_spools) ? row.open_spools : [],
+    qty_stock:      Array.isArray(row.open_spools) ? row.open_spools.length : (row.qty_stock ?? null),
   }).eq('id', id);
   if (error) { _filShowStatus('❌ save failed'); toast('Save error: ' + error.message, 'error'); }
   else _filShowStatus('✓ saved', 1500);
@@ -2814,7 +2886,7 @@ async function addFilamentRow() {
   const newRow = {
     brand: null, material_type: 'PLA', colour_variant: 'Single',
     colour1: null, hex1: null, roll_size: _filGetDefaultRollSize(null, 'Single'),
-    cost_price: null, bed_temp: null, nozzle_temp: null, qty_stock: null, notes: null
+    cost_price: null, bed_temp: null, nozzle_temp: null, qty_stock: null, open_spools: [], notes: null
   };
   const { data, error } = await db.from('filaments').insert([newRow]).select().single();
   if (error) { toast('Error: ' + error.message, 'error'); return; }
