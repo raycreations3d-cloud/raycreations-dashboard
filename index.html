@@ -115,6 +115,35 @@
     .kpi-red   { border-left: 3px solid var(--red); }
     .kpi-blue  { border-left: 3px solid var(--accent); }
     .kpi-cyan  { border-left: 3px solid var(--accent2); }
+    .kpi-orange { border-left: 3px solid #f97316; }
+    .kpi-click { cursor: pointer; transition: background .15s; }
+    .kpi-click:hover { background: #243247; }
+
+    /* ── Overview: pipeline summary ── */
+    .ov-pipe-head { display:flex; align-items:center; justify-content:space-between; gap:.75rem; margin-bottom:.75rem; }
+    .ov-pipe-head h2 { font-size:1rem; font-weight:700; }
+    .ov-printer-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:1rem; margin-bottom:1.5rem; }
+    .ov-printer { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:1rem 1.1rem; cursor:pointer; transition:background .15s; min-width:0; display:flex; flex-direction:column; }
+    .ov-printer:hover { background:#243247; }
+    .ov-printer.busy { border-top:3px solid #f97316; }
+    .ov-printer.idle { border-top:3px solid var(--border); }
+    .ov-printer-top { display:flex; align-items:center; justify-content:space-between; gap:.5rem; margin-bottom:.6rem; }
+    .ov-printer-name { font-weight:700; font-size:.9rem; }
+    .ov-status { display:inline-flex; align-items:center; gap:.35rem; font-size:.66rem; font-weight:700; text-transform:uppercase; letter-spacing:.05em; padding:.15rem .55rem; border-radius:999px; white-space:nowrap; }
+    .ov-status.busy { background:rgba(249,115,22,.15); color:#f97316; }
+    .ov-status.idle { background:rgba(148,163,184,.12); color:var(--muted); }
+    .ov-dot { width:6px; height:6px; border-radius:50%; background:currentColor; }
+    .ov-status.busy .ov-dot { animation: ov-pulse 1.6s ease-in-out infinite; }
+    @keyframes ov-pulse { 0%,100% { opacity:1 } 50% { opacity:.25 } }
+    @media (prefers-reduced-motion: reduce) { .ov-status.busy .ov-dot { animation:none; } }
+    .ov-plate-name { font-size:.85rem; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .ov-plate-meta { font-size:.72rem; color:var(--muted); margin-top:.2rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .ov-idle-text { font-size:.82rem; color:var(--muted); }
+    .ov-models { display:flex; flex-wrap:wrap; gap:3px; margin-top:.45rem; }
+    .ov-model-pill { font-size:.68rem; padding:.1rem .45rem; border-radius:8px; background:rgba(255,255,255,.08); color:var(--muted); display:inline-flex; align-items:center; gap:4px; max-width:100%; }
+    .ov-model-pill .sw { width:8px; height:8px; border-radius:50%; flex-shrink:0; box-shadow:0 0 0 1px rgba(0,0,0,.3); }
+    .ov-printer-foot { font-size:.72rem; color:var(--muted); margin-top:auto; padding-top:.6rem; }
+    .ov-printer-foot-inner { border-top:1px solid rgba(51,65,85,.6); padding-top:.5rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 
     /* ── Charts ── */
     .chart-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 1rem; margin-bottom: 1.5rem; }
@@ -236,6 +265,60 @@
     }
     .sale-row.expanded > td { background:rgba(99,102,241,.05); }
 
+    /* ── Print Pipeline ── */
+    #page-pipeline { flex-direction:column;height:100%;overflow:hidden }
+    #page-pipeline.active { display:flex }
+    .pipe-board { display:flex;gap:1rem;overflow-x:auto;flex:1;padding-bottom:.5rem;align-items:flex-start }
+    .pipe-col { flex:0 0 260px;background:rgba(255,255,255,.04);border-radius:12px;display:flex;flex-direction:column;max-height:calc(100vh - 140px) }
+    .pipe-col-header { padding:.7rem .9rem;border-bottom:1px solid rgba(255,255,255,.08);font-weight:600;font-size:.85rem;display:flex;align-items:center;justify-content:space-between;flex-shrink:0 }
+    .pipe-col-body { flex:1;overflow-y:auto;padding:.6rem;display:flex;flex-direction:column;gap:.5rem }
+    .pipe-col-body.drag-over { background:rgba(99,102,241,.1);border-radius:8px }
+    /* Model card */
+    .pipe-model-card { background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:.6rem .75rem;cursor:grab;user-select:none;transition:transform .1s,box-shadow .1s }
+    .pipe-model-card:hover { border-color:rgba(99,102,241,.5);box-shadow:0 2px 8px rgba(0,0,0,.3) }
+    .pipe-model-card.dragging { opacity:.4;transform:scale(.97) }
+    .pipe-model-card.urgent { border-left:3px solid var(--red) }
+    .pipe-model-card:hover .pm-edit-btn { opacity:.7 !important }
+    /* Plate card */
+    .pipe-plate-card { background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:.65rem .8rem;cursor:grab;transition:box-shadow .15s,border-color .15s }
+    .pipe-plate-card:hover { border-color:rgba(255,255,255,.22) }
+    .pipe-plate-card.dragging { opacity:.4;transform:scale(.97) }
+    .pipe-plate-card.drop-target { border-color:var(--accent);background:rgba(99,102,241,.12) }
+    .pipe-plate-models { display:flex;flex-wrap:wrap;gap:3px;margin:.4rem 0 }
+    .pipe-mini-model { font-size:.68rem;padding:.1rem .4rem;border-radius:8px;background:rgba(255,255,255,.08);color:var(--muted);display:flex;align-items:center;gap:3px;cursor:grab }
+    .pipe-mini-model:hover { background:rgba(255,255,255,.13);color:var(--fg) }
+    .pipe-mini-model .pm-edit-btn { background:none;border:none;cursor:pointer;color:var(--muted);font-size:.6rem;padding:0 0 0 2px;opacity:0;line-height:1 }
+    .pipe-mini-model:hover .pm-edit-btn { opacity:.7 }
+    .pipe-mini-model .pm-edit-btn:hover { opacity:1;color:var(--accent) }
+    .pipe-printer-section { border:1px dashed rgba(255,255,255,.1);border-radius:10px;padding:.5rem .55rem;margin-bottom:.5rem }
+    .pipe-printer-section:last-child { margin-bottom:0 }
+    .pipe-printer-section.drag-over { border-color:var(--accent);background:rgba(99,102,241,.08);border-style:solid }
+    .pipe-printer-label { font-size:.72rem;font-weight:700;color:#f97316;margin-bottom:.4rem;display:flex;align-items:center;justify-content:space-between }
+    .pipe-col-printing,.pipe-col-sliced { flex:0 0 280px }
+    .pipe-col-printing .pipe-col-body,.pipe-col-sliced .pipe-col-body { overflow-y:auto }
+    .pipe-stage-btn { font-size:.72rem;padding:.2rem .5rem;border-radius:6px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.06);color:var(--muted);cursor:pointer }
+    .pipe-stage-btn:hover { color:var(--fg);border-color:var(--accent) }
+    .pipe-stage-btn.green { border-color:rgba(16,185,129,.4);color:#6ee7b7;background:rgba(16,185,129,.1) }
+    .pipe-col-idea { border-top:3px solid #6366f1 }
+    .pipe-col-plating { border-top:3px solid #f59e0b }
+    .pipe-col-sliced { border-top:3px solid #06b6d4 }
+    .pipe-col-printing { border-top:3px solid #f97316 }
+    .pipe-col-done { border-top:3px solid #10b981 }
+    /* ── Filament multi-select picker ── */
+    .pm-fil-picker { position:relative }
+    .pm-fil-selected { min-height:38px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);border-radius:8px;padding:.3rem .45rem;display:flex;flex-wrap:wrap;gap:4px;cursor:pointer;align-items:center;transition:border-color .15s }
+    .pm-fil-selected:hover,.pm-fil-selected.open { border-color:var(--accent) }
+    .pm-fil-pill { display:inline-flex;align-items:center;gap:3px;padding:.1rem .42rem;border-radius:12px;font-size:.72rem;white-space:nowrap;line-height:1.6 }
+    .pm-fil-pill button { background:none;border:none;cursor:pointer;color:inherit;font-size:.65rem;padding:0 0 0 2px;opacity:.65;line-height:1 }
+    .pm-fil-pill button:hover { opacity:1 }
+    .pm-fil-dropdown { position:absolute;top:calc(100% + 4px);left:0;right:0;background:#1a1d2e;border:1px solid rgba(255,255,255,.15);border-radius:10px;box-shadow:0 8px 28px rgba(0,0,0,.55);z-index:300;max-height:230px;overflow:hidden;display:none;flex-direction:column }
+    .pm-fil-dropdown.open { display:flex }
+    .pm-fil-search { background:rgba(255,255,255,.06);border:none;border-bottom:1px solid rgba(255,255,255,.1);padding:.5rem .75rem;color:var(--fg);font-size:.82rem;outline:none;flex-shrink:0 }
+    .pm-fil-list { overflow-y:auto;flex:1 }
+    .pm-fil-option { display:flex;align-items:center;gap:.55rem;padding:.38rem .75rem;cursor:pointer;font-size:.8rem;color:var(--muted);transition:background .1s }
+    .pm-fil-option:hover { background:rgba(255,255,255,.06);color:var(--fg) }
+    .pm-fil-option.selected { color:#a5b4fc;background:rgba(99,102,241,.1) }
+    .pm-fil-option .fil-dot { width:12px;height:12px;border-radius:50%;flex-shrink:0;box-shadow:0 1px 3px rgba(0,0,0,.4) }
     /* ── Inventory Page ── */
     .inv-toolbar { display:flex; gap:.75rem; flex-wrap:wrap; align-items:center; margin-bottom:1.25rem; }
     .inv-search {
@@ -405,6 +488,9 @@
       <div class="nav-item" onclick="navigate('inventory')">
         <span class="nav-icon">📦</span> Inventory
       </div>
+      <div class="nav-item" onclick="navigate('pipeline')">
+        <span class="nav-icon">🖨</span> Pipeline
+      </div>
       <div class="nav-item" onclick="navigate('filaments')">
         <span class="nav-icon">🧵</span> Filaments
       </div>
@@ -461,6 +547,35 @@
           <div class="kpi-sub" id="kpi-month-sub">loading...</div>
         </div>
       </div>
+
+      <!-- Print pipeline summary -->
+      <div class="ov-pipe-head">
+        <h2>🖨 Print Pipeline</h2>
+        <button class="btn btn-sm btn-outline" onclick="navigate('pipeline')">Open pipeline →</button>
+      </div>
+      <div class="kpi-grid">
+        <div class="kpi-card kpi-blue kpi-click" onclick="navigate('pipeline')" title="Models on plates that are plating, sliced or printing">
+          <div class="kpi-label">Models in Progress</div>
+          <div class="kpi-value" id="ov-pipe-models">—</div>
+          <div class="kpi-sub" id="ov-pipe-models-sub">loading...</div>
+        </div>
+        <div class="kpi-card kpi-orange kpi-click" onclick="navigate('pipeline')">
+          <div class="kpi-label">Printers Active</div>
+          <div class="kpi-value" id="ov-pipe-printers">—</div>
+          <div class="kpi-sub" id="ov-pipe-printers-sub">loading...</div>
+        </div>
+        <div class="kpi-card kpi-cyan kpi-click" onclick="navigate('pipeline')" title="Plates sliced and waiting for a printer">
+          <div class="kpi-label">Plates Ready to Print</div>
+          <div class="kpi-value" id="ov-pipe-queued">—</div>
+          <div class="kpi-sub" id="ov-pipe-queued-sub">loading...</div>
+        </div>
+        <div class="kpi-card kpi-green kpi-click" onclick="navigate('pipeline')">
+          <div class="kpi-label">Printed This Month</div>
+          <div class="kpi-value" id="ov-pipe-done">—</div>
+          <div class="kpi-sub" id="ov-pipe-done-sub">loading...</div>
+        </div>
+      </div>
+      <div class="ov-printer-grid" id="ov-printer-grid"></div>
 
       <div class="chart-grid">
         <div class="chart-card">
@@ -842,6 +957,41 @@
       </div>
     </div>
 
+    <!-- ── PRINT PIPELINE PAGE ── -->
+    <div id="page-pipeline" class="page">
+      <div id="pipe-board" class="pipe-board">
+        <div class="pipe-col pipe-col-idea">
+          <div class="pipe-col-header">
+            <span>💡 Idea <span id="pipe-idea-count" style="font-size:.72rem;color:var(--muted);font-weight:400;margin-left:.25rem"></span></span>
+            <button class="pipe-stage-btn" onclick="openAddModelModal()" title="Add model">＋ Model</button>
+          </div>
+          <div class="pipe-col-body" id="pipe-col-idea" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="onDropToIdea(event)"></div>
+        </div>
+        <div class="pipe-col pipe-col-plating">
+          <div class="pipe-col-header">
+            <span>🗂 Plating</span>
+            <button class="pipe-stage-btn" onclick="pipeNewPlate()" title="Create new plate">＋ Plate</button>
+          </div>
+          <div class="pipe-col-body" id="pipe-col-plating"
+            ondragover="if(_pipeDragType==='plate'){event.preventDefault();this.classList.add('drag-over')}"
+            ondragleave="this.classList.remove('drag-over')"
+            ondrop="onDropToPlating(event)"></div>
+        </div>
+        <div class="pipe-col pipe-col-sliced">
+          <div class="pipe-col-header"><span>✂️ Sliced</span><span id="pipe-sliced-count" style="font-size:.72rem;color:var(--muted)"></span></div>
+          <div class="pipe-col-body" id="pipe-col-sliced"></div>
+        </div>
+        <div class="pipe-col pipe-col-printing">
+          <div class="pipe-col-header"><span>🖨 Printing</span><span id="pipe-printing-count" style="font-size:.72rem;color:var(--muted)"></span></div>
+          <div class="pipe-col-body" id="pipe-col-printing"></div>
+        </div>
+        <div class="pipe-col pipe-col-done">
+          <div class="pipe-col-header"><span>✅ Done</span></div>
+          <div class="pipe-col-body" id="pipe-col-done"></div>
+        </div>
+      </div>
+    </div>
+
     <!-- ── INVENTORY PAGE ── -->
     <div id="page-inventory" class="page">
       <div style="background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.25);border-radius:10px;padding:.85rem 1rem;margin-bottom:1.25rem;font-size:.85rem;color:var(--muted);">
@@ -1081,6 +1231,95 @@
     <div class="form-actions">
       <button class="btn btn-outline btn-sm" onclick="closeModal('approve-invoice')">Cancel</button>
       <button class="btn btn-green btn-sm" id="inv-modal-submit-btn" onclick="submitApproveInvoice()">✓ Add to Expenses</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Model Modal (Pipeline) -->
+<div class="modal-overlay" id="modal-add-model">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-header">
+      <h2 id="pm-modal-title">💡 Add Print Model</h2>
+      <button class="modal-close" onclick="document.getElementById('modal-add-model').classList.remove('open')">✕</button>
+    </div>
+    <div class="form-group">
+      <label>Model Name</label>
+      <input type="text" id="pm-name" placeholder="e.g. Clownfish, Tiger, Succulent Pot">
+    </div>
+    <div class="form-group">
+      <label>Filaments for this design</label>
+      <div class="pm-fil-picker" id="pm-fil-picker">
+        <div class="pm-fil-selected" id="pm-fil-selected" onclick="togglePmFilDropdown(event)">
+          <span id="pm-fil-placeholder" style="color:var(--muted);font-size:.8rem;pointer-events:none">Click to select filament(s)…</span>
+        </div>
+        <div class="pm-fil-dropdown" id="pm-fil-dropdown">
+          <input class="pm-fil-search" id="pm-fil-search" type="text" placeholder="🔍  Search colour or brand…"
+            oninput="renderPmFilOptions(this.value)" onclick="event.stopPropagation()">
+          <div class="pm-fil-list" id="pm-fil-options"></div>
+        </div>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group" style="flex:1">
+        <label>Qty to Print</label>
+        <input type="number" id="pm-qty" min="1" value="1" style="width:70px">
+      </div>
+      <div class="form-group" style="flex:1">
+        <label>Linked Inventory Item</label>
+        <select id="pm-inv-sel" style="width:100%">
+          <option value="">— optional —</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer">
+        <input type="checkbox" id="pm-urgent"> <span>🔴 Mark as urgent / rush</span>
+      </label>
+    </div>
+    <div style="display:flex;gap:.75rem;margin-top:1rem">
+      <button class="btn btn-green" id="pm-submit-btn" onclick="submitAddModel()">＋ Add to Pipeline</button>
+      <button class="btn btn-outline" onclick="document.getElementById('modal-add-model').classList.remove('open')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Complete Plate Modal (Pipeline) -->
+<div class="modal-overlay" id="modal-complete-plate">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-header">
+      <h2>✅ Complete Plate</h2>
+      <button class="modal-close" onclick="document.getElementById('modal-complete-plate').classList.remove('open')">✕</button>
+    </div>
+    <input type="hidden" id="cp-plate-id">
+    <div class="form-group">
+      <label>Grams of filament used</label>
+      <input type="number" id="cp-grams" min="0" step="0.1" placeholder="e.g. 85">
+    </div>
+    <div class="form-group">
+      <label>Notes (optional)</label>
+      <input type="text" id="cp-notes" placeholder="Any print notes…">
+    </div>
+    <div id="cp-summary" style="font-size:.82rem;color:var(--muted);margin:.5rem 0;padding:.6rem;background:rgba(255,255,255,.04);border-radius:8px;display:none"></div>
+    <div style="display:flex;gap:.75rem;margin-top:1rem">
+      <button class="btn pipe-stage-btn green" onclick="submitCompletePlate()">✓ Mark Done &amp; Update Stock</button>
+      <button class="btn btn-outline" onclick="document.getElementById('modal-complete-plate').classList.remove('open')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Advance Plate Modal (Sliced / Printing) -->
+<div class="modal-overlay" id="modal-advance-plate">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-header">
+      <h2 id="ap-title">Advance Plate</h2>
+      <button class="modal-close" onclick="document.getElementById('modal-advance-plate').classList.remove('open')">✕</button>
+    </div>
+    <input type="hidden" id="ap-plate-id">
+    <input type="hidden" id="ap-target-stage">
+    <div id="ap-fields"></div>
+    <div style="display:flex;gap:.75rem;margin-top:1rem">
+      <button class="btn btn-green" onclick="submitAdvancePlate()">→ Move</button>
+      <button class="btn btn-outline" onclick="document.getElementById('modal-advance-plate').classList.remove('open')">Cancel</button>
     </div>
   </div>
 </div>
@@ -1328,7 +1567,7 @@ function navigate(page) {
   document.getElementById('page-' + page).classList.add('active');
   document.querySelector(`.nav-item[onclick="navigate('${page}')"]`).classList.add('active');
 
-  const titles = { overview: 'Overview', sales: 'Sales', expenses: 'Expenses', invoices: 'Invoice Inbox', inventory: 'Inventory', expos: 'Expos', backup: 'Backup & Restore', filaments: 'Filaments' };
+  const titles = { overview: 'Overview', sales: 'Sales', expenses: 'Expenses', invoices: 'Invoice Inbox', inventory: 'Inventory', expos: 'Expos', backup: 'Backup & Restore', filaments: 'Filaments', pipeline: 'Print Pipeline' };
   document.getElementById('page-title').textContent = titles[page] || page;
 
   const actions = document.getElementById('topbar-actions');
@@ -1343,6 +1582,8 @@ function navigate(page) {
     actions.innerHTML = `<button class="btn btn-sm btn-outline" onclick="openExpoModal()">+ Add Expo</button>`;
   } else if (page === 'filaments') {
     actions.innerHTML = '';
+  } else if (page === 'pipeline') {
+    actions.innerHTML = '';
   }
 
   if (page === 'overview')   loadOverview();
@@ -1352,6 +1593,7 @@ function navigate(page) {
   if (page === 'inventory')  loadInventory();
   if (page === 'expos')      loadExpos();
   if (page === 'filaments')  loadFilaments();
+  if (page === 'pipeline')   loadPipeline();
 }
 
 // ─────────────────── HELPERS ───────────────────
@@ -1440,6 +1682,7 @@ async function fetchAllPages(table) {
 }
 
 async function loadOverview() {
+  loadOverviewPipeline(); // runs in parallel; handles its own errors
   const [sales, expenses] = await Promise.all([
     fetchAllPages('sales'),
     fetchAllPages('expenses')
@@ -1506,6 +1749,120 @@ async function loadOverview() {
       <td style="color:${r.type==='sale'?'var(--green)':'var(--red)'};font-weight:600">${r.type==='sale'?'+':'-'}${fmt(r.amount)}</td>
       <td><span class="badge badge-blue">${r.source}</span></td>
     </tr>`).join('') : `<tr><td colspan="5" class="empty-state"><div class="icon">📭</div>No transactions yet</td></tr>`;
+}
+
+// ─────────────────── OVERVIEW: PIPELINE SUMMARY ───────────────────
+const _ovEsc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+
+function _ovAgo(iso) {
+  if (!iso) return '';
+  const mins = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
+  if (mins < 1)  return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const h = Math.floor(mins / 60), m = mins % 60;
+  if (h < 24) return m ? `${h}h ${m}m ago` : `${h}h ago`;
+  const d = Math.floor(h / 24), hr = h % 24;
+  return hr ? `${d}d ${hr}h ago` : `${d}d ago`;
+}
+
+function _ovSetKpi(id, value, sub) {
+  const v = document.getElementById(id);
+  const s = document.getElementById(id + '-sub');
+  if (v) v.textContent = value;
+  if (s) s.innerHTML   = sub;
+}
+
+async function loadOverviewPipeline() {
+  try {
+    const [modRes, platRes] = await Promise.all([
+      db.from('print_models').select('*'),
+      db.from('print_plates').select('*').order('created_at', { ascending: true }),
+    ]);
+    if (modRes.error || platRes.error) throw (modRes.error || platRes.error);
+    renderOverviewPipeline(modRes.data || [], platRes.data || []);
+  } catch (err) {
+    const msg = `<span style="color:var(--red)">Couldn't load pipeline</span>`;
+    ['ov-pipe-models','ov-pipe-printers','ov-pipe-queued','ov-pipe-done'].forEach(id => _ovSetKpi(id, '—', msg));
+    document.getElementById('ov-printer-grid').innerHTML = '';
+    console.error('Overview pipeline:', err);
+  }
+}
+
+function renderOverviewPipeline(models, plates) {
+  const ACTIVE = ['plating', 'sliced', 'printing'];
+  const activeIds   = new Set(plates.filter(p => ACTIVE.includes(p.stage)).map(p => p.id));
+  const modelsOn     = id => models.filter(m => m.plate_id === id);
+  const qty          = m => +m.qty_needed || 1;
+
+  // 1. Models in progress (on an active plate) + ideas waiting + urgent
+  const inProg  = models.filter(m => m.plate_id && activeIds.has(m.plate_id));
+  const ideas   = models.filter(m => !m.plate_id);   // same rule as the Ideas column
+  const urgent  = [...inProg, ...ideas].filter(m => m.is_urgent).length;
+  const units   = inProg.reduce((s, m) => s + qty(m), 0);
+  let modSub = `${units} unit${units === 1 ? '' : 's'} · ${ideas.length} idea${ideas.length === 1 ? '' : 's'} waiting`;
+  if (urgent) modSub += ` · <span style="color:var(--red);font-weight:600">${urgent} urgent</span>`;
+  _ovSetKpi('ov-pipe-models', inProg.length, modSub);
+
+  // 2. Printers active
+  const printing   = plates.filter(p => p.stage === 'printing');
+  const busyNames  = PIPE_PRINTERS.filter(pr => printing.some(p => p.printer_name === pr));
+  _ovSetKpi('ov-pipe-printers', `${busyNames.length} / ${PIPE_PRINTERS.length}`,
+    busyNames.length ? _ovEsc(busyNames.join(', ')) : 'All printers idle');
+
+  // 3. Plates ready to print (sliced) + plates still being plated
+  const sliced  = plates.filter(p => p.stage === 'sliced');
+  const plating = plates.filter(p => p.stage === 'plating');
+  _ovSetKpi('ov-pipe-queued', sliced.length, `${plating.length} plate${plating.length === 1 ? '' : 's'} still plating`);
+
+  // 4. Printed this month (local time)
+  const now = new Date();
+  const doneMonth = plates.filter(p => {
+    if (p.stage !== 'done' || !p.completed_at) return false;
+    const d = new Date(p.completed_at);
+    return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+  });
+  const grams     = doneMonth.reduce((s, p) => s + (+p.grams_used || 0), 0);
+  const doneUnits = doneMonth.reduce((s, p) => s + modelsOn(p.id).reduce((a, m) => a + qty(m), 0), 0);
+  _ovSetKpi('ov-pipe-done', `${doneMonth.length} plate${doneMonth.length === 1 ? '' : 's'}`,
+    `${doneUnits} unit${doneUnits === 1 ? '' : 's'} · ${Math.round(grams).toLocaleString()} g filament`);
+
+  // Per-printer status cards
+  const pill = m => {
+    const hex = FIL_HEX_MAP[m.colour_name] || '#3E4C64';
+    return `<span class="ov-model-pill"><span class="sw" style="background:${hex}"></span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${_ovEsc(m.name)}${qty(m) > 1 ? ` ×${qty(m)}` : ''}</span></span>`;
+  };
+
+  document.getElementById('ov-printer-grid').innerHTML = PIPE_PRINTERS.map(pr => {
+    const onIt  = printing.filter(p => p.printer_name === pr)
+                          .sort((a, b) => (a.started_at || a.created_at || '').localeCompare(b.started_at || b.created_at || ''));
+    const queue = sliced.filter(p => p.printer_name === pr);
+    const busy  = onIt.length > 0;
+    let body;
+    if (busy) {
+      const cur  = onIt[0];
+      const ms   = modelsOn(cur.id);
+      const meta = [cur.started_at ? `Started ${_ovAgo(cur.started_at)}` : '', cur.slice_file ? `📁 ${cur.slice_file}` : '']
+                     .filter(Boolean).join(' · ');
+      body = `
+        <div class="ov-plate-name" title="${_ovEsc(cur.name || 'Plate')}">${_ovEsc(cur.name || 'Plate')}</div>
+        ${meta ? `<div class="ov-plate-meta" title="${_ovEsc(meta)}">${_ovEsc(meta)}</div>` : ''}
+        ${ms.length ? `<div class="ov-models">${ms.slice(0, 4).map(pill).join('')}${ms.length > 4 ? `<span class="ov-model-pill">+${ms.length - 4} more</span>` : ''}</div>` : ''}
+        ${onIt.length > 1 ? `<div class="ov-plate-meta">+${onIt.length - 1} more plate${onIt.length > 2 ? 's' : ''} printing</div>` : ''}`;
+    } else {
+      body = `<div class="ov-idle-text">${queue.length ? 'Idle — plates ready to start' : 'Idle — nothing queued'}</div>`;
+    }
+    const queueTxt = queue.length
+      ? `Queued (${queue.length}): ${_ovEsc(queue.slice(0, 2).map(p => p.name || 'Plate').join(', '))}${queue.length > 2 ? ` +${queue.length - 2}` : ''}`
+      : 'Queue empty';
+    return `<div class="ov-printer ${busy ? 'busy' : 'idle'}" onclick="navigate('pipeline')" title="Open pipeline">
+      <div class="ov-printer-top">
+        <span class="ov-printer-name">${_ovEsc(pr)}</span>
+        <span class="ov-status ${busy ? 'busy' : 'idle'}"><span class="ov-dot"></span>${busy ? 'Printing' : 'Idle'}</span>
+      </div>
+      ${body}
+      <div class="ov-printer-foot"><div class="ov-printer-foot-inner">${queueTxt}</div></div>
+    </div>`;
+  }).join('');
 }
 
 // ─────────────────── SALES ───────────────────
@@ -2678,6 +3035,640 @@ function _filSwatch(f) {
   }
   const hex = f.hex1 || FIL_HEX_MAP[col] || '#3E4C64';
   return `<span style="${sz};background:${hex}"></span>`;
+}
+
+// ════════════════════════════ PRINT PIPELINE ════════════════════════════════
+
+const PIPE_PRINTERS = ['K1SE', 'K1C', 'Hi Combo', 'U1'];
+
+let _pipeModels    = [];
+let _pipePlates    = [];
+let _pipeDragId    = null;   // id of thing being dragged
+let _pipeDragType  = null;   // 'model' | 'plate'
+let _editModelId   = null;   // null = add mode, uuid = edit mode
+
+async function loadPipeline() {
+  const [modRes, platRes] = await Promise.all([
+    db.from('print_models').select('*').order('created_at', { ascending: false }),
+    db.from('print_plates').select('*').order('created_at', { ascending: false }),
+  ]);
+  if (modRes.error)  { toast('Pipeline models error: ' + modRes.error.message, 'error'); }
+  if (platRes.error) { toast('Pipeline plates error: ' + platRes.error.message, 'error'); }
+  _pipeModels = modRes.data || [];
+  _pipePlates = platRes.data || [];
+  renderPipeline();
+}
+
+function renderPipeline() {
+  // Idea column — unplated models
+  const ideaModels = _pipeModels.filter(m => !m.plate_id);
+  document.getElementById('pipe-col-idea').innerHTML =
+    ideaModels.length ? ideaModels.map(_pipeModelCardHtml).join('') :
+    '<div style="color:var(--muted);font-size:.8rem;text-align:center;padding:1.5rem .5rem">Click ＋ Model above to add</div>';
+  const ideaCountEl = document.getElementById('pipe-idea-count');
+  if (ideaCountEl) ideaCountEl.textContent = ideaModels.length || '';
+
+  // Plating column — plates in 'plating' stage + their models
+  const platingPlates = _pipePlates.filter(p => p.stage === 'plating');
+  document.getElementById('pipe-col-plating').innerHTML =
+    platingPlates.length ? platingPlates.map(p => _pipePlateCardHtml(p)).join('') :
+    '<div style="color:var(--muted);font-size:.8rem;text-align:center;padding:1.5rem .5rem">Click + Plate to group models</div>';
+
+  // Sliced column — per-printer sections (same as Printing)
+  const totalSliced = _pipePlates.filter(p => p.stage === 'sliced').length;
+  document.getElementById('pipe-sliced-count').textContent = totalSliced || '';
+  document.getElementById('pipe-col-sliced').innerHTML = PIPE_PRINTERS.map(printer => {
+    const printerKey = printer.replace(/\s+/g, '-').toLowerCase();
+    const plates = _pipePlates.filter(p => p.stage === 'sliced' && p.printer_name === printer);
+    // Also show plates with no printer assigned under first printer header as fallback
+    const body = plates.length
+      ? plates.map(p => _pipePlateCardHtml(p)).join('')
+      : '<div style="color:var(--muted);font-size:.7rem;text-align:center;padding:.5rem">empty — drag here</div>';
+    return `<div class="pipe-printer-section" id="pipe-sliced-${printerKey}"
+        ondragover="if(_pipeDragType==='plate'){event.preventDefault();document.getElementById('pipe-sliced-${printerKey}').classList.add('drag-over')}"
+        ondragleave="document.getElementById('pipe-sliced-${printerKey}').classList.remove('drag-over')"
+        ondrop="onDropToSliced(event,'${printer}')">
+      <div class="pipe-printer-label">
+        <span>✂️ ${printer}</span>
+        <span style="font-weight:400;color:var(--muted)">${plates.length ? plates.length + (plates.length > 1 ? ' plates' : ' plate') : ''}</span>
+      </div>
+      ${body}
+    </div>`;
+  }).join('');
+
+  // Printing column — printer sub-sections stacked vertically
+  const totalPrinting = _pipePlates.filter(p => p.stage === 'printing').length;
+  document.getElementById('pipe-printing-count').textContent = totalPrinting || '';
+  document.getElementById('pipe-col-printing').innerHTML = PIPE_PRINTERS.map(printer => {
+    const printerKey = printer.replace(/\s+/g, '-').toLowerCase();
+    const plates = _pipePlates.filter(p => p.stage === 'printing' && p.printer_name === printer);
+    const body = plates.length
+      ? plates.map(p => _pipePlateCardHtml(p)).join('')
+      : '<div style="color:var(--muted);font-size:.7rem;text-align:center;padding:.5rem">empty — drag a plate here</div>';
+    return `<div class="pipe-printer-section" id="pipe-printer-${printerKey}"
+        ondragover="event.preventDefault();document.getElementById('pipe-printer-${printerKey}').classList.add('drag-over')"
+        ondragleave="document.getElementById('pipe-printer-${printerKey}').classList.remove('drag-over')"
+        ondrop="onDropToPrinter(event,'${printer}')">
+      <div class="pipe-printer-label">
+        <span>🖨 ${printer}</span>
+        <span style="font-weight:400;color:var(--muted)">${plates.length ? plates.length + (plates.length > 1 ? ' plates' : ' plate') : ''}</span>
+      </div>
+      ${body}
+    </div>`;
+  }).join('');
+
+  // Done column
+  const donePlates = _pipePlates.filter(p => p.stage === 'done');
+  document.getElementById('pipe-col-done').innerHTML =
+    donePlates.length ? donePlates.map(p => _pipePlateCardHtml(p)).join('') :
+    '<div style="color:var(--muted);font-size:.8rem;text-align:center;padding:1.5rem .5rem">Empty</div>';
+
+  _pipeBindDrag();
+}
+
+function _pipeModelCardHtml(m) {
+  // Build colour swatches — prefer filament_ids array, fall back to single colour_name
+  let swatches = '';
+  const ids = Array.isArray(m.filament_ids) && m.filament_ids.length ? m.filament_ids : null;
+  if (ids) {
+    swatches = ids.map(id => {
+      const f = (_filamentsCache||[]).find(x => x.id === id);
+      const hex = f ? (FIL_HEX_MAP[f.colour1] || '#3E4C64') : '#3E4C64';
+      const label = f ? (f.colour1 || f.brand) : '';
+      return `<span title="${label}" style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${hex};flex-shrink:0;box-shadow:0 0 0 1px rgba(0,0,0,.3)"></span>`;
+    }).join('');
+  } else {
+    const hex = FIL_HEX_MAP[m.colour_name] || '#3E4C64';
+    swatches = `<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${hex};flex-shrink:0"></span>`;
+  }
+  // Label: list colour names or fall back to colour_name
+  const colLabel = ids
+    ? (ids.map(id => (_filamentsCache||[]).find(x => x.id === id)?.colour1).filter(Boolean).join(', ') || '—')
+    : (m.colour_name || '—');
+  const urgent = m.is_urgent ? ' urgent' : '';
+  return `<div class="pipe-model-card${urgent}" id="pmc-${m.id}"
+    draggable="true" data-model-id="${m.id}">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:.3rem">
+      <strong style="font-size:.83rem;line-height:1.3">${m.name}</strong>
+      <div style="display:flex;gap:.2rem;flex-shrink:0">
+        ${m.is_urgent ? '<span style="font-size:.68rem;color:var(--red)">🔴</span>' : ''}
+        <button class="pm-edit-btn" onclick="event.stopPropagation();openEditModelModal('${m.id}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:.72rem;opacity:0;transition:opacity .15s" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0">✏️</button>
+        <button onclick="event.stopPropagation();deletePipeModel('${m.id}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:.72rem;opacity:.5" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.5">✕</button>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:.4rem;margin-top:.35rem;font-size:.75rem;color:var(--muted)">
+      <span style="display:flex;gap:2px;align-items:center">${swatches}</span>
+      <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:140px">${colLabel}</span>
+      <span style="margin-left:auto;flex-shrink:0">×${m.qty_needed || 1}</span>
+    </div>
+  </div>`;
+}
+
+function _pipePlateCardHtml(p) {
+  const models    = _pipeModels.filter(m => m.plate_id === p.id);
+  const miniModels = models.map(m => {
+    const hex = FIL_HEX_MAP[m.colour_name] || '#3E4C64';
+    return `<span class="pipe-mini-model" draggable="true" data-model-id="${m.id}"
+        ondragstart="event.stopPropagation();_pipeDragType='model';_pipeDragId='${m.id}';setTimeout(()=>this.style.opacity='.4',0)"
+        ondragend="this.style.opacity='';_pipeDragType=null;_pipeDragId=null;document.querySelectorAll('.pipe-plate-card').forEach(c=>{c.style.boxShadow='';c.classList.remove('drop-target')})">
+      <span style="width:8px;height:8px;border-radius:50%;background:${hex};display:inline-block;flex-shrink:0"></span>
+      ${m.name}${m.qty_needed > 1 ? ` ×${m.qty_needed}` : ''}
+      <button class="pm-edit-btn" onclick="event.stopPropagation();openEditModelModal('${m.id}')">✏️</button>
+    </span>`;
+  }).join('');
+
+  const advanceBtn = _pipeAdvanceButton(p);
+  const isDone = p.stage === 'done';
+  // Plates in plating/sliced stages can be dragged (to reorder or move to printer)
+  const draggableAttrs = !isDone ? `draggable="true" data-plate-id="${p.id}"` : '';
+  // Drop target for models only when in plating stage
+  const dropAttrs = p.stage === 'plating'
+    ? `ondragover="if(_pipeDragType==='model'){event.preventDefault();document.getElementById('ppc-${p.id}').style.boxShadow='0 0 0 2px var(--accent)'}"
+       ondragleave="document.getElementById('ppc-${p.id}').style.boxShadow=''"
+       ondrop="onDropToPlate(event,'${p.id}')"`
+    : '';
+
+  return `<div class="pipe-plate-card${p.stage==='plating' ? ' drop-target' : ''}"
+      id="ppc-${p.id}" ${draggableAttrs} ${dropAttrs}>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.35rem">
+      <strong style="font-size:.82rem">${p.name || 'Plate'}</strong>
+      ${!isDone ? `<button onclick="event.stopPropagation();deletePipePlate('${p.id}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:.72rem;opacity:.45" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.45">✕</button>` : ''}
+    </div>
+    ${miniModels ? `<div class="pipe-plate-models">${miniModels}</div>` : '<div style="font-size:.72rem;color:var(--muted);margin:.3rem 0">← Drag models here</div>'}
+    ${p.printer_name && p.stage === 'sliced' ? `<div style="font-size:.72rem;color:#f97316;font-weight:600;margin:.25rem 0">🖨 → ${p.printer_name}</div>` : ''}
+    ${p.slice_file   ? `<div style="font-size:.72rem;color:var(--muted);margin:.25rem 0">📁 ${p.slice_file}</div>` : ''}
+    ${isDone && p.grams_used ? `<div style="font-size:.72rem;color:#6ee7b7;margin:.25rem 0">✓ ${p.grams_used}g used</div>` : ''}
+    <div style="margin-top:.5rem;display:flex;gap:.3rem;flex-wrap:wrap">${advanceBtn}</div>
+  </div>`;
+}
+
+function _pipeAdvanceButton(p) {
+  const stage = p.stage;
+  if (stage === 'plating')  return `<button class="pipe-stage-btn" onclick="openAdvancePlate('${p.id}','sliced')">→ Mark Sliced</button>`;
+  if (stage === 'sliced')   return `<button class="pipe-stage-btn" onclick="openAdvancePlate('${p.id}','printing')">→ Start Printing</button>`;
+  if (stage === 'printing') return `<button class="pipe-stage-btn green" onclick="openCompletePlate('${p.id}')">✓ Mark Done</button>`;
+  return `<span style="font-size:.72rem;color:#6ee7b7">${p.completed_at ? new Date(p.completed_at).toLocaleDateString() : 'Complete'}</span>`;
+}
+
+function _pipeBindDrag() {
+  // Model cards in Ideas column
+  document.querySelectorAll('.pipe-model-card[draggable]').forEach(el => {
+    el.addEventListener('dragstart', e => {
+      _pipeDragType = 'model';
+      _pipeDragId   = el.dataset.modelId;
+      setTimeout(() => el.classList.add('dragging'), 0);
+    });
+    el.addEventListener('dragend', () => {
+      el.classList.remove('dragging');
+      _pipeDragId   = null;
+      _pipeDragType = null;
+      document.querySelectorAll('.pipe-col-body').forEach(c => c.classList.remove('drag-over'));
+      document.querySelectorAll('.pipe-plate-card').forEach(c => c.style.boxShadow = '');
+    });
+  });
+
+  // Plate cards — draggable to printer sections
+  document.querySelectorAll('.pipe-plate-card[data-plate-id]').forEach(el => {
+    el.addEventListener('dragstart', e => {
+      // Don't fire if the drag actually started on a child mini-model
+      if (e.target.closest('[data-model-id]') && e.target.closest('.pipe-mini-model')) return;
+      _pipeDragType = 'plate';
+      _pipeDragId   = el.dataset.plateId;
+      setTimeout(() => el.classList.add('dragging'), 0);
+    });
+    el.addEventListener('dragend', () => {
+      el.classList.remove('dragging');
+      _pipeDragId   = null;
+      _pipeDragType = null;
+      document.querySelectorAll('.pipe-printer-section').forEach(s => s.classList.remove('drag-over'));
+      document.querySelectorAll('.pipe-col-body').forEach(s => s.classList.remove('drag-over'));
+    });
+  });
+}
+
+function onDropToPlate(event, plateId) {
+  event.preventDefault();
+  document.getElementById(`ppc-${plateId}`).style.boxShadow = '';
+  if (!_pipeDragId) return;
+  _pipeAssignModelToPlate(_pipeDragId, plateId);
+}
+
+function onDropToIdea(event) {
+  event.preventDefault();
+  document.getElementById('pipe-col-idea').classList.remove('drag-over');
+  if (!_pipeDragId) return;
+  // Remove from plate (return to idea)
+  const model = _pipeModels.find(m => m.id === _pipeDragId);
+  if (!model || !model.plate_id) return;
+  _pipeAssignModelToPlate(_pipeDragId, null);
+}
+
+async function onDropToPrinter(event, printerName) {
+  event.preventDefault();
+  const printerKey = printerName.replace(/\s+/g, '-').toLowerCase();
+  const section = document.getElementById(`pipe-printer-${printerKey}`);
+  if (section) section.classList.remove('drag-over');
+  if (_pipeDragType !== 'plate' || !_pipeDragId) return;
+
+  // Move plate to printing stage on this printer
+  const plate   = _pipePlates.find(p => p.id === _pipeDragId);
+  const updates = { stage: 'printing', printer_name: printerName };
+  // Start the print clock only when entering Printing (not when moving between printers)
+  if (!plate || plate.stage !== 'printing') updates.started_at = new Date().toISOString();
+  const { error } = await db.from('print_plates')
+    .update(updates)
+    .eq('id', _pipeDragId);
+  if (error) { toast('Error: ' + error.message, 'error'); return; }
+  if (plate) Object.assign(plate, updates);
+  _pipeDragId   = null;
+  _pipeDragType = null;
+  renderPipeline();
+}
+
+async function onDropToSliced(event, printerName) {
+  event.preventDefault();
+  const printerKey = printerName.replace(/\s+/g, '-').toLowerCase();
+  const section = document.getElementById(`pipe-sliced-${printerKey}`);
+  if (section) section.classList.remove('drag-over');
+  if (_pipeDragType !== 'plate' || !_pipeDragId) return;
+
+  const { error } = await db.from('print_plates')
+    .update({ stage: 'sliced', printer_name: printerName })
+    .eq('id', _pipeDragId);
+  if (error) { toast('Error: ' + error.message, 'error'); return; }
+  const plate = _pipePlates.find(p => p.id === _pipeDragId);
+  if (plate) { plate.stage = 'sliced'; plate.printer_name = printerName; }
+  _pipeDragId = null; _pipeDragType = null;
+  renderPipeline();
+}
+
+async function onDropToPlating(event) {
+  event.preventDefault();
+  document.getElementById('pipe-col-plating').classList.remove('drag-over');
+  if (_pipeDragType !== 'plate' || !_pipeDragId) return;
+
+  const { error } = await db.from('print_plates')
+    .update({ stage: 'plating' })
+    .eq('id', _pipeDragId);
+  if (error) { toast('Error: ' + error.message, 'error'); return; }
+  const plate = _pipePlates.find(p => p.id === _pipeDragId);
+  if (plate) plate.stage = 'plating';
+  _pipeDragId = null; _pipeDragType = null;
+  renderPipeline();
+}
+
+async function _pipeAssignModelToPlate(modelId, plateId) {
+  const { error } = await db.from('print_models')
+    .update({ plate_id: plateId })
+    .eq('id', modelId);
+  if (error) { toast('Error: ' + error.message, 'error'); return; }
+  const m = _pipeModels.find(m => m.id === modelId);
+  if (m) m.plate_id = plateId;
+  renderPipeline();
+}
+
+// ── Add Model ──────────────────────────────────────────────────────────────
+async function openAddModelModal() {
+  // Ensure filaments are loaded (may not be if Pipeline is opened first)
+  if (!_filamentsCache) {
+    const { data } = await db.from('filaments').select('*').order('brand', { ascending: true });
+    _filamentsCache = data || [];
+  }
+  // Reset multi-select filament picker
+  _pmSelectedFilaments = [];
+  renderPmFilPills();
+  renderPmFilOptions('');
+  // Populate inventory items
+  const unique = {};
+  (_invItems||[]).forEach(r => { if (!unique[r.loyverse_id]) unique[r.loyverse_id] = r.item_name; });
+  document.getElementById('pm-inv-sel').innerHTML =
+    '<option value="">— optional —</option>' +
+    Object.entries(unique).map(([id,n]) => `<option value="${id}">${n}</option>`).join('');
+  document.getElementById('pm-name').value = '';
+  document.getElementById('pm-qty').value = '1';
+  document.getElementById('pm-urgent').checked = false;
+  // Reset to add mode
+  _editModelId = null;
+  document.getElementById('pm-modal-title').textContent = '💡 Add Print Model';
+  document.getElementById('pm-submit-btn').textContent  = '＋ Add to Pipeline';
+  document.getElementById('modal-add-model').classList.add('open');
+  setTimeout(() => document.getElementById('pm-name').focus(), 50);
+}
+
+// ── Multi-select filament picker ───────────────────────────────────────────
+let _pmSelectedFilaments = []; // array of filament IDs
+
+function togglePmFilDropdown(e) {
+  e?.stopPropagation();
+  const dd = document.getElementById('pm-fil-dropdown');
+  const sel = document.getElementById('pm-fil-selected');
+  const isOpen = dd.classList.contains('open');
+  if (isOpen) {
+    dd.classList.remove('open');
+    sel.classList.remove('open');
+  } else {
+    dd.classList.add('open');
+    sel.classList.add('open');
+    document.getElementById('pm-fil-search').value = '';
+    renderPmFilOptions('');
+    setTimeout(() => document.getElementById('pm-fil-search').focus(), 40);
+  }
+}
+
+function renderPmFilOptions(query) {
+  const q = (query||'').toLowerCase();
+  const fils = (_filamentsCache||[]).filter(f => {
+    if (!q) return true;
+    const txt = `${f.brand||''} ${f.colour1||''} ${f.material_type||''}`.toLowerCase();
+    return txt.includes(q);
+  });
+  const list = document.getElementById('pm-fil-options');
+  if (!fils.length) {
+    list.innerHTML = '<div style="padding:.5rem .75rem;color:var(--muted);font-size:.8rem">No filaments match</div>';
+    return;
+  }
+  list.innerHTML = fils.map(f => {
+    const hex = FIL_HEX_MAP[f.colour1] || '#3E4C64';
+    const sel = _pmSelectedFilaments.includes(f.id) ? ' selected' : '';
+    return `<div class="pm-fil-option${sel}" onclick="pmFilSelect('${f.id}',event)">
+      <span class="fil-dot" style="background:${hex}"></span>
+      <span>${f.brand} · ${f.colour1||'—'} <span style="opacity:.5;font-size:.72rem">(${f.material_type})</span></span>
+      ${sel ? '<span style="margin-left:auto;font-size:.72rem">✓</span>' : ''}
+    </div>`;
+  }).join('');
+}
+
+function pmFilSelect(filId, e) {
+  e?.stopPropagation();
+  const idx = _pmSelectedFilaments.indexOf(filId);
+  if (idx === -1) {
+    _pmSelectedFilaments.push(filId);
+  } else {
+    _pmSelectedFilaments.splice(idx, 1);
+  }
+  renderPmFilPills();
+  // re-render options to update checkmarks
+  renderPmFilOptions(document.getElementById('pm-fil-search')?.value || '');
+}
+
+function pmFilRemove(filId, e) {
+  e?.stopPropagation();
+  _pmSelectedFilaments = _pmSelectedFilaments.filter(id => id !== filId);
+  renderPmFilPills();
+  renderPmFilOptions(document.getElementById('pm-fil-search')?.value || '');
+}
+
+function renderPmFilPills() {
+  const sel = document.getElementById('pm-fil-selected');
+  const placeholder = document.getElementById('pm-fil-placeholder');
+  if (!_pmSelectedFilaments.length) {
+    // remove any pills, show placeholder
+    sel.querySelectorAll('.pm-fil-pill').forEach(p => p.remove());
+    if (placeholder) placeholder.style.display = '';
+    return;
+  }
+  if (placeholder) placeholder.style.display = 'none';
+  // rebuild pills
+  sel.querySelectorAll('.pm-fil-pill').forEach(p => p.remove());
+  _pmSelectedFilaments.forEach(id => {
+    const f = (_filamentsCache||[]).find(x => x.id === id);
+    if (!f) return;
+    const hex = FIL_HEX_MAP[f.colour1] || '#3E4C64';
+    const pill = document.createElement('span');
+    pill.className = 'pm-fil-pill';
+    pill.style.background = hex + '33';
+    pill.style.color = 'var(--fg)';
+    pill.style.border = `1px solid ${hex}66`;
+    pill.innerHTML = `<span class="fil-dot" style="background:${hex};width:8px;height:8px;border-radius:50%;flex-shrink:0"></span>
+      ${f.colour1||f.brand}
+      <button onclick="pmFilRemove('${id}',event)" title="Remove">✕</button>`;
+    sel.insertBefore(pill, placeholder);
+  });
+}
+
+// Close dropdown when clicking outside
+document.addEventListener('click', function(e) {
+  const picker = document.getElementById('pm-fil-picker');
+  if (picker && !picker.contains(e.target)) {
+    document.getElementById('pm-fil-dropdown')?.classList.remove('open');
+    document.getElementById('pm-fil-selected')?.classList.remove('open');
+  }
+});
+
+async function openEditModelModal(modelId) {
+  // Ensure filaments are loaded
+  if (!_filamentsCache) {
+    const { data } = await db.from('filaments').select('*').order('brand', { ascending: true });
+    _filamentsCache = data || [];
+  }
+  const m = _pipeModels.find(x => x.id === modelId);
+  if (!m) return;
+  _editModelId = modelId;
+
+  // Populate fields
+  document.getElementById('pm-name').value  = m.name || '';
+  document.getElementById('pm-qty').value   = m.qty_needed || 1;
+  document.getElementById('pm-urgent').checked = !!m.is_urgent;
+
+  // Restore filament selection
+  _pmSelectedFilaments = Array.isArray(m.filament_ids) && m.filament_ids.length
+    ? [...m.filament_ids]
+    : (m.filament_id ? [m.filament_id] : []);
+  renderPmFilPills();
+  renderPmFilOptions('');
+
+  // Populate inventory select
+  const unique = {};
+  (_invItems||[]).forEach(r => { if (!unique[r.loyverse_id]) unique[r.loyverse_id] = r.item_name; });
+  const invSel = document.getElementById('pm-inv-sel');
+  if (invSel) {
+    invSel.innerHTML = '<option value="">— optional —</option>' +
+      Object.entries(unique).map(([id,n]) => `<option value="${id}">${n}</option>`).join('');
+    if (m.inventory_loyverse_id) invSel.value = m.inventory_loyverse_id;
+  }
+
+  // Update title + button
+  document.getElementById('pm-modal-title').textContent = '✏️ Edit Model';
+  document.getElementById('pm-submit-btn').textContent  = '✓ Save Changes';
+
+  document.getElementById('modal-add-model').classList.add('open');
+}
+
+async function submitAddModel() {
+  const name   = document.getElementById('pm-name').value.trim();
+  if (!name) { toast('Model name required', 'error'); return; }
+  const qty    = parseInt(document.getElementById('pm-qty').value) || 1;
+  const invId  = document.getElementById('pm-inv-sel').value || null;
+  const urgent = document.getElementById('pm-urgent').checked;
+
+  // Derive colour_name and filament_id from first selected filament (for backwards compat)
+  const firstFil = (_filamentsCache||[]).find(f => f.id === _pmSelectedFilaments[0]);
+  const colour   = firstFil?.colour1 || null;
+  const filId    = firstFil?.id || null;
+  const filBrand = firstFil?.brand || null;
+  const payload  = {
+    name, colour_name: colour, filament_id: filId, filament_brand: filBrand,
+    filament_ids: _pmSelectedFilaments.length ? _pmSelectedFilaments : null,
+    qty_needed: qty, inventory_loyverse_id: invId, is_urgent: urgent,
+  };
+
+  if (_editModelId) {
+    // Edit mode — UPDATE existing record
+    const { data, error } = await db.from('print_models').update(payload).eq('id', _editModelId).select().single();
+    if (error) { toast('Error: ' + error.message, 'error'); return; }
+    const idx = _pipeModels.findIndex(m => m.id === _editModelId);
+    if (idx !== -1) _pipeModels[idx] = data;
+    _editModelId = null;
+    document.getElementById('modal-add-model').classList.remove('open');
+    renderPipeline();
+    toast('Model updated', 'success');
+  } else {
+    // Add mode — INSERT
+    const { data, error } = await db.from('print_models').insert([payload]).select().single();
+    if (error) { toast('Error: ' + error.message, 'error'); return; }
+    _pipeModels.unshift(data);
+    document.getElementById('modal-add-model').classList.remove('open');
+    renderPipeline();
+    toast('Model added to pipeline', 'success');
+  }
+}
+
+async function deletePipeModel(id) {
+  if (!confirm('Remove this model from the pipeline?')) return;
+  await db.from('print_models').delete().eq('id', id);
+  _pipeModels = _pipeModels.filter(m => m.id !== id);
+  renderPipeline();
+}
+
+// ── New Plate ──────────────────────────────────────────────────────────────
+async function pipeNewPlate() {
+  const name = `Plate ${_pipePlates.filter(p=>p.stage==='plating').length + 1}`;
+  const { data, error } = await db.from('print_plates').insert([{ name, stage: 'plating' }]).select().single();
+  if (error) { toast('Error: ' + error.message, 'error'); return; }
+  _pipePlates.push(data);
+  renderPipeline();
+}
+
+async function deletePipePlate(id) {
+  if (!confirm('Delete this plate? Models will return to Idea.')) return;
+  await db.from('print_models').update({ plate_id: null }).eq('plate_id', id);
+  _pipeModels.filter(m => m.plate_id === id).forEach(m => m.plate_id = null);
+  await db.from('print_plates').delete().eq('id', id);
+  _pipePlates = _pipePlates.filter(p => p.id !== id);
+  renderPipeline();
+}
+
+// ── Advance Plate ──────────────────────────────────────────────────────────
+function openAdvancePlate(plateId, targetStage) {
+  document.getElementById('ap-plate-id').value = plateId;
+  document.getElementById('ap-target-stage').value = targetStage;
+  const titles = { sliced: '✂️ Mark as Sliced', printing: '🖨 Start Printing' };
+  document.getElementById('ap-title').textContent = titles[targetStage] || 'Advance';
+  let fields = '';
+  if (targetStage === 'sliced') {
+    // Pick printer + optional filename when slicing
+    const plate = _pipePlates.find(p => p.id === plateId);
+    const currentPrinter = plate?.printer_name || PIPE_PRINTERS[0];
+    fields = `
+      <div class="form-group">
+        <label>Assign to Printer</label>
+        <select id="ap-printer" style="width:100%">
+          ${PIPE_PRINTERS.map(p => `<option${p === currentPrinter ? ' selected' : ''}>${p}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Slice filename (optional)</label>
+        <input type="text" id="ap-slice-file" placeholder="e.g. orange_batch_01.3mf" value="${plate?.slice_file || ''}">
+      </div>`;
+  } else if (targetStage === 'printing') {
+    // Just confirm — printer was already set at slice time
+    const plate = _pipePlates.find(p => p.id === plateId);
+    fields = `<div style="color:var(--muted);font-size:.85rem;padding:.25rem 0">
+      Starting on <strong style="color:var(--fg)">${plate?.printer_name || '—'}</strong>
+      ${plate?.slice_file ? `<br>File: <code>${plate.slice_file}</code>` : ''}
+    </div>`;
+  }
+  document.getElementById('ap-fields').innerHTML = fields;
+  document.getElementById('modal-advance-plate').classList.add('open');
+}
+
+async function submitAdvancePlate() {
+  const plateId = document.getElementById('ap-plate-id').value;
+  const stage   = document.getElementById('ap-target-stage').value;
+  const updates = { stage };
+  if (stage === 'sliced') {
+    const printer = document.getElementById('ap-printer')?.value;
+    if (printer) updates.printer_name = printer;
+    const f = document.getElementById('ap-slice-file')?.value?.trim();
+    if (f) updates.slice_file = f;
+  } else if (stage === 'printing') {
+    updates.started_at = new Date().toISOString();
+  }
+  const { error } = await db.from('print_plates').update(updates).eq('id', plateId);
+  if (error) { toast('Error: ' + error.message, 'error'); return; }
+  const plate = _pipePlates.find(p => p.id === plateId);
+  if (plate) Object.assign(plate, updates);
+  document.getElementById('modal-advance-plate').classList.remove('open');
+  renderPipeline();
+}
+
+// ── Complete Plate → Done ──────────────────────────────────────────────────
+function openCompletePlate(plateId) {
+  document.getElementById('cp-plate-id').value = plateId;
+  document.getElementById('cp-grams').value = '';
+  document.getElementById('cp-notes').value = '';
+  const models = _pipeModels.filter(m => m.plate_id === plateId);
+  const summEl = document.getElementById('cp-summary');
+  if (models.length) {
+    summEl.style.display = 'block';
+    summEl.innerHTML = '<strong style="color:var(--fg)">Will add to stock:</strong><br>' +
+      models.filter(m => m.inventory_loyverse_id).map(m =>
+        `+${m.qty_needed} × ${m.name}`
+      ).join('<br>') || '(no inventory links set)';
+  } else {
+    summEl.style.display = 'none';
+  }
+  document.getElementById('modal-complete-plate').classList.add('open');
+}
+
+async function submitCompletePlate() {
+  const plateId = document.getElementById('cp-plate-id').value;
+  const grams   = parseFloat(document.getElementById('cp-grams').value) || null;
+  const notes   = document.getElementById('cp-notes').value.trim() || null;
+  const now     = new Date().toISOString();
+
+  // 1. Mark plate done
+  const { error } = await db.from('print_plates').update({
+    stage: 'done', grams_used: grams, completed_at: now,
+    notes: notes || undefined,
+  }).eq('id', plateId);
+  if (error) { toast('Error: ' + error.message, 'error'); return; }
+  const plate = _pipePlates.find(p => p.id === plateId);
+  if (plate) { plate.stage = 'done'; plate.grams_used = grams; plate.completed_at = now; }
+
+  // 2. Update inventory stock for linked models
+  const models = _pipeModels.filter(m => m.plate_id === plateId && m.inventory_loyverse_id);
+  for (const m of models) {
+    // Find the variant for this loyverse item (first variant if multiple)
+    const inv = (_invItems||[]).find(r => r.loyverse_id === m.inventory_loyverse_id);
+    if (!inv) continue;
+    await adjustStock(inv.variant_id, m.name, '', m.qty_needed, 'print_complete', `Plate completed`);
+  }
+
+  // 3. Deduct grams from filament (find plate's filament, deduct from open_spools)
+  if (grams && plate?.filament_id) {
+    const fil = (_filamentsCache||[]).find(f => f.id === plate.filament_id);
+    if (fil && Array.isArray(fil.open_spools) && fil.open_spools.length) {
+      // Simple: note the deduction on the first spool
+      const note = `Used ~${grams}g — plate ${plate.name}`;
+      fil.open_spools[0] = fil.open_spools[0] + ` (−${grams}g)`;
+      await db.from('filaments').update({ open_spools: fil.open_spools }).eq('id', fil.id);
+    }
+  }
+
+  document.getElementById('modal-complete-plate').classList.remove('open');
+  renderPipeline();
+  toast('Plate marked done! Stock updated.', 'success');
 }
 
 // ── Spool helpers ──────────────────────────────────────────────────────────
