@@ -662,6 +662,21 @@
     #pe-fil-res:empty { display:none; }
     .pe-ty { font-style:normal; font-weight:500; font-size:.66rem; color:var(--muted); }
     #pe-add-results:empty { display:none; }
+    .pe-inv { margin-top:.6rem; }
+    .pe-inv-head, .pe-inv-cat { width:100%; display:flex; align-items:center; gap:.5rem; background:rgba(255,255,255,.035); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:.8rem; font-weight:600; padding:.45rem .65rem; cursor:pointer; font-family:inherit; text-align:left; }
+    .pe-inv-head > span:first-child, .pe-inv-cat > span:first-child { flex:1; }
+    .pe-inv-head:hover, .pe-inv-head.on, .pe-inv-cat:hover { border-color:var(--accent); }
+    .pe-inv-head .chev, .pe-inv-cat .chev { color:#a5b4fc; font-size:.7rem; }
+    .pe-inv-cat { margin-top:.3rem; font-weight:500; padding:.35rem .6rem; }
+    .pe-inv-cat.on { border-color:var(--accent); }
+    .pe-inv-cat .n { font-size:.68rem; color:var(--muted); background:rgba(255,255,255,.07); border-radius:999px; padding:0 .45rem; }
+    .pe-inv-cat.sub { background:transparent; margin-top:.15rem; }
+    .pe-inv-sec { font-size:.7rem; font-weight:700; color:var(--muted); padding:.5rem .3rem .2rem; }
+    .pe-var { font-weight:500; color:var(--muted); font-size:.74rem; }
+    .pe-stk { font-size:.66rem; color:var(--muted); white-space:nowrap; }
+    .pe-inv-items { padding:.2rem 0 .2rem .6rem; border-left:2px solid rgba(255,255,255,.08); margin-left:.4rem; }
+    #pe-inv-res { max-height:280px; overflow-y:auto; margin-top:.35rem; }
+    #pe-inv-res:empty { display:none; }
     .pe-body .pe-add-search { margin-top:.5rem; }
     .pe-imp { font-size:.76rem; color:var(--muted); background:rgba(16,185,129,.08); border:1px solid rgba(16,185,129,.35); border-radius:9px; padding:.5rem .65rem; margin-bottom:.55rem; }
     .pe-imp b { color:var(--text); }
@@ -1101,6 +1116,15 @@
     }
     textarea:focus { border-color: var(--accent); }
     .form-actions { display: flex; gap: .5rem; justify-content: flex-end; margin-top: 1.25rem; }
+
+    /* ── Confirm dialog (replaces the browser's confirm box) ── */
+    .cd-overlay { position: fixed; inset: 0; z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 1rem; background: rgba(0,0,0,.6); }
+    .cd-box { width: 100%; max-width: 400px; background: var(--sidebar); border: 1px solid var(--border); border-radius: 16px; padding: 1.5rem; box-shadow: 0 20px 50px rgba(0,0,0,.5); }
+    .cd-msg { font-size: .92rem; line-height: 1.55; color: var(--text); white-space: pre-line; max-height: 55vh; overflow-y: auto; }
+    .cd-actions { display: flex; gap: .5rem; justify-content: flex-end; margin-top: 1.25rem; }
+    .cd-ok { background: var(--accent); color: #fff; }
+    .cd-ok.danger { background: var(--red); }
+    .cd-actions .btn:focus-visible { outline: 2px solid #a5b4fc; outline-offset: 2px; }
 
     /* ── Toast ── */
     #toast {
@@ -2503,6 +2527,35 @@ function toast(msg, type = 'info') {
   setTimeout(() => el.classList.remove('show'), 3000);
 }
 
+// In-page replacement for confirm(): centred, themed, resolves true/false. Use: if (!(await confirmDialog('…'))) return;
+// Delete / remove / reject / discard / undo questions get a red button; pass { ok, danger } to override.
+function confirmDialog(msg, { ok, danger } = {}) {
+  const text = String(msg ?? '');
+  const lead = (text.match(/^\s*(delete|remove|reject|discard|undo)/i) || [])[1];
+  if (danger == null) danger = !!lead;
+  if (!ok) ok = lead ? lead[0].toUpperCase() + lead.slice(1).toLowerCase() : 'OK';
+  return new Promise(resolve => {
+    const wrap = document.createElement('div');
+    wrap.className = 'cd-overlay';
+    wrap.innerHTML = `<div class="cd-box" role="alertdialog" aria-modal="true"><div class="cd-msg"></div>
+      <div class="cd-actions"><button type="button" class="btn btn-outline cd-cancel">Cancel</button><button type="button" class="btn cd-ok${danger ? ' danger' : ''}"></button></div></div>`;
+    wrap.querySelector('.cd-msg').textContent = text;      // textContent: line breaks kept, nothing injected
+    const okBtn = wrap.querySelector('.cd-ok'), cancelBtn = wrap.querySelector('.cd-cancel');
+    okBtn.textContent = ok;
+    const done = v => { document.removeEventListener('keydown', onKey, true); wrap.remove(); resolve(v); };
+    const onKey = e => {
+      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); done(false); }
+      else if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); (document.activeElement === cancelBtn ? cancelBtn : okBtn).click(); }
+    };
+    okBtn.onclick = () => done(true);
+    cancelBtn.onclick = () => done(false);
+    wrap.addEventListener('mousedown', e => { if (e.target === wrap) done(false); });
+    document.addEventListener('keydown', onKey, true);
+    document.body.appendChild(wrap);
+    (danger ? cancelBtn : okBtn).focus();                   // the safe choice is the one Enter picks for risky actions
+  });
+}
+
 function categoryBadge(cat) {
   const map = {
     materials: ['🧱', 'yellow'], equipment: ['🔧', 'blue'],
@@ -3597,7 +3650,7 @@ function renderExpos() {
 }
 
 async function deleteExpo(id) {
-  if (!confirm('Delete this expo?')) return;
+  if (!(await confirmDialog('Delete this expo?'))) return;
   const { error } = await db.from('expos').delete().eq('id', id);
   if (error) { toast('Error: ' + error.message, 'error'); return; }
   toast('Expo deleted', 'info');
@@ -4427,13 +4480,14 @@ async function onDropToPrinter(event, printerName) {
   const section = document.getElementById(`pipe-printer-${printerKey}`);
   if (section) section.classList.remove('drag-over', 'drag-no');
   if (_pipeDragType !== 'plate' || !_pipeDragId) return;
-  const fitErr = _printerFitError(_pipeDragId, printerName);
+  const plateId = _pipeDragId;   // capture before dragend clears it (the confirm box is asynchronous)
+  const fitErr = _printerFitError(plateId, printerName);
   if (fitErr) { toast(fitErr, 'error'); _pipeDragId = null; _pipeDragType = null; return; }
-  const warn = _singleColourPlateWarning(_pipeDragId, printerName);
-  if (warn && !confirm(warn)) { _pipeDragId = null; _pipeDragType = null; return; }
+  const warn = _singleColourPlateWarning(plateId, printerName);
+  if (warn && !(await confirmDialog(warn))) { _pipeDragId = null; _pipeDragType = null; return; }
 
   // Move plate to printing stage on this printer
-  const plate   = _pipePlates.find(p => p.id === _pipeDragId);
+  const plate   = _pipePlates.find(p => p.id === plateId);
   if (plate && plate.stage !== 'printing' && !_plateUsageComplete(plate)) {
     // Not allowed yet: open the form (with this printer) instead of moving
     const id = plate.id;
@@ -4446,7 +4500,7 @@ async function onDropToPrinter(event, printerName) {
   if (!plate || plate.stage !== 'printing') updates.started_at = new Date().toISOString();
   const { error } = await db.from('print_plates')
     .update(updates)
-    .eq('id', _pipeDragId);
+    .eq('id', plateId);
   if (error) { toast('Error: ' + error.message, 'error'); return; }
   if (plate) Object.assign(plate, updates);
   _pipeDragId   = null;
@@ -4464,7 +4518,7 @@ async function onDropToSliced(event, printerName) {
   const fitErr = _printerFitError(plateId, printerName);   // 1 colour on most printers, up to 4 on the U1
   if (fitErr) { toast(fitErr, 'error'); return; }
   const warn = _singleColourPlateWarning(plateId, printerName);
-  if (warn && !confirm(warn)) return;
+  if (warn && !(await confirmDialog(warn))) return;
 
   const { error } = await db.from('print_plates')
     .update({ stage: 'sliced', printer_name: printerName })
@@ -4507,7 +4561,7 @@ async function _pipeAssignModelToPlate(modelId, plateId) {
       return;
     }
     const warn = _singleColourModelWarning(modelId, plateId);
-    if (warn && !confirm(warn)) return;
+    if (warn && !(await confirmDialog(warn))) return;
   }
   const { error } = await db.from('print_models')
     .update({ plate_id: plateId })
@@ -4689,7 +4743,7 @@ async function deleteIdeaFolder(id) {
   const msg = (subCount || ideaCount)
     ? `Delete folder "${f.name}"?\n\nIts ${ideaCount} idea(s) and ${subCount} subfolder(s) will move to ${dest}. Nothing else is deleted.`
     : `Delete empty folder "${f.name}"?`;
-  if (!confirm(msg)) return;
+  if (!(await confirmDialog(msg))) return;
   // Move contents up one level first, then delete the folder itself
   const r1 = await db.from('idea_folders').update({ parent_id: parent }).eq('parent_id', id);
   const r2 = await db.from('print_models').update({ folder_id: parent }).eq('folder_id', id);
@@ -6024,7 +6078,7 @@ async function submitAddModel() {
 }
 
 async function deletePipeModel(id) {
-  if (!confirm('Remove this model from the Print Board?')) return;
+  if (!(await confirmDialog('Remove this model from the Print Board?'))) return;
   await db.from('print_models').delete().eq('id', id);
   _pipeModels = _pipeModels.filter(m => m.id !== id);
   renderPipeline();
@@ -6099,7 +6153,7 @@ async function _setPlatePrinter(plateId, printer) {
   if (printer) { const err = _printerFitError(plateId, printer); if (err) { toast(err, 'error'); return false; } }
   if (!printer && p.stage !== 'plating') return false;
   const warn = _singleColourPlateWarning(plateId, printer);
-  if (warn && !confirm(warn)) return false;
+  if (warn && !(await confirmDialog(warn))) return false;
   const { error } = await db.from('print_plates').update({ printer_name: printer || null }).eq('id', plateId);
   if (error) { toast('Error: ' + error.message, 'error'); return false; }
   p.printer_name = printer || null;
@@ -6473,6 +6527,7 @@ function openPlateEditor(id) {
   _plateEdId = id;
   _plateEdAddQ = '';
   _plateEdImport = null;
+  _peInv = { open: false, q: '', cat: null, item: null, loaded: false };   // inventory picker starts collapsed
   _peFil = { q: '', browse: false, type: null, edit: false };
   const nm = document.getElementById('pe-name');
   nm.value = p.name || '';
@@ -6531,7 +6586,8 @@ function _plateEdRender() {
     <div class="pe-block"><div class="pe-sec">Models <span>${models.length}</span></div>
     ${rows ? `<div class="pe-list">${rows}</div>` : ''}
     ${editable ? `<div class="pe-add-search"><span class="ic">🔍</span><input type="text" id="pe-add-q" placeholder="${models.length ? 'Add another idea — type a name or colour' : 'Add ideas to this plate — type a name or colour'}" autocomplete="off" value="${_ovEsc(_plateEdAddQ)}" oninput="_plateEdAddQ=this.value;_plateEdAddRender()"></div>
-      <div id="pe-add-results"></div>`
+      <div id="pe-add-results"></div>
+      <div class="pe-inv" id="pe-inv">${_peInvHtml()}</div>`
       : p.stage !== 'done' ? '<div class="pe-note">Drag the plate back to Plating to add or take off models.</div>' : ''}</div>
     <div class="pe-block"><div class="pe-sec">Filament used &amp; print time</div>
     ${_peUsageHtml(p)}</div>`;
@@ -6656,6 +6712,127 @@ function _plateEdAddRender() {
 
 async function plateEdAdd(modelId) { _plateEdAddQ = ''; await _pipeAssignModelToPlate(modelId, _plateEdId); }
 async function plateEdRemove(modelId) { await _pipeAssignModelToPlate(modelId, null); }
+
+// ── Plate editor: add a product straight from inventory (collapsed until you open it) ──
+let _peInv = { open: false, q: '', cat: null, item: null, loaded: false };
+function _peInvToggle() {
+  _peInv.open = !_peInv.open;
+  _peInvRender();
+  if (!_peInv.open) return;
+  if (_invItems.length) { _peInv.loaded = true; document.getElementById('pe-inv-q')?.focus(); return; }
+  _ensureInventoryData().then(() => { _peInv.loaded = true; _peInvRender(); document.getElementById('pe-inv-q')?.focus(); });
+}
+function _peInvRender() { const b = document.getElementById('pe-inv'); if (b) b.innerHTML = _peInvHtml(); }
+function _peInvResRender() { const b = document.getElementById('pe-inv-res'); if (b) b.innerHTML = _peInvResHtml(); }
+function _peInvCat(c) { _peInv.cat = _peInv.cat === c ? null : c; _peInv.item = null; _peInvResRender(); }
+function _peInvItem(k) { _peInv.item = _peInv.item === k ? null : k; _peInvResRender(); }
+
+function _peInvHtml() {
+  const head = `<button type="button" class="pe-inv-head${_peInv.open ? ' on' : ''}" onclick="_peInvToggle()"><span>📦 Add from inventory</span><span class="chev">${_peInv.open ? '▴' : '▾'}</span></button>`;
+  if (!_peInv.open) return head;
+  if (!_invItems.length) return head + `<div class="pe-note">${_peInv.loaded ? 'No products in your inventory yet.' : 'Loading products…'}</div>`;
+  return head + `<div class="pe-add-search"><span class="ic">🔍</span><input type="text" id="pe-inv-q" placeholder="Search products — name, variant or category" autocomplete="off" value="${_ovEsc(_peInv.q)}" oninput="_peInv.q=this.value;_peInvResRender()"></div>
+    <div id="pe-inv-res">${_peInvResHtml()}</div>`;
+}
+// Colours the plate would need if this product's filaments joined it
+function _peInvColoursWith(plateId, ids) {
+  const tmp = { id: '__pe_new', filament_ids: ids.length ? ids : null, filament_id: null };
+  _pipeModels.push(tmp);
+  try { return _plateColoursWith(plateId, tmp.id); } finally { _pipeModels.pop(); }
+}
+// One product / variant you can add. title = ready-made HTML; one line only, so long lists stay light
+function _peInvRowHtml(r, p, title) {
+  const ids = _invFilIds(r.filament_ids).filter(id => _invFil(id));
+  const onPlate = _pipeModels.some(m => m.plate_id === p.id && m.inventory_variant_id === r.variant_id);
+  const max = _plateMaxColours(p), n = _peInvColoursWith(p.id, ids);
+  const act = onPlate ? '<span class="pe-why" style="color:var(--muted)" title="Already on this plate — change the quantity above">On plate ✓</span>'
+    : n > max ? `<span class="pe-why" title="The plate would need ${n} colours">${n} colours — max ${max}</span>`
+    : `<button type="button" class="btn btn-sm btn-outline" onclick="plateEdAddInv('${_invJs(r.variant_id)}')">＋ Add</button>`;
+  return `<div class="pe-add-row${!onPlate && n > max ? ' no' : ''}">
+      <span class="pm-spools">${ids.length ? ids.slice(0, 4).map(id => filSpool(_invFil(id), 15)).join('') : spoolEmpty(15, 'No colours set yet')}</span>
+      <span class="t"><strong>${title}</strong></span><span class="pe-stk">${_stkQty(r.variant_id)} in stock</span>${act}
+    </div>`;
+}
+function _peInvResHtml() {
+  const p = _pipePlates.find(x => x.id === _plateEdId);
+  if (!p) return '';
+  const tokens = _peInv.q.toLowerCase().split(/\s+/).filter(Boolean);
+  if (tokens.length) {
+    const hits = _invItems.filter(r => { const h = _pmInvHay(r); return tokens.every(t => h.includes(t)); })
+      .sort((a, b) => _pmCmp(a.item_name, b.item_name) || _pmCmp(a.variant_name, b.variant_name));
+    if (!hits.length) return `<div class="pe-empty small">No products match “${_ovEsc(_peInv.q)}”.</div>`;
+    // Matches grouped under their category, like the inventory picker on the Ideas card
+    const tree = _pmInvTree(), byCat = new Map();
+    hits.slice(0, 30).forEach(r => { const c = _pmCatOf(r); if (!byCat.has(c)) byCat.set(c, []); byCat.get(c).push(r); });
+    return [...byCat.keys()].sort(_pmCatOrder).map(c => `<div class="pe-inv-sec">📁 ${_ovEsc(c)}</div>`
+        + byCat.get(c).map(r => {
+          const multi = (tree.get(c)?.get(_pmItemKey(r)) || []).length > 1 || !!r.variant_name;
+          return _peInvRowHtml(r, p, multi ? `${_ovEsc(r.item_name || '')} <span class="pe-var">${_ovEsc(r.variant_name || '')}</span>` : _ovEsc(r.item_name || ''));
+        }).join('')).join('')
+      + (hits.length > 30 ? `<div class="pe-more">+${hits.length - 30} more — keep typing</div>` : '');
+  }
+  // Browse: category → product (a folder when it has variants, showing only how many) → its variants
+  const tree = _pmInvTree();
+  return [...tree.keys()].sort(_pmCatOrder).map(c => {
+    const items = tree.get(c), open = _peInv.cat === c;
+    let body = '';
+    if (open) body = `<div class="pe-inv-items">${[...items.entries()].map(([key, vs]) => {
+      if (vs.length === 1) return _peInvRowHtml(vs[0], p, _ovEsc(_pmInvLabel(vs[0])));
+      const sel = _peInv.item === key;
+      return `<button type="button" class="pe-inv-cat sub${sel ? ' on' : ''}" onclick="_peInvItem('${_invJs(key)}')"><span>📂 ${_ovEsc(vs[0].item_name || '')}</span><span class="n">${vs.length} variants</span><span class="chev">${sel ? '▴' : '▾'}</span></button>`
+        + (sel ? `<div class="pe-inv-items">${vs.map(r => _peInvRowHtml(r, p, _ovEsc(r.variant_name || r.item_name || ''))).join('')}</div>` : '');
+    }).join('')}</div>`;
+    return `<button type="button" class="pe-inv-cat${open ? ' on' : ''}" onclick="_peInvCat('${_invJs(c)}')"><span>📁 ${_ovEsc(c)}</span><span class="n">${items.size}</span><span class="chev">${open ? '▴' : '▾'}</span></button>${body}`;
+  }).join('');
+}
+
+// Put an inventory product on this plate: reuse the idea already made for it, else make a model from the product's details
+async function plateEdAddInv(variantId) {
+  const p = _pipePlates.find(x => x.id === _plateEdId);
+  const r = _invItems.find(x => x.variant_id === variantId);
+  if (!p || !r) return;
+  const idea = _pipeModels.find(m => !m.plate_id && m.inventory_variant_id === variantId);
+  if (idea) { await _pipeAssignModelToPlate(idea.id, p.id); return; }
+  const ids = _invFilIds(r.filament_ids).filter(id => _invFil(id));
+  const first = filById(ids[0]);
+  const payload = {
+    name: _pmInvLabel(r),
+    colour_name: first?.colour1 || null,
+    filament_id: first && !first.generic ? first.id : null,
+    filament_brand: first?.brand || null,
+    filament_ids: ids.length ? ids : null,
+    qty_needed: 1, is_urgent: false,
+    inventory_loyverse_id: r.loyverse_id || null,
+    inventory_variant_id: r.variant_id,
+    grams_per_unit: r.grams_per_unit ?? null,
+    print_minutes: r.print_minutes ?? null,
+    file_url: r.file_url || null,
+    filament_grams: gramsMapFor(ids, r.filament_grams, r.grams_per_unit) || {},
+    plate_id: p.id,
+  };
+  // Same colour rules as dragging a model on (hard limit, plus the one-colour-printer warning)
+  const tmp = { ...payload, id: '__pe_new' };
+  _pipeModels.push(tmp);
+  let n, warn;
+  try { n = _plateColoursWith(p.id, tmp.id); warn = _singleColourModelWarning(tmp.id, p.id); } finally { _pipeModels.pop(); }
+  const max = _plateMaxColours(p);
+  if (n > max) {
+    toast(max === 1
+      ? `Can't add ${payload.name} — ${p.name || 'this plate'} is for the ${p.printer_name}, which prints one colour (it would need ${n}).`
+      : `Can't add ${payload.name} — the plate would need ${n} colours (max ${max}). Use another plate.`, 'error');
+    return;
+  }
+  if (warn && !(await confirmDialog(warn))) return;
+  const wasEditing = _editModelId; _editModelId = null;      // _pmWriteModel inserts when no model is being edited
+  let res;
+  try { res = await _pmWriteModel(payload); } finally { _editModelId = wasEditing; }
+  if (res.error) { toast('Error: ' + res.error.message, 'error'); return; }
+  _pipeModels.unshift(res.data);
+  renderPipeline();
+  const lost = res.dropped.filter(k => payload[k] != null && payload[k] !== '');
+  if (lost.length) toast(`Added, but run the new SQL in Supabase to also store ${lost.join(', ')}`, 'error');
+  else toast(`Added ${payload.name} to ${p.name || 'the plate'}`, 'success');
+}
 async function plateEdQtySet(modelId, v) {
   const m = _pipeModels.find(x => x.id === modelId);
   const q = Math.max(1, parseInt(v) || 1);
@@ -6696,7 +6873,7 @@ async function plateEdDelete() {
 
 
 async function deletePipePlate(id) {
-  if (!confirm('Delete this plate? Models will return to Idea.')) return;
+  if (!(await confirmDialog('Delete this plate? Models will return to Idea.'))) return;
   await db.from('print_models').update({ plate_id: null }).eq('plate_id', id);
   _pipeModels.filter(m => m.plate_id === id).forEach(m => m.plate_id = null);
   await db.from('print_plates').delete().eq('id', id);
@@ -7712,7 +7889,7 @@ async function addFilamentRow() {
 
 async function saveFilaments() {
   if (!_filDirty) return;
-  if (!confirm(`Save ${_filDirtyIds.size} change(s) to the filaments table?`)) return;
+  if (!(await confirmDialog(`Save ${_filDirtyIds.size} change(s) to the filaments table?`))) return;
   _filShowStatus('saving…');
   let errors = 0;
   for (const id of _filDirtyIds) {
@@ -7729,7 +7906,7 @@ async function cancelFilaments() {
   const msg = newCount > 0
     ? `Discard changes? ${newCount} new row(s) will be deleted.`
     : 'Discard all unsaved changes?';
-  if (!confirm(msg)) return;
+  if (!(await confirmDialog(msg))) return;
   // Delete newly added rows from DB
   for (const id of _filNewIds) {
     await db.from('filaments').delete().eq('id', id);
@@ -7740,7 +7917,7 @@ async function cancelFilaments() {
 }
 
 async function deleteFilament(id) {
-  if (!confirm('Delete this filament?')) return;
+  if (!(await confirmDialog('Delete this filament?'))) return;
   const { error } = await db.from('filaments').delete().eq('id', id);
   if (error) { toast('Delete failed: ' + error.message, 'error'); return; }
   _filamentsCache = (_filamentsCache||[]).filter(f => f.id !== id);
@@ -8195,7 +8372,7 @@ async function openEditModal(id) {
 }
 
 async function reopenInvoice(id) {
-  if (!confirm('Move this invoice back to Pending so it can be reviewed again?')) return;
+  if (!(await confirmDialog('Move this invoice back to Pending so it can be reviewed again?'))) return;
   await db.from('invoice_log').update({ status: 'pending' }).eq('id', id);
   toast('Invoice moved back to pending', 'info');
   loadInvoices();
@@ -8252,7 +8429,7 @@ async function submitApproveInvoice() {
 }
 
 async function rejectInvoice(id) {
-  if (!confirm('Reject this invoice? It will be dismissed from the inbox.')) return;
+  if (!(await confirmDialog('Reject this invoice? It will be dismissed from the inbox.'))) return;
   await db.from('invoice_log').update({ status: 'rejected' }).eq('id', id);
   toast('Invoice rejected', 'info');
   loadInvoices();
@@ -8488,7 +8665,7 @@ async function submitExpense() {
 }
 
 async function deleteRecord(table, id, reloadFn) {
-  if (!confirm('Delete this record?')) return;
+  if (!(await confirmDialog('Delete this record?'))) return;
   const { error } = await db.from(table).delete().eq('id', id);
   if (error) { toast('Error: ' + error.message, 'error'); return; }
   toast('Deleted', 'info');
@@ -8682,7 +8859,7 @@ async function applyStocktake() {
     return { vid, item: row.item_name || '', variant: row.variant_name || null, category: row.category_name || null, sku: row.sku || null, before, counted: after, delta: after - before };
   });
   const changed = entries.filter(e => e.delta);
-  if (!confirm(`Apply this stocktake?\n\n${entries.length} item(s) counted · ${changed.length} change(s)`)) return;
+  if (!(await confirmDialog(`Apply this stocktake?\n\n${entries.length} item(s) counted · ${changed.length} change(s)`))) return;
 
   const now   = new Date();
   const today = _localDate(now);
@@ -8756,8 +8933,8 @@ async function openStocktakeHistory() {
   renderStocktakeHistory();
 }
 
-function closeStocktakeHistory() {
-  if (_stkEdit && _stkEditDirty() && !confirm('Discard your unsaved stocktake changes?')) return;
+async function closeStocktakeHistory() {
+  if (_stkEdit && _stkEditDirty() && !(await confirmDialog('Discard your unsaved stocktake changes?'))) return;
   _stkEdit = null; _stkDelAsk = null;
   document.getElementById('modal-stk-history').classList.remove('open');
 }
@@ -8878,9 +9055,9 @@ function _stkEditBodyHtml(s, rows, keepNote, keepWhen) {
   </div>`;
 }
 
-function _stkStartEdit(key) {
+async function _stkStartEdit(key) {
   if (_stkEdit?.key === key) return;
-  if (_stkEdit && _stkEditDirty() && !confirm('Discard your unsaved changes to the other stocktake?')) return;
+  if (_stkEdit && _stkEditDirty() && !(await confirmDialog('Discard your unsaved changes to the other stocktake?'))) return;
   _stkEdit = { key, counted: {}, removed: new Set() };
   _stkDelAsk = null;
   _stkHistOpen.add(key);
@@ -8889,8 +9066,8 @@ function _stkStartEdit(key) {
   renderStocktakeHistory();
   setTimeout(() => document.querySelector(`.stkh-item.editing`)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }), 30);
 }
-function _stkCancelEdit() {
-  if (_stkEditDirty() && !confirm('Discard your changes to this stocktake?')) return;
+async function _stkCancelEdit() {
+  if (_stkEditDirty() && !(await confirmDialog('Discard your changes to this stocktake?'))) return;
   _stkEdit = null;
   document.getElementById('stke-note')?.remove(); document.getElementById('stke-when')?.remove();
   renderStocktakeHistory();
@@ -8972,9 +9149,9 @@ async function _stkSaveEdit(key) {
   if (!p.moves.length && !p.noteChanged && !p.whenChanged) { _stkEdit = null; renderStocktakeHistory(); toast('Nothing changed', 'info'); return; }
   const s = p.s;
   const stock = p.moves.filter(m => m.diff);
-  if (stock.length && !confirm(`Save changes to this stocktake?\n\nCurrent stock will be adjusted by the difference:\n` +
+  if (stock.length && !(await confirmDialog(`Save changes to this stocktake?\n\nCurrent stock will be adjusted by the difference:\n` +
       stock.slice(0, 10).map(m => `  • ${m.e.item}${m.e.variant ? ' — ' + m.e.variant : ''}: ${_stkSign(m.diff)}${m.remove ? ' (removed from stocktake)' : ''}`).join('\n') +
-      (stock.length > 10 ? `\n  …and ${stock.length - 10} more` : ''))) return;
+      (stock.length > 10 ? `\n  …and ${stock.length - 10} more` : '')))) return;
 
   // 1) the record
   const removed = new Set(p.moves.filter(m => m.remove).map(m => m.i));
@@ -9033,8 +9210,8 @@ function _stkToggle(key) {
   if (_stkHistOpen.has(key)) _stkHistOpen.delete(key); else _stkHistOpen.add(key);
   renderStocktakeHistory();
 }
-function _stkAskDelete(key) {
-  if (key && _stkEdit?.key === key && _stkEditDirty() && !confirm('Discard your unsaved changes to this stocktake?')) return;
+async function _stkAskDelete(key) {
+  if (key && _stkEdit?.key === key && _stkEditDirty() && !(await confirmDialog('Discard your unsaved changes to this stocktake?'))) return;
   if (key && _stkEdit?.key === key) _stkEdit = null;
   _stkDelAsk = _stkDelAsk === key ? null : key;
   renderStocktakeHistory();
@@ -9051,7 +9228,7 @@ async function _stkDelete(key, undo, confirmed) {
     : s.legacy
       ? `Delete the stocktake lines from ${when} from the stock log?\n\nStock levels stay as they are.`
       : `Delete the stocktake record from ${when}?\n\nStock levels stay as they are — use “Undo changes & delete” to reverse them.`;
-  if (!confirmed && !confirm(msg)) return;
+  if (!confirmed && !(await confirmDialog(msg))) return;
 
   if (undo) {
     await _ensureInventoryData();                          // current stock levels needed before adjusting
@@ -9609,7 +9786,7 @@ async function saveInventoryEdits() {
       }
     }
   }
-  if (!confirm(`Save ${vids.length} change(s) to inventory?`)) return;
+  if (!(await confirmDialog(`Save ${vids.length} change(s) to inventory?`))) return;
   if (_invFilPick) closeInvFilPicker();
   _invShowStatus('saving…');
   const results = await Promise.all(vids.map(async vid => {
@@ -9726,11 +9903,11 @@ function invAddVariantRow(loyId) {
   if (el) { el.focus(); el.scrollIntoView({ block: 'center' }); }
 }
 
-function cancelInventoryEdits() {
+async function cancelInventoryEdits() {
   const n = _invDirtyCount();
   if (!n) return;
   const newCount = _invNewVids.size;
-  if (!confirm(newCount ? `Discard changes? ${newCount} new row(s) will be removed.` : 'Discard all unsaved changes?')) return;
+  if (!(await confirmDialog(newCount ? `Discard changes? ${newCount} new row(s) will be removed.` : 'Discard all unsaved changes?'))) return;
   _invItems = _invItems.filter(r => !_invNewVids.has(r.variant_id));
   _invNewVids.clear();
   _invDraft = {};
@@ -10187,7 +10364,7 @@ async function deleteInvItem(loyverseId, itemName) {
     renderInventory(); _invUpdateDirtyUI();
     return;
   }
-  if (!confirm(`Delete "${itemName}" and all its variants?`)) return;
+  if (!(await confirmDialog(`Delete "${itemName}" and all its variants?`))) return;
   const { error } = await db.from('loyverse_items').delete().eq('loyverse_id', loyverseId);
   if (error) { toast('Delete failed: ' + error.message, 'error'); return; }
   _invRowsOf(loyverseId).forEach(r => delete _invDraft[r.variant_id]);
@@ -10203,7 +10380,7 @@ async function deleteInvVariant(variantId, variantName) {
     renderInventory(); _invUpdateDirtyUI();
     return;
   }
-  if (!confirm(`Delete variant "${variantName}"?`)) return;
+  if (!(await confirmDialog(`Delete variant "${variantName}"?`))) return;
   const { error } = await db.from('loyverse_items').delete().eq('variant_id', variantId);
   if (error) { toast('Delete failed: ' + error.message, 'error'); return; }
   delete _invDraft[variantId];
