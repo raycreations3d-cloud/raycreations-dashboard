@@ -662,6 +662,12 @@
     #pe-fil-res:empty { display:none; }
     .pe-ty { font-style:normal; font-weight:500; font-size:.66rem; color:var(--muted); }
     #pe-add-results:empty { display:none; }
+    .pipe-plate-card.drop-before, .pipe-plate-card.drop-after { position:relative; }
+    .pipe-plate-card.drop-before::before, .pipe-plate-card.drop-after::after { content:''; position:absolute; left:6px; right:6px; height:3px; border-radius:3px; background:var(--accent); box-shadow:0 0 0 3px rgba(99,102,241,.25); pointer-events:none; }
+    .pipe-plate-card.drop-before::before { top:-6px; }
+    .pipe-plate-card.drop-after::after { bottom:-6px; }
+    .plate-add-btn { background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.14); color:var(--text); border-radius:6px; width:1.4rem; height:1.4rem; line-height:1; font-size:.85rem; cursor:pointer; padding:0; font-family:inherit; opacity:.7; }
+    .plate-add-btn:hover { opacity:1; border-color:var(--accent); color:#a5b4fc; }
     .pe-inv { margin-top:.6rem; }
     .pe-inv-head, .pe-inv-cat { width:100%; display:flex; align-items:center; gap:.5rem; background:rgba(255,255,255,.035); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:.8rem; font-weight:600; padding:.45rem .65rem; cursor:pointer; font-family:inherit; text-align:left; }
     .pe-inv-head > span:first-child, .pe-inv-cat > span:first-child { flex:1; }
@@ -1684,7 +1690,7 @@
 
     <!-- ── PRINT PIPELINE PAGE ── -->
     <div id="page-pipeline" class="page">
-      <div id="pipe-board" class="pipe-board">
+      <div id="pipe-board" class="pipe-board" ondragover="_pipeBoardDragOver(event)" ondrop="_pipeBoardDrop(event)">
         <div class="pipe-col pipe-col-idea">
           <div class="pipe-col-header">
             <span>💡 Idea <span id="pipe-idea-count" style="font-size:.72rem;color:var(--muted);font-weight:400;margin-left:.25rem"></span></span>
@@ -2175,6 +2181,7 @@
     <div class="pe-body" id="pe-body"></div>
     <div class="pe-foot">
       <button type="button" class="btn btn-sm btn-outline pe-del" onclick="plateEdDelete()">🗑 Delete plate</button>
+      <button type="button" class="btn btn-sm btn-outline" onclick="plateEdCopy()" title="New plate in Plating with its own copies of the models">⧉ Copy plate</button>
       <span style="flex:1"></span>
       <button type="button" class="btn btn-green" onclick="closePlateEditor()">Done</button>
     </div>
@@ -4140,8 +4147,9 @@ const _plateSingle = plate => !!plate?.printer_name && _printerMax(plate.printer
 // Models show their own colours only on a multi-colour (U1) plate — everywhere else the plate's colour is what prints
 const _plateMulti = plate => !!plate?.printer_name && _printerMax(plate.printer_name) > 1;
 // The plate's colour(s) as one line: one-colour plate → its filament; U1 → its colours; no printer yet → what the models need
-function _plateColourLineHtml(p, size = 12) {
-  const chip = f => `<span class="pc-col" title="${_ovEsc(filTitle(f))}">${filSpool(f, size, '')}${_ovEsc(filLabel(f))}${f.generic ? '' : ` <em>${_ovEsc(f.brand || '')}</em>`}</span>`;
+// Brand only shows where showBrand is set (the plate editor); the plate cards stay colour-only
+function _plateColourLineHtml(p, size = 12, showBrand = false) {
+  const chip = f => `<span class="pc-col"${showBrand ? ` title="${_ovEsc(filTitle(f))}"` : ''}>${filSpool(f, size, '')}${_ovEsc(filLabel(f))}${showBrand && !f.generic ? ` <em>${_ovEsc(f.brand || '')}</em>` : ''}</span>`;
   if (_plateSingle(p)) {
     const f = filById(_planOf(p).cols[0]);
     return f ? chip(f) : '<span class="plate-colours need" title="Click the plate to choose the filament">Choose filament</span>';
@@ -4252,6 +4260,8 @@ async function loadPipeline() {
   if (folderRes.error) console.warn('idea_folders not available — run the folders SQL:', folderRes.error.message);
   if (filRes && !filRes.error) _filamentsCache = filRes.data || [];
   _fillModelsFromProducts(_pipeModels);
+  // One-colour plates that never got their filament (models added before this was automatic) pick it up now
+  await Promise.all(_pipePlates.filter(p => p.stage === 'plating' || p.stage === 'sliced').map(p => _plateAutoFilament(p.id)));
   renderPipeline();
 }
 
@@ -4269,7 +4279,7 @@ function renderPipeline() {
   if (ideaCountEl) ideaCountEl.textContent = ideaModels.length || '';
 
   // Plating column — plates in 'plating' stage + their models
-  const platingPlates = _pipePlates.filter(p => p.stage === 'plating');
+  const platingPlates = _platesSorted(_pipePlates.filter(p => p.stage === 'plating'));
   document.getElementById('pipe-col-plating').innerHTML =
     platingPlates.length ? platingPlates.map(p => _pipePlateCardHtml(p)).join('') :
     '<div style="color:var(--muted);font-size:.8rem;text-align:center;padding:1.5rem .5rem">Click + Plate to group models</div>';
@@ -4279,7 +4289,7 @@ function renderPipeline() {
   document.getElementById('pipe-sliced-count').textContent = totalSliced || '';
   document.getElementById('pipe-col-sliced').innerHTML = PIPE_PRINTERS.map(printer => {
     const printerKey = printer.replace(/\s+/g, '-').toLowerCase();
-    const plates = _pipePlates.filter(p => p.stage === 'sliced' && p.printer_name === printer);
+    const plates = _platesSorted(_pipePlates.filter(p => p.stage === 'sliced' && p.printer_name === printer));
     // Also show plates with no printer assigned under first printer header as fallback
     const body = plates.length
       ? plates.map(p => _pipePlateCardHtml(p)).join('')
@@ -4301,7 +4311,7 @@ function renderPipeline() {
   document.getElementById('pipe-printing-count').textContent = totalPrinting || '';
   document.getElementById('pipe-col-printing').innerHTML = PIPE_PRINTERS.map(printer => {
     const printerKey = printer.replace(/\s+/g, '-').toLowerCase();
-    const plates = _pipePlates.filter(p => p.stage === 'printing' && p.printer_name === printer);
+    const plates = _platesSorted(_pipePlates.filter(p => p.stage === 'printing' && p.printer_name === printer));
     const body = plates.length
       ? plates.map(p => _pipePlateCardHtml(p)).join('')
       : '<div style="color:var(--muted);font-size:.7rem;text-align:center;padding:.5rem">empty — drag a plate here</div>';
@@ -4368,7 +4378,7 @@ function _pipePlateCardHtml(p) {
   const miniModels = models.map(m => {
     return `<span class="pipe-mini-model" draggable="true" data-model-id="${m.id}" title="${_ovEsc(m.name)} — click to edit · drag to move"
         onclick="event.stopPropagation();openEditModelModal('${m.id}')"
-        ondragstart="event.stopPropagation();_pipeDragType='model';_pipeDragId='${m.id}';setTimeout(()=>this.style.opacity='.4',0)"
+        ondragstart="event.stopPropagation();_pipeDragType='model';_pipeDragId='${m.id}';try{event.dataTransfer.setData('text/plain','${m.id}');event.dataTransfer.effectAllowed='move'}catch(_){}setTimeout(()=>this.style.opacity='.4',0)"
         ondragend="this.style.opacity='';_pipeDragType=null;_pipeDragId=null;document.querySelectorAll('.pipe-plate-card').forEach(c=>{c.style.boxShadow='';c.classList.remove('drop-target')})">
       ${_plateMulti(p) ? `<span style="display:inline-flex;gap:2px;align-items:center">${_modelSpools(m, 11, 3)}</span>` : ''}
       ${_ovEsc(m.name)}${m.qty_needed > 1 ? ` <b>×${m.qty_needed}</b>` : ''}
@@ -4380,17 +4390,22 @@ function _pipePlateCardHtml(p) {
   // Plates in plating/sliced stages can be dragged (to reorder or move to printer)
   const draggableAttrs = !isDone ? `draggable="true" data-plate-id="${p.id}" title="Click to see and edit everything on this plate · drag to move it"` : `title="Click to see this plate"`;
   // Drop target for models only when in plating stage
+  // A plate dropped on a plate of the same column (and printer) reorders; models dropped on a Plating plate join it
   const dropAttrs = p.stage === 'plating'
-    ? `ondragover="if(_pipeDragType==='model'){event.preventDefault();document.getElementById('ppc-${p.id}').style.boxShadow='0 0 0 2px var(--accent)'}"
-       ondragleave="document.getElementById('ppc-${p.id}').style.boxShadow=''"
-       ondrop="onDropToPlate(event,'${p.id}')"`
-    : '';
+    ? `ondragover="if(_pipeDragType==='model'){event.preventDefault();document.getElementById('ppc-${p.id}').style.boxShadow='0 0 0 2px var(--accent)'}else _plateReorderOver(event,'${p.id}')"
+       ondragleave="document.getElementById('ppc-${p.id}').style.boxShadow='';_plateReorderLeave('${p.id}')"
+       ondrop="if(_pipeDragType==='plate')_plateReorderDrop(event,'${p.id}');else onDropToPlate(event,'${p.id}')"`
+    : !isDone
+      ? `ondragover="_plateReorderOver(event,'${p.id}')" ondragleave="_plateReorderLeave('${p.id}')" ondrop="_plateReorderDrop(event,'${p.id}')"`
+      : '';
 
   return `<div class="pipe-plate-card${p.stage==='plating' ? ' drop-target' : ''}"
       id="ppc-${p.id}" ${draggableAttrs} ${dropAttrs} onclick="_plateCardClick(event,'${p.id}')">
     <div style="display:flex;justify-content:space-between;align-items:center;gap:.35rem;margin-bottom:.35rem">
       <strong style="font-size:.82rem;flex:1;min-width:0;overflow-wrap:anywhere;line-height:1.3">${_ovEsc(p.name || 'Plate')}</strong>
       ${p.stage === 'plating' ? `<button type="button" class="plate-pr-chip${p.printer_name ? '' : ' none'}" onclick="event.stopPropagation();openPlatePrinterMenu(this,'${p.id}')" title="Which printer this plate is for">🖨 ${_ovEsc(p.printer_name || 'Printer?')} ▾</button>` : ''}
+      <button type="button" class="plate-add-btn" onclick="event.stopPropagation();copyPlate('${p.id}')" title="Copy this plate — a new plate in Plating with its own copies of the models"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button>
+      ${p.stage === 'plating' ? `<button type="button" class="plate-add-btn" onclick="event.stopPropagation();openAddModelToPlate('${p.id}')" title="Add a model to this plate">＋</button>` : ''}
       ${!isDone ? `<button onclick="event.stopPropagation();deletePipePlate('${p.id}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:.72rem;opacity:.45" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.45">✕</button>` : ''}
     </div>
     ${!isDone ? (() => { const cl = _plateColourLineHtml(p); return cl ? `<div class="pc-row"><span class="pc-lbl">${_plateSingle(p) ? 'Filament' : 'Colours'}</span><span class="pc-vals">${cl}</span></div>` : ''; })() : ''}
@@ -4441,12 +4456,96 @@ function _pipeBindDrag() {
     });
     el.addEventListener('dragend', () => {
       el.classList.remove('dragging');
+      _plateReorderClear(); _plateReorder = null;
       _pipeDragId   = null;
       _pipeDragType = null;
       document.querySelectorAll('.pipe-printer-section').forEach(s => s.classList.remove('drag-over', 'drag-no'));
       document.querySelectorAll('.pipe-col-body').forEach(s => s.classList.remove('drag-over'));
     });
   });
+}
+
+// ── Plate order: drag a plate onto another in the same column (same printer, for Sliced / Printing) to reorder ──
+// Kept in print_plates.sort_order; until that column exists it's kept in this browser (rc_plate_order).
+// Plates never ordered sit on top, newest first.
+const _plateLocalOrder = (() => { try { return JSON.parse(localStorage.getItem('rc_plate_order') || '{}'); } catch (_) { return {}; } })();
+let _plateOrderColumn = true, _plateOrderWarned = false;
+let _plateReorder = null;   // { id, before } — where the dragged plate would land
+const _plateOrd = p => (p.sort_order != null && p.sort_order !== '') ? +p.sort_order : (_plateLocalOrder[p.id] ?? null);
+const _plateGroupKey = p => `${p.stage}|${p.stage === 'plating' ? '' : (p.printer_name || '')}`;
+function _platesSorted(list) {
+  return [...list].sort((a, b) => {
+    const oa = _plateOrd(a), ob = _plateOrd(b);
+    if (oa == null && ob == null) return String(b.created_at || '').localeCompare(String(a.created_at || ''));
+    if (oa == null) return -1;
+    if (ob == null) return 1;
+    return oa - ob;
+  });
+}
+function _plateReorderClear() {
+  document.querySelectorAll('.pipe-plate-card.drop-before, .pipe-plate-card.drop-after').forEach(c => c.classList.remove('drop-before', 'drop-after'));
+}
+function _plateReorderLeave(id) { document.getElementById(`ppc-${id}`)?.classList.remove('drop-before', 'drop-after'); }
+// Only plates in the same group reorder; anything else falls through to the column / printer section (which moves the plate)
+function _plateReorderPair(targetId) {
+  if (_pipeDragType !== 'plate' || !_pipeDragId || _pipeDragId === targetId) return null;
+  const drag = _pipePlates.find(p => p.id === _pipeDragId), target = _pipePlates.find(p => p.id === targetId);
+  return drag && target && _plateGroupKey(drag) === _plateGroupKey(target) ? { drag, target } : null;
+}
+function _plateReorderOver(e, targetId) {
+  if (!_plateReorderPair(targetId)) return;
+  e.preventDefault(); e.stopPropagation();
+  const el = document.getElementById(`ppc-${targetId}`);
+  if (!el) return;
+  const r = el.getBoundingClientRect();
+  const before = e.clientY < r.top + r.height / 2;
+  _plateReorder = { id: targetId, before };
+  _plateReorderClear();
+  el.classList.add(before ? 'drop-before' : 'drop-after');
+}
+async function _plateReorderDrop(e, targetId) {
+  const pair = _plateReorderPair(targetId);
+  if (!pair) return;
+  e.preventDefault(); e.stopPropagation();
+  const before = _plateReorder?.id === targetId ? _plateReorder.before : true;
+  _plateReorderClear(); _plateReorder = null;
+  const key = _plateGroupKey(pair.target);
+  const group = _platesSorted(_pipePlates.filter(p => _plateGroupKey(p) === key)).filter(p => p.id !== pair.drag.id);
+  group.splice(group.findIndex(p => p.id === targetId) + (before ? 0 : 1), 0, pair.drag);
+  _pipeDragId = null; _pipeDragType = null;
+  await _platesSaveOrder(group);
+  renderPipeline();
+}
+async function _platesSaveOrder(list) {
+  for (let i = 0; i < list.length; i++) {
+    const p = list[i];
+    if (_plateOrd(p) === i) continue;
+    if (_plateOrderColumn) {
+      const { error } = await db.from('print_plates').update({ sort_order: i }).eq('id', p.id);
+      if (!error) p.sort_order = i;
+      else if (/sort_order/.test(error.message)) _plateOrderColumn = false;
+      else { toast('Could not save the order: ' + error.message, 'error'); return; }
+    }
+    _plateLocalOrder[p.id] = i;
+  }
+  try { localStorage.setItem('rc_plate_order', JSON.stringify(_plateLocalOrder)); } catch (_) {}
+  if (!_plateOrderColumn && !_plateOrderWarned) {
+    _plateOrderWarned = true;
+    toast('Plate order saved in this browser only — run the plate sort_order SQL in Supabase to keep it everywhere', 'error');
+  }
+}
+
+// A model dragged off its plate and released anywhere that isn't a plate or another drop target goes back to Ideas
+function _pipeBoardDragOver(e) {
+  if (_pipeDragType !== 'model' || e.target.closest('.pipe-plate-card')) return;
+  if (_pipeModels.find(x => x.id === _pipeDragId)?.plate_id) e.preventDefault();
+}
+function _pipeBoardDrop(e) {
+  if (e.defaultPrevented || _pipeDragType !== 'model' || e.target.closest('.pipe-plate-card')) return;   // a column / folder already took it
+  const id = _pipeDragId;
+  if (!_pipeModels.find(x => x.id === id)?.plate_id) return;
+  e.preventDefault();
+  _pipeAssignModelToPlate(id, null);
 }
 
 function onDropToPlate(event, plateId) {
@@ -4467,6 +4566,7 @@ function onDropToIdea(event) {
     if (f) _ideaPlaceFolder(id, null, null).then(ok => { if (ok) renderPipeline(); });
     return;
   }
+  if (type === 'plate') { _ideaReturnPlate(id).then(ok => { if (ok) renderPipeline(); }); return; }   // each model back to the folder it came from
   if (type !== 'model') return;
   const model = _pipeModels.find(m => m.id === id);
   if (!model) return;
@@ -4503,6 +4603,7 @@ async function onDropToPrinter(event, printerName) {
     .eq('id', plateId);
   if (error) { toast('Error: ' + error.message, 'error'); return; }
   if (plate) Object.assign(plate, updates);
+  await _plateAutoFilament(plateId);
   _pipeDragId   = null;
   _pipeDragType = null;
   renderPipeline();
@@ -4526,6 +4627,7 @@ async function onDropToSliced(event, printerName) {
   if (error) { toast('Error: ' + error.message, 'error'); return; }
   const plate = _pipePlates.find(p => p.id === plateId);
   if (plate) { plate.stage = 'sliced'; plate.printer_name = printerName; }
+  await _plateAutoFilament(plateId);
   _pipeDragId = null; _pipeDragType = null;
   renderPipeline();
   _promptUsageIfNeeded(plateId);   // ask for grams per roll from the slicer
@@ -4569,7 +4671,20 @@ async function _pipeAssignModelToPlate(modelId, plateId) {
   if (error) { toast('Error: ' + error.message, 'error'); return; }
   const m = _pipeModels.find(m => m.id === modelId);
   if (m) m.plate_id = plateId;
+  if (plateId) await _plateAutoFilament(plateId);
   renderPipeline();
+}
+
+// A one-colour plate with no filament yet takes the colour its models need, when that's a single colour
+async function _plateAutoFilament(plateId) {
+  const plate = _pipePlates.find(p => p.id === plateId);
+  if (!plate || !_plateSingle(plate) || _planOf(plate).cols.length) return;
+  const ids = _slotsForModels(_pipeModels.filter(m => m.plate_id === plateId));
+  if (ids.length !== 1) return;
+  const plan = _planOf(plate);
+  const next = { v: 2, cols: [ids[0]], grams: plan.grams || {}, minutes: plan.minutes ?? null };
+  const { error } = await db.from('print_plates').update({ filament_plan: next }).eq('id', plateId);
+  if (!error) plate.filament_plan = next;
 }
 
 // ── Idea folders (nested) ──────────────────────────────────────────────────
@@ -4772,6 +4887,32 @@ async function _ideaMoveModel(modelId, folderId) {
   Object.assign(m, upd);
 }
 
+// A plate dragged back to Ideas: its models leave the plate — into folderId, or (folderId undefined) each back to the folder it came from.
+// The emptied plate is removed (it's a move). Only plates still in Plating can do this.
+async function _ideaReturnPlate(plateId, folderId) {
+  const plate = _pipePlates.find(p => p.id === plateId);
+  if (!plate) return false;
+  if (plate.stage !== 'plating') { toast('Only a plate in Plating can go back to Ideas — drag it back to Plating first', 'info'); return false; }
+  const models = _pipeModels.filter(m => m.plate_id === plateId);
+  if (!models.length) { toast(`${plate.name || 'That plate'} has no models to return`, 'info'); return false; }
+  if (folderId && _ideaNeedsSetup()) return false;
+  for (const m of models) {
+    if (folderId !== undefined) { await _ideaMoveModel(m.id, folderId); continue; }   // clears plate_id as well
+    const { error } = await db.from('print_models').update({ plate_id: null }).eq('id', m.id);
+    if (error) { toast('Move failed: ' + error.message, 'error'); break; }
+    m.plate_id = null;
+  }
+  const moved = models.filter(m => !m.plate_id).length;
+  // It's a move: once every model is off, the emptied plate goes too
+  let gone = false;
+  if (moved === models.length) {
+    const { error } = await db.from('print_plates').delete().eq('id', plateId);
+    if (!error) { _pipePlates = _pipePlates.filter(p => p.id !== plateId); gone = true; }
+  }
+  if (moved) toast(`${moved} model${moved === 1 ? '' : 's'} from ${plate.name || 'the plate'} back in ${folderId ? `“${_ideaById(folderId)?.name || 'the folder'}”` : 'Ideas'}${gone ? ' — empty plate removed' : ''}`, 'success');
+  return moved > 0;
+}
+
 // Put folder `id` inside `parentId` (null = top level), just before `beforeId` (null = at the end)
 async function _ideaPlaceFolder(id, parentId, beforeId) {
   const f = _ideaById(id);
@@ -4853,7 +4994,7 @@ function _ideaShowDrop(kind, id, el) {
 function _ideaFolderDragOver(e, id) {
   e.stopPropagation();          // don't let the column body or a parent folder take it instead
   const type = _pipeDragType;
-  if (type !== 'model' && type !== 'folder') return;
+  if (type !== 'model' && type !== 'folder' && type !== 'plate') return;
   const head = e.currentTarget;
   let kind = 'into';
   if (type === 'folder') {
@@ -4877,7 +5018,7 @@ function _ideaHeadDragLeave(e, el, id) {
 function _ideaBodyDragOver(e, id) {
   e.stopPropagation();
   const type = _pipeDragType;
-  if (type !== 'model' && type !== 'folder') return;
+  if (type !== 'model' && type !== 'folder' && type !== 'plate') return;
   if (type === 'folder' && !_ideaCanParent(id)) return;
   e.preventDefault();
   _ideaShowDrop('into', id, e.currentTarget);
@@ -4894,7 +5035,10 @@ async function onDropToIdeaFolder(e, folderId, fromBody) {
   _ideaClearDrop();
   const type = _pipeDragType, id = _pipeDragId;   // capture before dragend clears them
   if (!id) return;
-  if (type === 'model') {
+  if (type === 'plate') {
+    if (!(await _ideaReturnPlate(id, folderId))) return;     // the plate's models go into this folder
+    _ideaCollapsed.delete(folderId); _ideaSaveCollapsed();
+  } else if (type === 'model') {
     await _ideaMoveModel(id, folderId);
     _ideaCollapsed.delete(folderId); _ideaSaveCollapsed();   // open the target so you can see it landed
   } else if (type === 'folder') {
@@ -4943,6 +5087,7 @@ async function _ensureInventoryData() {
 }
 
 let _pmFolderPrev = '';   // folder currently chosen in the Add/Edit Model window
+let _pmPlateId = null;    // set when the Add Model window was opened from a plate card: the new model goes straight onto that plate
 
 function _folderTreeOptions(selected, topLabel) {
   const opts = [`<option value="">${topLabel}</option>`];
@@ -5109,6 +5254,8 @@ async function pmCreateFolder() {
 }
 
 function _pmResetForm() {
+  _pmPlateId = null;
+  document.getElementById('pm-folder-group').style.display = '';
   _pmSelectedFilaments = [];
   _pmInvVariantId = null;
   _pmInvHl = 0;
@@ -5184,7 +5331,7 @@ const _pmProduct = () => _pmMode === 'inventory' && _pmInvVariantId ? _invItems.
 // Ideas don't need them, and models from inventory take the product's values (shown on the product card).
 function _pmPrintVisible() {
   const editing = _editModelId && _pipeModels.find(m => m.id === _editModelId);
-  return _pmMode === 'manual' && !!editing?.plate_id;
+  return _pmMode === 'manual' && (!!editing?.plate_id || (!_editModelId && !!_pmPlateId));
 }
 function _pmUpdatePrintVisibility() {
   const box = document.getElementById('pm-print');
@@ -5254,9 +5401,32 @@ async function openAddModelModal(folderId) {
   setTimeout(() => { if (_pmMode === 'manual') document.getElementById('pm-name').focus(); }, 50);
 }
 
+// ＋ on a plate card: add a model straight onto that plate. A one-colour plate that already has its filament passes it on,
+// since the plate's colour applies to everything on it; otherwise the filament is left to choose.
+async function openAddModelToPlate(plateId) {
+  const plate = _pipePlates.find(p => p.id === plateId);
+  if (!plate || plate.stage !== 'plating') return;
+  await Promise.all([_pmEnsureFilaments(), _ensureInventoryData()]);
+  _editModelId = null;
+  _pmResetForm();
+  _pmPlateId = plateId;
+  document.getElementById('pm-folder-group').style.display = 'none';      // it isn't an idea in a folder
+  const fil = _plateSingle(plate) ? _planOf(plate).cols[0] : null;
+  if (fil && filById(fil)) _pmSelectedFilaments = [fil];
+  renderPmFilPills();
+  renderPmFilOptions('');
+  _pmSetPrintFields(null, null, null);
+  document.getElementById('pm-modal-title').textContent = `➕ Add to ${plate.name || 'plate'}`;
+  document.getElementById('pm-submit-btn').textContent  = '＋ Add to plate';
+  setPmMode('manual');
+  document.getElementById('modal-add-model').classList.add('open');
+  setTimeout(() => { if (_pmMode === 'manual') document.getElementById('pm-name').focus(); }, 50);
+}
+
 function closeAddModelModal() {
   document.getElementById('modal-add-model').classList.remove('open');
   _editModelId = null;
+  _pmPlateId = null;
 }
 
 function setPmMode(mode) {
@@ -6042,6 +6212,25 @@ async function submitAddModel() {
     if (n > maxC) { toast(`That would put ${n} colours on its plate (max ${maxC}${maxC === 1 ? ' on ' + (_pipePlates.find(p => p.id === editingModel.plate_id)?.printer_name || 'this printer') : ''}) — remove a colour or move the model to another plate`, 'error'); return; }
   }
 
+  // Opened from a plate card: same colour rules as dragging a model onto it, then it's created already on the plate
+  const toPlate = !_editModelId && _pmPlateId ? _pipePlates.find(p => p.id === _pmPlateId) : null;
+  if (!_editModelId && _pmPlateId && !toPlate) { toast('That plate no longer exists', 'error'); return; }
+  if (toPlate) {
+    const tmp = { ...payload, id: '__pm_new', plate_id: toPlate.id };
+    _pipeModels.push(tmp);
+    let n, warn;
+    try { n = _plateColoursWith(toPlate.id, tmp.id); warn = _singleColourModelWarning(tmp.id, toPlate.id); } finally { _pipeModels.pop(); }
+    const maxC = _plateMaxColours(toPlate);
+    if (n > maxC) {
+      toast(maxC === 1
+        ? `Can't add ${name} — ${toPlate.name || 'this plate'} is for the ${toPlate.printer_name}, which prints one colour (it would need ${n}).`
+        : `Can't add ${name} — the plate would need ${n} colours (max ${maxC}). Use another plate.`, 'error');
+      return;
+    }
+    if (warn && !(await confirmDialog(warn))) return;
+    payload.plate_id = toPlate.id;
+  }
+
   const wasEdit = !!_editModelId;
   const { data, error, dropped } = await _pmWriteModel(payload);
   if (error) { toast('Error: ' + error.message, 'error'); return; }
@@ -6050,6 +6239,7 @@ async function submitAddModel() {
     if (idx !== -1) _pipeModels[idx] = data;
   } else {
     _pipeModels.unshift(data);
+    if (toPlate) await _plateAutoFilament(toPlate.id);   // a one-colour plate with no filament yet takes this model's colour
   }
   if (folder) { _ideaCollapsed.delete(folder); _ideaSaveCollapsed(); }
   // Optionally store the print details on the inventory product, so the next print job gets them automatically
@@ -6074,7 +6264,7 @@ async function submitAddModel() {
   renderPipeline();
   const lost = dropped.filter(k => payload[k] != null && payload[k] !== '');   // only nag about values you actually entered
   if (lost.length) toast(`Saved — run the new SQL in Supabase to also store ${lost.join(', ')}`, 'error');
-  else toast((wasEdit ? 'Model updated' : 'Model added to the Print Board') + backMsg, backMsg.includes('not updated') ? 'error' : 'success');
+  else toast((wasEdit ? 'Model updated' : toPlate ? `Added to ${toPlate.name || 'the plate'}` : 'Model added to the Print Board') + backMsg, backMsg.includes('not updated') ? 'error' : 'success');
 }
 
 async function deletePipeModel(id) {
@@ -6157,6 +6347,7 @@ async function _setPlatePrinter(plateId, printer) {
   const { error } = await db.from('print_plates').update({ printer_name: printer || null }).eq('id', plateId);
   if (error) { toast('Error: ' + error.message, 'error'); return false; }
   p.printer_name = printer || null;
+  await _plateAutoFilament(plateId);
   renderPipeline();
   toast(printer ? `${p.name || 'Plate'} → ${printer}` : `${p.name || 'Plate'}: printer not chosen yet`, 'success');
   return true;
@@ -6557,7 +6748,7 @@ function _plateEdRender() {
 
   // Filament for the whole plate (one-colour printers)
   const multi = _plateMulti(p);
-  const colLine = !single && p.stage !== 'done' ? _plateColourLineHtml(p, 16) : '';
+  const colLine = !single && p.stage !== 'done' ? _plateColourLineHtml(p, 16, true) : '';
   const filSec = single && p.stage !== 'done'
     ? `<div class="pe-block"><div class="pe-sec">Filament <span>whole plate · ${_ovEsc(p.printer_name)} prints one colour</span></div>${_peFilHtml(p)}</div>`
     : p.stage !== 'done' ? `<div class="pe-block"><div class="pe-sec">Colours <span>${multi ? `${_ovEsc(p.printer_name)} · set per model in the filament usage` : 'what the models need — choose a printer'}</span></div>
@@ -6585,7 +6776,7 @@ function _plateEdRender() {
     ${filSec}
     <div class="pe-block"><div class="pe-sec">Models <span>${models.length}</span></div>
     ${rows ? `<div class="pe-list">${rows}</div>` : ''}
-    ${editable ? `<div class="pe-add-search"><span class="ic">🔍</span><input type="text" id="pe-add-q" placeholder="${models.length ? 'Add another idea — type a name or colour' : 'Add ideas to this plate — type a name or colour'}" autocomplete="off" value="${_ovEsc(_plateEdAddQ)}" oninput="_plateEdAddQ=this.value;_plateEdAddRender()"></div>
+    ${editable ? `<div class="pe-add-search"><span class="ic">🔍</span><input type="text" id="pe-add-q" placeholder="${models.length ? 'Add another model — search ideas or inventory' : 'Add models to this plate — search ideas or inventory'}" autocomplete="off" value="${_ovEsc(_plateEdAddQ)}" oninput="_plateEdAddQ=this.value;_plateEdAddRender()"></div>
       <div id="pe-add-results"></div>
       <div class="pe-inv" id="pe-inv">${_peInvHtml()}</div>`
       : p.stage !== 'done' ? '<div class="pe-note">Drag the plate back to Plating to add or take off models.</div>' : ''}</div>
@@ -6698,16 +6889,27 @@ function _plateEdAddRender() {
     const hay = `${m.name || ''} ${_modelFils(m).map(f => `${f.material_type} ${f.colour1} ${f.brand || ''}`).join(' ')} ${m.folder_id ? _ideaPath(m.folder_id) : ''}`.toLowerCase();
     return tokens.every(t => hay.includes(t));
   });
-  if (!ideas.length) { box.innerHTML = `<div class="pe-empty small">${_pipeModels.some(m => !m.plate_id) ? 'No ideas match.' : 'No ideas left to add — create one in the Idea column.'}</div>`; return; }
+  // Inventory products that match too (skipping ones already waiting as an idea — adding those reuses the idea)
+  const ideaProducts = new Set(ideas.map(m => m.inventory_variant_id).filter(Boolean));
+  const products = _invItems.filter(r => !ideaProducts.has(r.variant_id) && (h => tokens.every(t => h.includes(t)))(_pmInvHay(r)))
+    .sort((a, b) => _pmCmp(a.item_name, b.item_name) || _pmCmp(a.variant_name, b.variant_name)).slice(0, 8);
+  const prodHtml = products.length
+    ? `<div class="pe-inv-sec">📦 From inventory</div>${products.map(r => _peInvRowHtml(r, p, `${_ovEsc(r.item_name || '')}${r.variant_name ? ` <span class="pe-var">${_ovEsc(r.variant_name)}</span>` : ''}`)).join('')}` : '';
+  if (!ideas.length) {
+    box.innerHTML = prodHtml || `<div class="pe-empty small">Nothing matches “${_ovEsc(_plateEdAddQ.trim())}” in your ideas or inventory.</div>`;
+    box.scrollIntoView({ block: 'nearest' });
+    return;
+  }
   const scored = ideas.map(m => { const n = _plateColoursWith(p.id, m.id); return { m, n, ok: n <= max }; })
                       .sort((a, b) => b.ok - a.ok || (a.m.name || '').localeCompare(b.m.name || ''));
   const shown = scored.slice(0, tokens.length ? 12 : 6);
-  box.innerHTML = shown.map(({ m, n, ok }) => `<div class="pe-add-row${ok ? '' : ' no'}">
+  box.innerHTML = `<div class="pe-inv-sec">💡 Ideas</div>` + shown.map(({ m, n, ok }) => `<div class="pe-add-row${ok ? '' : ' no'}">
       <span class="pm-spools">${_modelSpools(m, 15, 4)}</span>
       <span class="t"><strong>${_ovEsc(m.name)}</strong><span>${_ovEsc(m.folder_id ? _ideaPath(m.folder_id) : 'Not in a folder')} · ×${+m.qty_needed || 1}</span></span>
       ${ok ? `<button type="button" class="btn btn-sm btn-outline" onclick="plateEdAdd('${_invJs(m.id)}')">＋ Add</button>`
            : `<span class="pe-why" title="The plate would need ${n} colours">${n} colours — max ${max}</span>`}
-    </div>`).join('') + (scored.length > shown.length ? `<div class="pe-more">+${scored.length - shown.length} more — search to find them</div>` : '');
+    </div>`).join('') + (scored.length > shown.length ? `<div class="pe-more">+${scored.length - shown.length} more — search to find them</div>` : '') + prodHtml;
+  box.scrollIntoView({ block: 'nearest' });
 }
 
 async function plateEdAdd(modelId) { _plateEdAddQ = ''; await _pipeAssignModelToPlate(modelId, _plateEdId); }
@@ -6828,6 +7030,7 @@ async function plateEdAddInv(variantId) {
   try { res = await _pmWriteModel(payload); } finally { _editModelId = wasEditing; }
   if (res.error) { toast('Error: ' + res.error.message, 'error'); return; }
   _pipeModels.unshift(res.data);
+  await _plateAutoFilament(p.id);
   renderPipeline();
   const lost = res.dropped.filter(k => payload[k] != null && payload[k] !== '');
   if (lost.length) toast(`Added, but run the new SQL in Supabase to also store ${lost.join(', ')}`, 'error');
@@ -6864,6 +7067,50 @@ async function plateEdSliceFile(v) {
   p.slice_file = slice_file;
   renderPipeline();
 }
+// Copy a plate (e.g. to print it again): a new plate in Plating with the same printer, filament, times and slice file,
+// plus its own copies of the models — a model can only sit on one plate. Print history and usage are not copied.
+async function copyPlate(id) {
+  const src = _pipePlates.find(p => p.id === id);
+  if (!src) return false;
+  const models = _pipeModels.filter(m => m.plate_id === id);
+  const plan = _planOf(src);
+  const row = { name: `${src.name || 'Plate'} copy`, stage: 'plating', printer_name: src.printer_name || null };
+  if (Array.isArray(src.filament_plan)) row.filament_plan = src.filament_plan;
+  else if (src.filament_plan) row.filament_plan = { v: 2, cols: [...plan.cols], grams: {}, minutes: plan.minutes ?? null };
+  if (src.slice_file) row.slice_file = src.slice_file;
+  const { data: np, error } = await db.from('print_plates').insert([row]).select().single();
+  if (error) { toast('Could not copy the plate: ' + error.message, 'error'); return false; }
+  const copies = [];
+  for (const m of models) {
+    const c = { ...m, plate_id: np.id };
+    delete c.id; delete c.created_at; delete c.updated_at;
+    const r = await db.from('print_models').insert([c]).select().single();
+    if (r.error) {                                       // all or nothing: undo what was made
+      if (copies.length) await db.from('print_models').delete().in('id', copies.map(x => x.id));
+      await db.from('print_plates').delete().eq('id', np.id);
+      toast(`Could not copy “${m.name}”: ${r.error.message}`, 'error');
+      return false;
+    }
+    copies.push(r.data);
+  }
+  // Grams are stored per model, so point them at the copies
+  if (row.filament_plan && !Array.isArray(row.filament_plan) && plan.grams) {
+    const grams = {};
+    models.forEach((m, i) => { if (plan.grams[m.id]) grams[copies[i].id] = plan.grams[m.id]; });
+    if (Object.keys(grams).length) {
+      const next = { ...row.filament_plan, grams };
+      const u = await db.from('print_plates').update({ filament_plan: next }).eq('id', np.id);
+      if (!u.error) np.filament_plan = next;
+    }
+  }
+  _pipePlates.unshift(np);
+  _pipeModels.unshift(...copies);
+  renderPipeline();
+  toast(`Copied to “${np.name}”${copies.length ? ` with ${copies.length} model${copies.length === 1 ? '' : 's'}` : ''}`, 'success');
+  return true;
+}
+async function plateEdCopy() { if (await copyPlate(_plateEdId)) closePlateEditor(); }
+
 async function plateEdDelete() {
   const id = _plateEdId;
   await deletePipePlate(id);
