@@ -4262,6 +4262,8 @@ async function loadPipeline() {
   _fillModelsFromProducts(_pipeModels);
   // One-colour plates that never got their filament (models added before this was automatic) pick it up now
   await Promise.all(_pipePlates.filter(p => p.stage === 'plating' || p.stage === 'sliced').map(p => _plateAutoFilament(p.id)));
+  // Sliced / Printing plates missing their usage take what the models already carry (grams + time)
+  await Promise.all(_pipePlates.filter(p => p.stage === 'sliced' || p.stage === 'printing').map(p => _plateAutoUsage(p.id)));
   renderPipeline();
 }
 
@@ -4386,6 +4388,16 @@ function _pipePlateCardHtml(p) {
   }).join('');
 
   const advanceBtn = _pipeAdvanceButton(p);
+  const useHtml = _plateUsageCardHtml(p);
+  // The plate's own usage row (grams + time) replaces the models' totals line. One model, one colour and the same
+  // numbers would just repeat it, so that case shows a single line (the model's); a different slicer figure still shows.
+  let useShown = useHtml.includes('class="plate-use"');
+  if (useShown && models.length === 1) {
+    const ed = _usageGridFor(p), est = sumPrintTotals(models);
+    const g = _colTotals(ed).reduce((a, b) => a + b, 0);
+    if (ed.cols.length <= 1 && est.grams != null && Math.abs(g - est.grams) < 0.05 && ed.minutes === est.minutes) useShown = false;
+  }
+  const useHidden = !useShown && useHtml.includes('class="plate-use"');
   const isDone = p.stage === 'done';
   // Plates in plating/sliced stages can be dragged (to reorder or move to printer)
   const draggableAttrs = !isDone ? `draggable="true" data-plate-id="${p.id}" title="Click to see and edit everything on this plate · drag to move it"` : `title="Click to see this plate"`;
@@ -4410,9 +4422,9 @@ function _pipePlateCardHtml(p) {
     </div>
     ${!isDone ? (() => { const cl = _plateColourLineHtml(p); return cl ? `<div class="pc-row"><span class="pc-lbl">${_plateSingle(p) ? 'Filament' : 'Colours'}</span><span class="pc-vals">${cl}</span></div>` : ''; })() : ''}
     ${miniModels || p.stage === 'plating' ? `<div class="pc-row models"><span class="pc-lbl">Models</span>${miniModels ? `<div class="pipe-plate-models">${miniModels}</div>` : '<span class="pc-empty">← Drag ideas here</span>'}</div>` : ''}
-    ${models.length ? (() => { const ps = printSummaryHtml(sumPrintTotals(models)); return ps ? `<div class="pipe-card-print">${ps}</div>` : ''; })() : ''}
+    ${models.length && !useShown ? (() => { const ps = printSummaryHtml(sumPrintTotals(models)); return ps ? `<div class="pipe-card-print">${ps}</div>` : ''; })() : ''}
     ${p.slice_file   ? `<div style="font-size:.72rem;color:var(--muted);margin:.25rem 0">📁 ${p.slice_file}</div>` : ''}
-    ${_plateUsageCardHtml(p)}
+    ${useHidden ? '' : useHtml}
     ${isDone && p.grams_used ? `<div style="font-size:.72rem;color:#6ee7b7;margin:.25rem 0">✓ ${p.grams_used}g used</div>` : ''}
     ${advanceBtn ? `<div style="margin-top:.5rem;display:flex;gap:.3rem;flex-wrap:wrap">${advanceBtn}</div>` : ''}
   </div>`;
@@ -4586,6 +4598,14 @@ async function onDropToPrinter(event, printerName) {
   const warn = _singleColourPlateWarning(plateId, printerName);
   if (warn && !(await confirmDialog(warn))) { _pipeDragId = null; _pipeDragType = null; return; }
 
+  // Fill in the plate's filament and usage from its models first (judged as if already on this printer)
+  const target = _pipePlates.find(p => p.id === plateId);
+  if (target) {
+    const was = target.printer_name;
+    target.printer_name = printerName;
+    try { await _plateAutoFilament(plateId); await _plateAutoUsage(plateId); } finally { target.printer_name = was; }
+  }
+
   // Move plate to printing stage on this printer
   const plate   = _pipePlates.find(p => p.id === plateId);
   if (plate && plate.stage !== 'printing' && !_plateUsageComplete(plate)) {
@@ -4628,6 +4648,7 @@ async function onDropToSliced(event, printerName) {
   const plate = _pipePlates.find(p => p.id === plateId);
   if (plate) { plate.stage = 'sliced'; plate.printer_name = printerName; }
   await _plateAutoFilament(plateId);
+  await _plateAutoUsage(plateId);   // grams + time the models already carry become the plate's usage
   _pipeDragId = null; _pipeDragType = null;
   renderPipeline();
   _promptUsageIfNeeded(plateId);   // ask for grams per roll from the slicer
@@ -4673,6 +4694,22 @@ async function _pipeAssignModelToPlate(modelId, plateId) {
   if (m) m.plate_id = plateId;
   if (plateId) await _plateAutoFilament(plateId);
   renderPipeline();
+}
+
+// Grams per colour + print time the models already carry become the plate's filament usage, as long as nothing was entered
+// for the plate by hand and every number is there (specific rolls, grams and a time for each model). Otherwise it's left to ask.
+async function _plateAutoUsage(plateId) {
+  const plate = _pipePlates.find(p => p.id === plateId);
+  if (!plate || plate.stage === 'done') return false;
+  const plan = _planOf(plate);
+  if (plan.legacy || plan.minutes || Object.keys(plan.grams || {}).length) return false;   // already filled in
+  const models = _pipeModels.filter(m => m.plate_id === plateId);
+  const est = sumPrintTotals(models);
+  if (!models.length || est.partial || !(est.minutes > 0)) return false;
+  const ed = _usageGridFor(plate);
+  ed.minutes = est.minutes;
+  if (_gridProblems(ed, true).length) return false;
+  return _saveUsageGrid(ed);
 }
 
 // A one-colour plate with no filament yet takes the colour its models need, when that's a single colour
@@ -7507,6 +7544,12 @@ function openAdvancePlate(plateId, targetStage, dropPrinter) {
   fields += `<div class="form-group" style="margin-top:.4rem"><label>Filament usage <span class="use-label-note">${note}</span></label><div id="ap-usage"></div></div>`;
   document.getElementById('ap-fields').innerHTML = fields;
   _ue = _usageGridFor(plate);
+  // A print time the models already carry is filled in, not left for you to type again
+  if (!(_ue.minutes > 0)) {
+    const ms = _pipeModels.filter(m => m.plate_id === plate.id);
+    const est = sumPrintTotals(ms);
+    if (ms.length && ms.every(m => modelPrintTotals(m).minutes != null) && est.minutes > 0) _ue.minutes = est.minutes;
+  }
   _ueRender();
   document.getElementById('ap-submit-btn').textContent = targetStage === 'printing' ? '🖨 Start printing' : targetStage === 'usage' ? '✓ Save usage' : '→ Mark sliced';
   document.getElementById('modal-advance-plate').classList.add('open');
