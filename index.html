@@ -662,6 +662,9 @@
     #pe-fil-res:empty { display:none; }
     .pe-ty { font-style:normal; font-weight:500; font-size:.66rem; color:var(--muted); }
     #pe-add-results:empty { display:none; }
+    .plate-progress-tag { display:inline-flex; align-items:center; gap:.4rem; font-size:.72rem; font-weight:600; color:#fdba74; background:rgba(249,115,22,.12); border:1px solid rgba(249,115,22,.4); border-radius:999px; padding:.2rem .65rem; }
+    .plate-progress-tag::before { content:''; width:7px; height:7px; border-radius:50%; background:#f97316; animation:pp-pulse 1.4s ease-in-out infinite; }
+    @keyframes pp-pulse { 0%, 100% { opacity:1 } 50% { opacity:.25 } }
     .pipe-plate-card.drop-before, .pipe-plate-card.drop-after { position:relative; }
     .pipe-plate-card.drop-before::before, .pipe-plate-card.drop-after::after { content:''; position:absolute; left:6px; right:6px; height:3px; border-radius:3px; background:var(--accent); box-shadow:0 0 0 3px rgba(99,102,241,.25); pointer-events:none; }
     .pipe-plate-card.drop-before::before { top:-6px; }
@@ -1728,7 +1731,10 @@
         </div>
         <div class="pipe-col pipe-col-done">
           <div class="pipe-col-header"><span>✅ Done <span class="pipe-hdr-note">last 7 days</span></span><span id="pipe-done-count" style="font-size:.72rem;color:var(--muted)"></span></div>
-          <div class="pipe-col-body" id="pipe-col-done"></div>
+          <div class="pipe-col-body" id="pipe-col-done"
+            ondragover="if(_pipeDragType==='plate'&&_pipePlates.find(p=>p.id===_pipeDragId)?.stage==='printing'){event.preventDefault();this.classList.add('drag-over')}"
+            ondragleave="if(!this.contains(event.relatedTarget))this.classList.remove('drag-over')"
+            ondrop="onDropToDone(event)"></div>
         </div>
         <div class="pipe-col pipe-col-history">
           <div class="pipe-col-header"><span>🕘 History</span><span id="pipe-history-count" style="font-size:.72rem;color:var(--muted)"></span></div>
@@ -4135,7 +4141,7 @@ function _modelSpools(m, size = 12, max = 5) {
 
 // ════════════════════════════ PRINT PIPELINE ════════════════════════════════
 
-const PIPE_PRINTERS = ['K1SE', 'K1C', 'Hi Combo', 'U1'];
+const PIPE_PRINTERS = ['K1C', 'K1SE', 'U1', 'Hi Combo'];   // order of the printer sections and menus, top to bottom
 // Only the U1 prints several colours (up to 4); every other printer prints one colour per plate
 const PRINTER_MAX_COLOURS = { U1: 4 };
 const _printerMax = name => PRINTER_MAX_COLOURS[name] || 1;
@@ -4260,6 +4266,14 @@ async function loadPipeline() {
   if (folderRes.error) console.warn('idea_folders not available — run the folders SQL:', folderRes.error.message);
   if (filRes && !filRes.error) _filamentsCache = filRes.data || [];
   _fillModelsFromProducts(_pipeModels);
+  // Plates still named "Plate 3" / "Plate 3 copy" take their printer's name ("K1C - 2"); names you typed are kept
+  const toName = _pipePlates.filter(p => p.printer_name && p.stage !== 'done' && _plateNameIsAuto(p.name) && !new RegExp(`^${_escRe(p.printer_name)} - \\d+$`).test(String(p.name || '').trim()))
+    .sort((a, b) => String(a.created_at || '').localeCompare(String(b.created_at || '')));
+  for (const p of toName) {
+    const nm = _nextPlateName(p.printer_name, p.id);
+    const { error } = await db.from('print_plates').update({ name: nm }).eq('id', p.id);
+    if (!error) p.name = nm;
+  }
   // One-colour plates that never got their filament (models added before this was automatic) pick it up now
   await Promise.all(_pipePlates.filter(p => p.stage === 'plating' || p.stage === 'sliced').map(p => _plateAutoFilament(p.id)));
   // Sliced / Printing plates missing their usage take what the models already carry (grams + time)
@@ -4339,7 +4353,7 @@ function renderPipeline() {
   const hc = document.getElementById('pipe-history-count'); if (hc) hc.textContent = _historyEntries().length || '';
   document.getElementById('pipe-col-done').innerHTML =
     donePlates.length ? donePlates.map(p => _pipePlateCardHtml(p)).join('') :
-    '<div style="color:var(--muted);font-size:.8rem;text-align:center;padding:1.5rem .5rem">Empty</div>';
+    '<div style="color:var(--muted);font-size:.8rem;text-align:center;padding:1.5rem .5rem">Drag a finished plate here</div>';
 
   _pipeBindDrag();
   if (_plateEdOpen()) _plateEdRender();
@@ -4415,7 +4429,6 @@ function _pipePlateCardHtml(p) {
       id="ppc-${p.id}" ${draggableAttrs} ${dropAttrs} onclick="_plateCardClick(event,'${p.id}')">
     <div style="display:flex;justify-content:space-between;align-items:center;gap:.35rem;margin-bottom:.35rem">
       <strong style="font-size:.82rem;flex:1;min-width:0;overflow-wrap:anywhere;line-height:1.3">${_ovEsc(p.name || 'Plate')}</strong>
-      ${p.stage === 'plating' ? `<button type="button" class="plate-pr-chip${p.printer_name ? '' : ' none'}" onclick="event.stopPropagation();openPlatePrinterMenu(this,'${p.id}')" title="Which printer this plate is for">🖨 ${_ovEsc(p.printer_name || 'Printer?')} ▾</button>` : ''}
       <button type="button" class="plate-add-btn" onclick="event.stopPropagation();copyPlate('${p.id}')" title="Copy this plate — a new plate in Plating with its own copies of the models"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button>
       ${p.stage === 'plating' ? `<button type="button" class="plate-add-btn" onclick="event.stopPropagation();openAddModelToPlate('${p.id}')" title="Add a model to this plate">＋</button>` : ''}
       ${!isDone ? `<button onclick="event.stopPropagation();deletePipePlate('${p.id}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:.72rem;opacity:.45" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.45">✕</button>` : ''}
@@ -4434,7 +4447,8 @@ function _pipePlateCardHtml(p) {
 function _pipeAdvanceButton(p) {
   const stage = p.stage;
   if (stage === 'plating' || stage === 'sliced') return '';
-  if (stage === 'printing') return `<button class="pipe-stage-btn green" onclick="openCompletePlate('${p.id}')">✓ Mark Done</button>`;
+  // Finishing is done by dragging the plate into Done (which asks to confirm); here it just shows it's on the printer
+  if (stage === 'printing') return `<span class="plate-progress-tag" title="${p.started_at ? `Started ${_ovEsc(new Date(p.started_at).toLocaleString())} · ` : ''}drag it into Done when it finishes">Printing in progress</span>`;
   return `<span style="font-size:.72rem;color:#6ee7b7">${p.completed_at ? new Date(p.completed_at).toLocaleDateString() : 'Complete'}</span>`;
 }
 
@@ -4567,6 +4581,17 @@ function onDropToPlate(event, plateId) {
   _pipeAssignModelToPlate(_pipeDragId, plateId);
 }
 
+// A printing plate dropped into Done opens the Finish window: nothing is deducted or moved until you confirm there
+function onDropToDone(event) {
+  event.preventDefault();
+  document.getElementById('pipe-col-done').classList.remove('drag-over');
+  const plate = _pipePlates.find(p => p.id === _pipeDragId);
+  if (_pipeDragType !== 'plate' || !plate || plate.stage !== 'printing') return;
+  const id = plate.id;
+  _pipeDragId = null; _pipeDragType = null;
+  openCompletePlate(id);
+}
+
 function onDropToIdea(event) {
   event.preventDefault();
   document.getElementById('pipe-col-idea').classList.remove('drag-over');
@@ -4616,6 +4641,8 @@ async function onDropToPrinter(event, printerName) {
     return;
   }
   const updates = { stage: 'printing', printer_name: printerName };
+  const newName = plate ? _plateNameFor(plate, printerName) : null;
+  if (newName) updates.name = newName;
   // Start the print clock only when entering Printing (not when moving between printers)
   if (!plate || plate.stage !== 'printing') updates.started_at = new Date().toISOString();
   const { error } = await db.from('print_plates')
@@ -4641,12 +4668,14 @@ async function onDropToSliced(event, printerName) {
   const warn = _singleColourPlateWarning(plateId, printerName);
   if (warn && !(await confirmDialog(warn))) return;
 
+  const plate0 = _pipePlates.find(p => p.id === plateId);
+  const newName = plate0 ? _plateNameFor(plate0, printerName) : null;
   const { error } = await db.from('print_plates')
-    .update({ stage: 'sliced', printer_name: printerName })
+    .update({ stage: 'sliced', printer_name: printerName, ...(newName ? { name: newName } : {}) })
     .eq('id', plateId);
   if (error) { toast('Error: ' + error.message, 'error'); return; }
   const plate = _pipePlates.find(p => p.id === plateId);
-  if (plate) { plate.stage = 'sliced'; plate.printer_name = printerName; }
+  if (plate) { plate.stage = 'sliced'; plate.printer_name = printerName; if (newName) plate.name = newName; }
   await _plateAutoFilament(plateId);
   await _plateAutoUsage(plateId);   // grams + time the models already carry become the plate's usage
   _pipeDragId = null; _pipeDragType = null;
@@ -4696,19 +4725,25 @@ async function _pipeAssignModelToPlate(modelId, plateId) {
   renderPipeline();
 }
 
-// Grams per colour + print time the models already carry become the plate's filament usage, as long as nothing was entered
-// for the plate by hand and every number is there (specific rolls, grams and a time for each model). Otherwise it's left to ask.
+// Grams per colour + print time the models already carry become the plate's filament usage. With nothing entered yet this needs
+// every number (specific rolls, grams, a time per model); a print time still missing next to grams you entered is filled alone.
 async function _plateAutoUsage(plateId) {
   const plate = _pipePlates.find(p => p.id === plateId);
   if (!plate || plate.stage === 'done') return false;
-  const plan = _planOf(plate);
-  if (plan.legacy || plan.minutes || Object.keys(plan.grams || {}).length) return false;   // already filled in
+  const plan = _planOf(plate);   // an older array-style plan counts as "nothing saved": the grid is built from the models and saved in the current format
   const models = _pipeModels.filter(m => m.plate_id === plateId);
-  const est = sumPrintTotals(models);
-  if (!models.length || est.partial || !(est.minutes > 0)) return false;
+  if (!models.length) return false;
   const ed = _usageGridFor(plate);
-  ed.minutes = est.minutes;
-  if (_gridProblems(ed, true).length) return false;
+  const hasSaved = Object.keys(plan.grams || {}).length > 0;
+  // A missing print time is taken from the models whenever every model has one — even if grams were entered by hand
+  let addedTime = false;
+  if (!(ed.minutes > 0) && models.every(m => modelPrintTotals(m).minutes != null)) {
+    ed.minutes = sumPrintTotals(models).minutes;
+    addedTime = ed.minutes > 0;
+  }
+  const incomplete = _gridProblems(ed, true).length > 0;
+  if (!addedTime && (hasSaved || incomplete)) return false;   // nothing to add
+  if (!hasSaved && incomplete) return false;                   // nothing entered and still not derivable → ask
   return _saveUsageGrid(ed);
 }
 
@@ -6311,9 +6346,26 @@ async function deletePipeModel(id) {
   renderPipeline();
 }
 
+// ── Plate names: "K1C - 1", "K1C - 2", "K1SE - 1"… follow the printer ("Plate 3" until one is chosen) ──
+// A name you typed yourself is left alone when the printer changes; only names in this pattern follow the printer.
+const _escRe = s => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+function _plateNameIsAuto(name) {
+  const n = String(name || '').trim();
+  return !n || new RegExp(`^(Plate ?\\d*|(${PIPE_PRINTERS.map(_escRe).join('|')}) - \\d+)( copy)?$`).test(n);
+}
+function _nextPlateName(printer, exceptId) {
+  const base = printer ? `${printer} - ` : 'Plate ';
+  const re = new RegExp(`^${_escRe(base)}(\\d+)$`);
+  let max = 0;
+  _pipePlates.forEach(p => { if (p.id === exceptId) return; const m = re.exec(String(p.name || '').trim()); if (m) max = Math.max(max, +m[1]); });
+  return `${base}${max + 1}`;
+}
+// The name a plate takes when it moves to `printer`, or null to keep its name
+const _plateNameFor = (p, printer) => (p.printer_name || null) !== (printer || null) && _plateNameIsAuto(p.name) ? _nextPlateName(printer, p.id) : null;
+
 // ── New Plate ──────────────────────────────────────────────────────────────
 async function pipeNewPlate(printer) {
-  const name = `Plate ${_pipePlates.filter(p=>p.stage==='plating').length + 1}`;
+  const name = _nextPlateName(printer);
   const { data, error } = await db.from('print_plates').insert([{ name, stage: 'plating', printer_name: printer || null }]).select().single();
   if (error) { toast('Error: ' + error.message, 'error'); return; }
   _pipePlates.push(data);
@@ -6381,9 +6433,11 @@ async function _setPlatePrinter(plateId, printer) {
   if (!printer && p.stage !== 'plating') return false;
   const warn = _singleColourPlateWarning(plateId, printer);
   if (warn && !(await confirmDialog(warn))) return false;
-  const { error } = await db.from('print_plates').update({ printer_name: printer || null }).eq('id', plateId);
+  const newName = _plateNameFor(p, printer);               // an automatic name follows the printer; a typed one stays
+  const { error } = await db.from('print_plates').update({ printer_name: printer || null, ...(newName ? { name: newName } : {}) }).eq('id', plateId);
   if (error) { toast('Error: ' + error.message, 'error'); return false; }
   p.printer_name = printer || null;
+  if (newName) p.name = newName;
   await _plateAutoFilament(plateId);
   renderPipeline();
   toast(printer ? `${p.name || 'Plate'} → ${printer}` : `${p.name || 'Plate'}: printer not chosen yet`, 'success');
@@ -6722,7 +6776,7 @@ function ideaPlateFromFilter(btn) {
   _openPrinterMenu(btn, { title: `New plate with ${ids.length} idea${ids.length === 1 ? '' : 's'} for…`, allowNone: true, onPick: pr => _plateFromIdeas(pr, ids) });
 }
 async function _plateFromIdeas(printer, ids) {
-  const name = `Plate ${_pipePlates.filter(p => p.stage === 'plating').length + 1}`;
+  const name = _nextPlateName(printer);
   const { data: plate, error } = await db.from('print_plates').insert([{ name, stage: 'plating', printer_name: printer || null }]).select().single();
   if (error) { toast('Error: ' + error.message, 'error'); return; }
   _pipePlates.push(plate);
@@ -6772,6 +6826,8 @@ const _plateEdOpen = () => !!_plateEdId && document.getElementById('modal-plate'
 function _plateEdRender() {
   const p = _pipePlates.find(x => x.id === _plateEdId);
   if (!p) { closePlateEditor(); return; }
+  const nameBox = document.getElementById('pe-name');
+  if (nameBox && document.activeElement !== nameBox) nameBox.value = p.name || '';   // follows the printer when the name is automatic
   const models = _pipeModels.filter(m => m.plate_id === p.id);
   const editable = p.stage === 'plating';
   const single = _plateSingle(p);
@@ -7111,7 +7167,7 @@ async function copyPlate(id) {
   if (!src) return false;
   const models = _pipeModels.filter(m => m.plate_id === id);
   const plan = _planOf(src);
-  const row = { name: `${src.name || 'Plate'} copy`, stage: 'plating', printer_name: src.printer_name || null };
+  const row = { name: _plateNameIsAuto(src.name) ? _nextPlateName(src.printer_name) : `${src.name} copy`, stage: 'plating', printer_name: src.printer_name || null };
   if (Array.isArray(src.filament_plan)) row.filament_plan = src.filament_plan;
   else if (src.filament_plan) row.filament_plan = { v: 2, cols: [...plan.cols], grams: {}, minutes: plan.minutes ?? null };
   if (src.slice_file) row.slice_file = src.slice_file;
@@ -7582,7 +7638,11 @@ async function submitAdvancePlate() {
   const plate   = _pipePlates.find(p => p.id === plateId);
   const updates = { stage };
   const printer = document.getElementById('ap-printer')?.value;
-  if (printer) updates.printer_name = printer;
+  if (printer) {
+    updates.printer_name = printer;
+    const newName = plate ? _plateNameFor(plate, printer) : null;
+    if (newName) updates.name = newName;
+  }
   if (stage === 'sliced') {
     const f = document.getElementById('ap-slice-file')?.value?.trim();
     if (f) updates.slice_file = f;
@@ -7625,7 +7685,19 @@ function _plateUsageCardHtml(p) {
       : ed.cols.map((c, ci) => { const f = filById(c.fil); return `<span class="plate-use-item" title="${_ovEsc(filTitle(f))}">${filSpool(f, 11, '')}${fmtGrams(tot[ci])}</span>`; }).join('');
     return `<div class="plate-use" title="Filament usage — click the plate to change it">${bits}<span class="plate-use-item">⏱ ${fmtDuration(ed.minutes)}</span></div>`;
   }
-  return `<span class="pipe-roll-badge static" title="Needed before printing — click the plate to add it (or drop the sliced file)">⚠ Needs filament usage</span>`;
+  const need = _usageMissingText(ed);
+  return `<span class="pipe-roll-badge static" title="Needed before printing — click the plate to add it (or drop the sliced file)">⚠ ${need ? `Needs ${_ovEsc(need)}` : 'Needs filament usage'}</span>`;
+}
+// What exactly is still missing from a plate's usage, in words ("grams per colour · print time")
+function _usageMissingText(ed) {
+  const probs = _gridProblems(ed, true);
+  const bits = [];
+  const rolls = [...new Set(probs.filter(p => p.what === 'roll').map(p => { const f = filById(ed.cols[p.col]?.fil); return f ? filLabel(f) : null; }).filter(Boolean))];
+  if (rolls.length) bits.push(`the roll for ${rolls.join(' + ')}`);
+  if (probs.some(p => ['cell', 'coltotal', 'rowtotal'].includes(p.what))) bits.push('grams per colour');
+  if (probs.some(p => p.what === 'minutes')) bits.push('print time');
+  if (probs.some(p => p.what === 'nocols')) bits.push('colours');
+  return bits.join(' · ');
 }
 
 // ── Finish modal: per-roll rows (prefilled from the grid totals, editable) ──
@@ -7723,7 +7795,7 @@ function setCpOutcome(o) {
   document.getElementById('cp-fail').classList.toggle('active', o === 'fail');
   document.getElementById('cp-summary').style.display = o === 'ok' ? '' : 'none';
   document.getElementById('cp-outcome-hint').textContent = o === 'ok'
-    ? 'Filament comes off these rolls and the finished items go into stock.'
+    ? 'Confirming takes the filament off these rolls, adds the finished items to stock and moves the plate to Done and History.'
     : 'Enter what was actually used — it comes off these rolls. No items go into stock and the plate goes back to Sliced so you can reprint it.';
   document.getElementById('cp-submit').textContent = o === 'ok' ? '✓ Mark Done & update stock' : '⚠ Log failed print';
   document.getElementById('cp-submit').classList.toggle('fail', o === 'fail');
