@@ -80,7 +80,7 @@
     .nav-item {
       display: flex; align-items: center; gap: .6rem; padding: .6rem 1.25rem;
       color: var(--muted); cursor: pointer; font-size: .9rem; border-left: 3px solid transparent;
-      transition: all .15s;
+      transition: all .15s; text-decoration: none;
     }
     .nav-item:hover { color: var(--text); background: rgba(255,255,255,.04); }
     .nav-item.active { color: var(--text); background: rgba(99,102,241,.12); border-left-color: var(--accent); font-weight: 600; }
@@ -223,7 +223,7 @@
     .tbl-bar { position:sticky; top:-1.5rem; z-index:30; display:flex; align-items:center; gap:.6rem; flex-wrap:wrap;
       margin:0 -1.5rem .75rem; padding:.7rem 1.5rem; background:var(--bg); border-bottom:1px solid transparent; transition:border-color .15s, box-shadow .15s; }
     .tbl-bar.stuck { border-bottom-color:var(--border); box-shadow:0 8px 14px -10px rgba(0,0,0,.7); }
-    .tbl-bar-search { position:relative; flex:1; min-width:180px; max-width:320px; }
+    .tbl-bar-search { position:relative; flex:1; min-width:220px; max-width:680px; }
     .tbl-bar-search .ico { position:absolute; left:.55rem; top:50%; transform:translateY(-50%); color:var(--muted); pointer-events:none; font-size:.8rem; }
     .tbl-bar-search input { width:100%; padding:.4rem .6rem .4rem 1.85rem; border-radius:7px; border:1px solid var(--border); background:var(--card); color:var(--text); font-size:.83rem; outline:none; font-family:inherit; }
     .tbl-bar-search input:focus { border-color:var(--accent); }
@@ -297,6 +297,24 @@
     .pipe-col { flex:0 0 320px;min-width:0;background:rgba(255,255,255,.04);border-radius:12px;display:flex;flex-direction:column }
     .pipe-col-header { position:sticky;top:0;z-index:4;background:#1b2234;border-radius:12px 12px 0 0;padding:.75rem 1rem;border-bottom:1px solid rgba(255,255,255,.08);font-weight:600;font-size:.85rem;display:flex;align-items:center;justify-content:space-between;flex-shrink:0 }
     .pipe-col-body { flex:1;padding:.6rem;display:flex;flex-direction:column;gap:.5rem }
+    .pipe-col-header { cursor:pointer; user-select:none; }
+    .pipe-col-toggle { background:none; border:none; color:var(--muted); cursor:pointer; font-size:.78rem; padding:0 .4rem 0 0; font-family:inherit; line-height:1; transition:transform .15s; }
+    .pipe-col-toggle:hover { color:var(--text); }
+    /* collapsed: a thin strip with the title running down it */
+    .pipe-col.collapsed { flex:0 0 46px !important; }
+    .pipe-col.collapsed .pipe-col-body, .pipe-col.collapsed .idea-filter { display:none !important; }
+    .pipe-col.collapsed .pipe-col-header { writing-mode:vertical-rl; border-radius:12px; border-bottom:none; padding:.9rem .5rem; justify-content:flex-start; gap:.6rem; min-height:150px; }
+    .pipe-col.collapsed .pipe-col-header .pipe-stage-btn, .pipe-col.collapsed .idea-hdr-btns, .pipe-col.collapsed .pipe-hdr-note { display:none; }
+    .pipe-col.collapsed .pipe-col-toggle { transform:rotate(-90deg); padding:.4rem 0 0; }
+    .hist-item { cursor:pointer; }
+    .hist-item:hover { border-color:rgba(255,255,255,.2); background:rgba(255,255,255,.05); }
+    .hd-row { display:flex; gap:.75rem; padding:.5rem 0; border-bottom:1px solid rgba(255,255,255,.07); font-size:.86rem; }
+    .hd-row .k { flex:0 0 6.5rem; color:var(--muted); font-size:.68rem; font-weight:700; text-transform:uppercase; letter-spacing:.05em; padding-top:.2rem; }
+    .hd-row .v { flex:1; min-width:0; }
+    .hd-row .m { color:var(--muted); }
+    .hd-fil { display:flex; align-items:center; gap:.4rem; padding:.1rem 0; }
+    .hd-fil b { margin-left:auto; }
+    .hd-fil.tot { border-top:1px dashed rgba(255,255,255,.12); margin-top:.2rem; padding-top:.3rem; color:var(--muted); }
     .pipe-col-body.drag-over { background:rgba(99,102,241,.1);border-radius:8px }
     /* Model card */
     .pipe-model-card { background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:.6rem .75rem;cursor:grab;user-select:none;transition:transform .1s,box-shadow .1s }
@@ -665,6 +683,39 @@
     .plate-progress-tag { display:inline-flex; align-items:center; gap:.4rem; font-size:.72rem; font-weight:600; color:#fdba74; background:rgba(249,115,22,.12); border:1px solid rgba(249,115,22,.4); border-radius:999px; padding:.2rem .65rem; }
     .plate-progress-tag::before { content:''; width:7px; height:7px; border-radius:50%; background:#f97316; animation:pp-pulse 1.4s ease-in-out infinite; }
     @keyframes pp-pulse { 0%, 100% { opacity:1 } 50% { opacity:.25 } }
+    /* print calculator */
+    .calc-wrap { display:grid; grid-template-columns:minmax(0,1.3fr) minmax(300px,.8fr); gap:1rem; align-items:start; }
+    .calc-right { position:sticky; top:1rem; }
+    @media (max-width:1000px) { .calc-wrap { grid-template-columns:1fr; } .calc-right { position:static; } }
+    .calc-card { margin-bottom:1rem; }
+    .calc-hint { font-size:.7rem; font-weight:400; color:var(--muted); text-transform:none; letter-spacing:0; margin-left:.35rem; }
+    .calc-card h3 .calc-hint { font-size:.72rem; }
+    .calc-grid2 { display:grid; grid-template-columns:1fr 1fr; gap:.75rem; }
+    .calc-grid2 .form-group { margin-bottom:.5rem; }
+    .calc-in { width:100%; padding:.5rem .65rem; background:var(--input-bg); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:.9rem; outline:none; font-family:inherit; }
+    .calc-in:focus { border-color:var(--accent); }
+    select.calc-in { appearance:auto; cursor:pointer; }
+    .calc-fil-row { display:grid; grid-template-columns:minmax(0,1fr) 84px 104px 84px 26px; gap:.5rem; align-items:center; padding:.5rem 0; border-bottom:1px solid rgba(255,255,255,.07); }
+    .calc-fil-head { display:grid; grid-template-columns:minmax(0,1fr) 84px 104px 84px 26px; gap:.5rem; font-size:.62rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); padding-bottom:.2rem; }
+    .calc-fil-cur { display:flex; align-items:center; gap:.5rem; min-width:0; }
+    .calc-fil-cur .t { min-width:0; display:flex; flex-direction:column; }
+    .calc-fil-cur strong { font-size:.85rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .calc-fil-cur em { font-style:normal; font-size:.68rem; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .calc-line { text-align:right; font-size:.84rem; font-weight:600; }
+    .calc-fil-row .calc-in { padding:.4rem .5rem; font-size:.82rem; }
+    .calc-tier { display:flex; align-items:center; gap:.45rem; flex-wrap:wrap; padding:.35rem 0; font-size:.84rem; color:var(--muted); }
+    .calc-tier .calc-in { width:84px; padding:.35rem .5rem; font-size:.82rem; }
+    .calc-tier .open { color:var(--text); }
+    .calc-result { padding:1.1rem 1.2rem; }
+    .cr-big { font-size:2rem; font-weight:800; line-height:1.1; }
+    .cr-bigsub { font-size:.74rem; color:var(--muted); margin:.15rem 0 .8rem; }
+    .cr-row { display:flex; justify-content:space-between; gap:.8rem; padding:.45rem 0; border-top:1px solid rgba(255,255,255,.07); font-size:.88rem; }
+    .cr-row .k em { display:block; font-style:normal; font-size:.7rem; color:var(--muted); margin-top:.1rem; }
+    .cr-row .v { font-weight:600; white-space:nowrap; }
+    .cr-sub { display:flex; justify-content:space-between; gap:.8rem; padding:.1rem 0 .1rem .8rem; font-size:.74rem; color:var(--muted); }
+    .cr-total { background:rgba(99,102,241,.1); border:1px solid rgba(99,102,241,.35); border-radius:10px; padding:.6rem .8rem; margin-top:.7rem; }
+    .cr-total .cr-row { border:none; padding:.15rem 0; }
+    .cr-warn { font-size:.76rem; color:#fde68a; background:rgba(251,191,36,.08); border:1px solid rgba(251,191,36,.35); border-radius:8px; padding:.45rem .6rem; margin-top:.7rem; }
     .pipe-plate-card.drop-before, .pipe-plate-card.drop-after { position:relative; }
     .pipe-plate-card.drop-before::before, .pipe-plate-card.drop-after::after { content:''; position:absolute; left:6px; right:6px; height:3px; border-radius:3px; background:var(--accent); box-shadow:0 0 0 3px rgba(99,102,241,.25); pointer-events:none; }
     .pipe-plate-card.drop-before::before { top:-6px; }
@@ -827,6 +878,27 @@
     }
     .inv-search:focus { outline:none; border-color:var(--accent); }
     .inv-cat-pills { display:flex; gap:.4rem; flex-wrap:wrap; }
+    .inv-cat-btn { display:inline-flex; align-items:center; gap:.4rem; background:var(--card); border:1px solid var(--border); color:var(--text); border-radius:8px; padding:.35rem .7rem; font-size:.8rem; font-weight:600; cursor:pointer; font-family:inherit; }
+    .inv-cat-btn:hover, .inv-cat-btn.on { border-color:var(--accent); }
+    .inv-cat-btn .n { font-size:.66rem; color:var(--muted); background:rgba(255,255,255,.07); border-radius:999px; padding:0 .4rem; font-weight:500; }
+    .inv-cat-btn .chev { color:#a5b4fc; font-size:.7rem; }
+    .inv-cat-chip { display:inline-flex; align-items:center; gap:.25rem; background:rgba(99,102,241,.16); border:1px solid rgba(99,102,241,.4); color:#c7d2fe; border-radius:999px; padding:.15rem .3rem .15rem .65rem; font-size:.76rem; font-weight:600; }
+    .inv-cat-chip button { background:none; border:none; color:#a5b4fc; cursor:pointer; font-size:.65rem; padding:0 .2rem; line-height:1; opacity:.7; }
+    .inv-cat-chip button:hover { opacity:1; }
+    #inv-cat-panel { position:fixed; z-index:400; width:290px; background:#1a2233; border:1px solid rgba(255,255,255,.14); border-radius:12px; box-shadow:0 14px 40px rgba(0,0,0,.55); padding:.45rem; }
+    .icp-search { display:flex; align-items:center; gap:.45rem; padding:0 .6rem; background:var(--input-bg); border:1px solid var(--border); border-radius:8px; }
+    .icp-search:focus-within { border-color:var(--accent); }
+    .icp-search span { font-size:.78rem; opacity:.7; }
+    .icp-search input { flex:1; min-width:0; background:none; border:none; outline:none; color:var(--text); padding:.45rem 0; font-size:.84rem; font-family:inherit; }
+    .icp-list { max-height:300px; overflow-y:auto; margin-top:.35rem; }
+    .icp-row { display:flex; align-items:center; gap:.55rem; padding:.38rem .5rem; border-radius:7px; cursor:pointer; font-size:.84rem; }
+    .icp-row:hover, .icp-row.hl { background:rgba(255,255,255,.06); }
+    .icp-row .box { width:1rem; height:1rem; flex-shrink:0; border:1px solid var(--border); border-radius:4px; display:inline-flex; align-items:center; justify-content:center; font-size:.7rem; color:#fff; }
+    .icp-row.on .box { background:var(--accent); border-color:var(--accent); }
+    .icp-row .nm { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .icp-row .n { font-size:.68rem; color:var(--muted); }
+    .icp-empty { font-size:.78rem; color:var(--muted); padding:.6rem .5rem; }
+    .icp-foot { display:flex; align-items:center; justify-content:space-between; margin-top:.4rem; padding:.35rem .25rem 0; border-top:1px solid rgba(255,255,255,.08); }
     .inv-cat-pill {
       padding:.3rem .8rem; border-radius:999px; font-size:.78rem; font-weight:600;
       border:1px solid var(--border); color:var(--muted); cursor:pointer; background:transparent;
@@ -1045,6 +1117,10 @@
     .hist-day { font-size:.65rem; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--muted); margin:.35rem 0 -.1rem; }
     .hist-item { border:1px solid rgba(255,255,255,.08); border-left:3px solid #10b981; border-radius:8px; padding:.45rem .55rem; background:rgba(255,255,255,.03); font-size:.75rem; }
     .hist-item.failed { border-left-color:var(--yellow); }
+    .hist-item { position:relative; }
+    .hist-del { position:absolute; right:.35rem; bottom:.3rem; background:none; border:none; color:var(--muted); cursor:pointer; font-size:.72rem; padding:.1rem .25rem; border-radius:5px; opacity:0; transition:opacity .15s; font-family:inherit; }
+    .hist-item:hover .hist-del, .hist-del:focus-visible { opacity:.8; }
+    .hist-del:hover { opacity:1 !important; color:var(--red); background:rgba(239,68,68,.12); }
     .hist-top { display:flex; justify-content:space-between; gap:.4rem; align-items:baseline; }
     .hist-top strong { font-size:.8rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
     .hist-top span { font-size:.66rem; color:var(--muted); white-space:nowrap; }
@@ -1054,6 +1130,17 @@
     .hist-note { margin-top:.25rem; font-size:.7rem; color:#fde68a; }
     /* Filament usage rows (slice → print → done) */
     .use-label-note { text-transform:none; letter-spacing:0; color:var(--muted); font-weight:400; }
+    .rp { position:relative; flex:1; min-width:0; width:100%; }
+    .rp-in { width:100%; padding:.4rem .6rem; font-size:.8rem; background:var(--input-bg); border:1px solid var(--border); border-radius:8px; color:var(--text); outline:none; font-family:inherit; }
+    .rp-in:focus { border-color:var(--accent); }
+    .rp-need .rp-in { border-color:var(--accent); box-shadow:0 0 0 3px rgba(99,102,241,.25); }
+    .rp-list { position:fixed; z-index:500; max-height:250px; overflow-y:auto; background:#1a2233; border:1px solid rgba(255,255,255,.14); border-radius:10px; box-shadow:0 12px 32px rgba(0,0,0,.55); padding:.25rem; }
+    .rp-opt { display:flex; align-items:center; gap:.5rem; padding:.35rem .5rem; border-radius:7px; cursor:pointer; }
+    .rp-opt.hl, .rp-opt:hover { background:rgba(99,102,241,.18); }
+    .rp-opt .t { flex:1; min-width:0; display:flex; flex-direction:column; }
+    .rp-opt .t strong { font-size:.8rem; font-weight:600; }
+    .rp-opt .t span { font-size:.68rem; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .rp-empty { font-size:.74rem; color:var(--muted); padding:.45rem .5rem; }
     .use-row { padding:.5rem .6rem; border:1px solid var(--border); border-radius:8px; background:rgba(255,255,255,.03); margin-top:.4rem; }
     .use-main { display:flex; align-items:center; gap:.5rem; }
     .use-roll-wrap { flex:1; min-width:0; display:flex; align-items:center; gap:.25rem; }
@@ -1209,37 +1296,41 @@
     </div>
     <div class="nav-section">
       <div class="nav-label">Main</div>
-      <div class="nav-item active" onclick="navigate('overview')">
+      <!-- Real links (#page): right-click → Open in new tab, Ctrl/middle-click, Copy link all work -->
+      <a class="nav-item active" href="#overview" data-page="overview" onclick="return _navClick(event,'overview')">
         <span class="nav-icon">📊</span> Overview
-      </div>
-      <div class="nav-item" onclick="navigate('sales')">
+      </a>
+      <a class="nav-item" href="#sales" data-page="sales" onclick="return _navClick(event,'sales')">
         <span class="nav-icon">💰</span> Sales
-      </div>
-      <div class="nav-item" onclick="navigate('expenses')">
+      </a>
+      <a class="nav-item" href="#expenses" data-page="expenses" onclick="return _navClick(event,'expenses')">
         <span class="nav-icon">📋</span> Expenses
-      </div>
+      </a>
       <div class="nav-label">Store</div>
-      <div class="nav-item" onclick="navigate('inventory')">
+      <a class="nav-item" href="#inventory" data-page="inventory" onclick="return _navClick(event,'inventory')">
         <span class="nav-icon">📦</span> Inventory
-      </div>
-      <div class="nav-item" onclick="navigate('pipeline')">
+      </a>
+      <a class="nav-item" href="#pipeline" data-page="pipeline" onclick="return _navClick(event,'pipeline')">
         <span class="nav-icon">🖨</span> Print Board
-      </div>
-      <div class="nav-item" onclick="navigate('filaments')">
+      </a>
+      <a class="nav-item" href="#filaments" data-page="filaments" onclick="return _navClick(event,'filaments')">
         <span class="nav-icon">🧵</span> Filaments
-      </div>
+      </a>
+      <a class="nav-item" href="#calculator" data-page="calculator" onclick="return _navClick(event,'calculator')">
+        <span class="nav-icon">🧮</span> Print Calculator
+      </a>
       <div class="nav-label">Events</div>
-      <div class="nav-item" onclick="navigate('expos')">
+      <a class="nav-item" href="#expos" data-page="expos" onclick="return _navClick(event,'expos')">
         <span class="nav-icon">🎪</span> Expos
-      </div>
+      </a>
       <div class="nav-label">Automation</div>
-      <div class="nav-item" onclick="navigate('invoices')">
+      <a class="nav-item" href="#invoices" data-page="invoices" onclick="return _navClick(event,'invoices')">
         <span class="nav-icon">📧</span> Invoice Inbox
-      </div>
+      </a>
       <div class="nav-label">Settings</div>
-      <div class="nav-item" onclick="navigate('backup')">
+      <a class="nav-item" href="#backup" data-page="backup" onclick="return _navClick(event,'backup')">
         <span class="nav-icon">💾</span> Backup & Restore
-      </div>
+      </a>
     </div>
     <div class="sidebar-footer">
       <div class="user-row">
@@ -1691,6 +1782,85 @@
       </div>
     </div>
 
+    <!-- ── PRINT CALCULATOR PAGE ── -->
+    <div id="page-calculator" class="page">
+      <div class="calc-wrap">
+        <div class="calc-left">
+          <div class="chart-card calc-card">
+            <h3>🧵 Filament <span class="calc-hint">pick the actual filament — each one has its own price</span></h3>
+            <div id="calc-fils"></div>
+            <button type="button" class="btn btn-sm btn-outline" onclick="_calcAddRow()">＋ Add another filament <span class="calc-hint" style="margin-left:.3rem">(dual / multi-colour)</span></button>
+          </div>
+
+          <div class="chart-card calc-card">
+            <h3>⏱ Time &amp; quantity</h3>
+            <div class="calc-grid2">
+              <div class="form-group"><label>Print time <span class="calc-hint">e.g. 6h 38m or 6:38</span></label>
+                <input id="calc-time" type="text" class="calc-in" placeholder="6h 38m" autocomplete="off" oninput="calcRecalc()"></div>
+              <div class="form-group"><label>Quantity <span class="calc-hint">identical items</span></label>
+                <input id="calc-qty" type="number" min="1" step="1" value="1" class="calc-in" oninput="calcRecalc()"></div>
+            </div>
+            <div class="calc-hint">Grams and time are for <b>one</b> item; the total multiplies by the quantity.</div>
+          </div>
+
+          <div class="chart-card calc-card">
+            <h3>⚡ Electricity</h3>
+            <div class="calc-grid2">
+              <div class="form-group"><label>How do you want to enter it?</label>
+                <select id="calc-elec-mode" class="calc-in" onchange="_calcSetting('elecMode',this.value,false)">
+                  <option value="hour">Cost per hour of printing</option>
+                  <option value="watts">From printer watts × tariff</option>
+                </select></div>
+              <div class="form-group" id="calc-elec-hour-wrap"><label>Electricity <span class="calc-hint">R per hour</span></label>
+                <input id="calc-elec-hour" type="number" min="0" step="0.01" class="calc-in" placeholder="0.00" oninput="_calcSetting('elecHour',this.value)"></div>
+              <div class="form-group" id="calc-watts-wrap" style="display:none"><label>Printer power <span class="calc-hint">average watts</span></label>
+                <input id="calc-watts" type="number" min="0" step="1" class="calc-in" placeholder="250" oninput="_calcSetting('watts',this.value)"></div>
+              <div class="form-group" id="calc-tariff-wrap" style="display:none"><label>Tariff <span class="calc-hint">R per kWh</span></label>
+                <input id="calc-tariff" type="number" min="0" step="0.01" class="calc-in" placeholder="0.00" oninput="_calcSetting('tariff',this.value)"></div>
+            </div>
+            <div class="calc-hint" id="calc-elec-readout"></div>
+          </div>
+
+          <div class="chart-card calc-card">
+            <h3>🔧 Wear &amp; tear <span class="calc-hint">per hour, per item</span></h3>
+            <div class="calc-grid2">
+              <div class="form-group"><label>Rate type</label>
+                <select id="calc-wear-mode" class="calc-in" onchange="_calcSetting('wearMode',this.value,false)">
+                  <option value="tiered">Changes with print length (bands)</option>
+                  <option value="flat">One rate for every print</option>
+                </select></div>
+              <div class="form-group" id="calc-wear-flat-wrap" style="display:none"><label>Rate <span class="calc-hint">R per hour</span></label>
+                <input id="calc-wear-flat" type="number" min="0" step="0.01" class="calc-in" placeholder="0.00" oninput="_calcSetting('wearFlat',this.value)"></div>
+              <div class="form-group" id="calc-wear-apply-wrap"><label>How a band is applied</label>
+                <select id="calc-wear-apply" class="calc-in" onchange="_calcSetting('wearApply',this.value,false)">
+                  <option value="whole">The whole print at its band's rate</option>
+                  <option value="progressive">Each hour at its own band's rate</option>
+                </select></div>
+            </div>
+            <div id="calc-tiers"></div>
+          </div>
+
+          <div class="chart-card calc-card">
+            <h3>💰 Price <span class="calc-hint">optional</span></h3>
+            <div class="calc-grid2">
+              <div class="form-group"><label>Markup on cost <span class="calc-hint">%</span></label>
+                <input id="calc-markup" type="number" min="0" step="1" class="calc-in" placeholder="0" oninput="_calcSetting('markup',this.value)"></div>
+              <div class="form-group"><label>Round the price up to</label>
+                <select id="calc-round" class="calc-in" onchange="_calcSetting('roundTo',this.value)">
+                  <option value="0">No rounding</option><option value="1">Next R 1</option><option value="5">Next R 5</option><option value="10">Next R 10</option>
+                </select></div>
+            </div>
+          </div>
+          <div class="calc-hint" style="margin:.2rem 0 1rem">Your rates are saved in this browser, so they're there next time. The job above (filament, time, quantity) isn't saved.</div>
+        </div>
+
+        <div class="calc-right">
+          <div class="chart-card calc-result" id="calc-result"></div>
+          <button type="button" class="btn btn-sm btn-outline" style="margin-top:.6rem" onclick="calcClear()">↺ Clear this job</button>
+        </div>
+      </div>
+    </div>
+
     <!-- ── PRINT PIPELINE PAGE ── -->
     <div id="page-pipeline" class="page">
       <div id="pipe-board" class="pipe-board" ondragover="_pipeBoardDragOver(event)" ondrop="_pipeBoardDrop(event)">
@@ -1723,11 +1893,17 @@
         </div>
         <div class="pipe-col pipe-col-sliced">
           <div class="pipe-col-header"><span>✂️ Sliced</span><span id="pipe-sliced-count" style="font-size:.72rem;color:var(--muted)"></span></div>
-          <div class="pipe-col-body" id="pipe-col-sliced"></div>
+          <div class="pipe-col-body" id="pipe-col-sliced"
+            ondragover="if(_pipeDragType==='plate'){event.preventDefault();this.classList.add('drag-over')}"
+            ondragleave="if(!this.contains(event.relatedTarget))this.classList.remove('drag-over')"
+            ondrop="onDropToStageColumn(event,'sliced')"></div>
         </div>
         <div class="pipe-col pipe-col-printing">
           <div class="pipe-col-header"><span>🖨 Printing</span><span id="pipe-printing-count" style="font-size:.72rem;color:var(--muted)"></span></div>
-          <div class="pipe-col-body" id="pipe-col-printing"></div>
+          <div class="pipe-col-body" id="pipe-col-printing"
+            ondragover="if(_pipeDragType==='plate'){event.preventDefault();this.classList.add('drag-over')}"
+            ondragleave="if(!this.contains(event.relatedTarget))this.classList.remove('drag-over')"
+            ondrop="onDropToStageColumn(event,'printing')"></div>
         </div>
         <div class="pipe-col pipe-col-done">
           <div class="pipe-col-header"><span>✅ Done <span class="pipe-hdr-note">last 7 days</span></span><span id="pipe-done-count" style="font-size:.72rem;color:var(--muted)"></span></div>
@@ -1761,14 +1937,13 @@
         <span id="inv-dirty-badge" class="inv-dirty-badge" style="display:none">● Unsaved changes</span>
         <span id="inv-save-status" class="tbl-bar-status"></span>
         <div class="tbl-bar-right">
-          <button class="btn btn-sm btn-outline" onclick="openLogSaleModal()" title="Log a sale and deduct stock">🛒 Log Sale</button>
-          <button id="stk-take-btn" class="btn btn-sm btn-outline" onclick="toggleStocktakeMode()" title="Count physical stock">📋 Stocktake</button>
-          <button id="stk-apply-btn" class="btn btn-sm btn-green" onclick="applyStocktake()" style="display:none">✓ Apply Counts</button>
+          <!-- Everything about stock lives under one menu; while counting, it's replaced by the note / Apply / Cancel count controls -->
+          <button id="stk-take-btn" class="btn btn-sm btn-outline" onclick="_stockMenuToggle(this)" title="Log a sale, count stock, or see past stocktakes">📦 Stock ▾</button>
           <input id="stk-note" class="stk-note" type="text" placeholder="Stocktake note (optional)" style="display:none">
-          <button id="stk-cancel-btn" class="btn btn-sm btn-outline" onclick="toggleStocktakeMode(false)" style="display:none">Cancel</button>
-          <button class="btn btn-sm btn-outline" onclick="openStocktakeHistory()" title="Past stocktakes: date, what was counted and what changed">🕘 Stocktakes</button>
+          <button id="stk-apply-btn" class="btn btn-sm btn-green" onclick="applyStocktake()" style="display:none">✓ Apply counts</button>
+          <button id="stk-cancel-btn" class="btn btn-sm btn-outline" onclick="toggleStocktakeMode(false)" style="display:none">Cancel count</button>
           <span class="tbl-bar-sep"></span>
-          <button class="btn btn-sm btn-outline" onclick="invAddItemRow()" title="Add a new item row">＋ Add Row</button>
+          <button class="btn btn-sm btn-outline" onclick="invAddItemRow()" title="Add a new item">＋ Add Item</button>
           <button id="inv-save-btn" class="btn btn-sm btn-save" onclick="saveInventoryEdits()" disabled title="Save changes (Ctrl+S)">💾 Save</button>
           <button id="inv-cancel-btn" class="btn btn-sm btn-outline" onclick="cancelInventoryEdits()" disabled title="Discard unsaved changes">✕ Cancel</button>
         </div>
@@ -2124,6 +2299,24 @@
   </div>
 </div>
 
+<!-- History entry details -->
+<div class="modal-overlay" id="modal-hist" onmousedown="if(event.target===this)closeHistoryEntry()">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-header">
+      <h2 id="hd-title">Print details</h2>
+      <button class="modal-close" onclick="closeHistoryEntry()">✕</button>
+    </div>
+    <div id="hd-body"></div>
+    <div class="form-actions" style="justify-content:space-between">
+      <button type="button" class="btn btn-sm btn-outline pe-del" id="hd-del">🗑 Delete entry</button>
+      <span style="display:flex;gap:.5rem">
+        <button type="button" class="btn btn-sm btn-outline" id="hd-open">Open plate</button>
+        <button type="button" class="btn btn-green" onclick="closeHistoryEntry()">Close</button>
+      </span>
+    </div>
+  </div>
+</div>
+
 <!-- Complete Plate Modal (Pipeline) -->
 <div class="modal-overlay" id="modal-complete-plate">
   <div class="modal" style="max-width:520px">
@@ -2441,18 +2634,29 @@ function bootApp() {
     document.getElementById('user-avatar').textContent        = initials;
     document.getElementById('user-email-display').textContent = user.email;
     loadLoyverseItems(); // pre-load item list for bulk import
-    navigate('overview');
+    navigate(_pageFromHash() || 'overview');   // a link opened in a new tab (#pipeline…) lands on that page
   });
 }
 
 // ─────────────────── NAVIGATION ───────────────────
+// Each page has its own address (#sales, #pipeline…) so it can be opened in a new tab, bookmarked, and Back works.
+const _pageFromHash = () => { const h = decodeURIComponent((location.hash || '').slice(1)); return h && document.getElementById('page-' + h) ? h : null; };
+const _pageUrl = page => location.href.split('#')[0] + '#' + page;
+// Plain click navigates in place; Ctrl / Shift / middle-click are left to the browser (opens the link in a new tab / window)
+function _navClick(e, page) {
+  if (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey || e.button === 1) return true;
+  navigate(page);
+  return false;
+}
 function navigate(page) {
+  if (!document.getElementById('page-' + page)) return;
+  if (_pageFromHash() !== page) { try { history.pushState(null, '', '#' + page); } catch (_) { location.hash = page; } }
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById('page-' + page).classList.add('active');
-  document.querySelector(`.nav-item[onclick="navigate('${page}')"]`).classList.add('active');
+  document.querySelector(`.nav-item[data-page="${page}"]`)?.classList.add('active');
 
-  const titles = { overview: 'Overview', sales: 'Sales', expenses: 'Expenses', invoices: 'Invoice Inbox', inventory: 'Inventory', expos: 'Expos', backup: 'Backup & Restore', filaments: 'Filaments', pipeline: 'Print Board' };
+  const titles = { overview: 'Overview', sales: 'Sales', expenses: 'Expenses', invoices: 'Invoice Inbox', inventory: 'Inventory', expos: 'Expos', backup: 'Backup & Restore', filaments: 'Filaments', pipeline: 'Print Board', calculator: 'Print Calculator' };
   document.getElementById('page-title').textContent = titles[page] || page;
 
   const actions = document.getElementById('topbar-actions');
@@ -2479,7 +2683,223 @@ function navigate(page) {
   if (page === 'expos')      loadExpos();
   if (page === 'filaments')  loadFilaments();
   if (page === 'pipeline')   loadPipeline();
+  if (page === 'calculator') loadCalculator();
 }
+
+// Back / Forward (and typing a #page address) switch pages
+window.addEventListener('popstate', () => { const p = _pageFromHash(); if (p && document.getElementById('app').style.display !== 'none' && !document.getElementById('page-' + p).classList.contains('active')) navigate(p); });
+window.addEventListener('hashchange', () => { const p = _pageFromHash(); if (p && document.getElementById('app').style.display !== 'none' && !document.getElementById('page-' + p).classList.contains('active')) navigate(p); });
+
+// Right-click anything that jumps to a page (cards, "Open Print Board →", printer tiles): Open in new tab / Copy link.
+// Real links (the sidebar) keep the browser's own menu, which already has these.
+function _closeNavMenu() { document.getElementById('nav-ctx')?.remove(); }
+document.addEventListener('contextmenu', e => {
+  if (e.target.closest('a[href], input, textarea, select')) return;
+  const el = e.target.closest('[onclick*="navigate("]');
+  const m = el && /navigate\('([a-z]+)'\)/.exec(el.getAttribute('onclick') || '');
+  if (!m || !document.getElementById('page-' + m[1])) return;
+  e.preventDefault();
+  _closeNavMenu();
+  const page = m[1], menu = document.createElement('div');
+  menu.id = 'nav-ctx'; menu.className = 'pr-menu';
+  menu.innerHTML = `<button type="button" class="pr-item" data-a="tab"><span class="pr-ic">↗</span><span class="pr-n">Open in new tab</span></button>
+    <button type="button" class="pr-item" data-a="copy"><span class="pr-ic">🔗</span><span class="pr-n">Copy link</span></button>`;
+  menu.style.visibility = 'hidden';
+  document.body.appendChild(menu);
+  menu.style.left = Math.max(8, Math.min(e.clientX, window.innerWidth - menu.offsetWidth - 8)) + 'px';
+  menu.style.top  = Math.max(8, Math.min(e.clientY, window.innerHeight - menu.offsetHeight - 8)) + 'px';
+  menu.style.visibility = '';
+  menu.addEventListener('click', ev => {
+    const a = ev.target.closest('.pr-item')?.dataset.a;
+    _closeNavMenu();
+    if (a === 'tab') window.open(_pageUrl(page), '_blank');
+    else if (a === 'copy') navigator.clipboard?.writeText(_pageUrl(page)).then(() => toast('Link copied', 'success'), () => toast('Could not copy the link', 'error'));
+  });
+});
+document.addEventListener('mousedown', e => { if (!e.target.closest('#nav-ctx')) _closeNavMenu(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') _closeNavMenu(); });
+window.addEventListener('scroll', _closeNavMenu, true);
+
+// ═══════════════════ PRINT COST CALCULATOR ═══════════════════
+// cost per item = filament (grams × that filament's price per gram, per row) + electricity (hours × R/h) + wear & tear (hours × rate,
+// the rate flat or set by print-length bands). Rates are kept in this browser; the job itself isn't saved.
+const _CALC_KEY = 'rc_calc_settings';
+const _calcDefaults = () => ({ elecMode: 'hour', elecHour: 0, watts: 250, tariff: 0, wearMode: 'tiered', wearFlat: 0, wearApply: 'whole',
+  tiers: [{ upTo: 2, rate: 0 }, { upTo: 6, rate: 0 }, { upTo: null, rate: 0 }], markup: 0, roundTo: 0 });
+let _calcS = (() => {
+  try {
+    const s = { ..._calcDefaults(), ...JSON.parse(localStorage.getItem(_CALC_KEY) || '{}') };
+    if (!Array.isArray(s.tiers) || !s.tiers.length) s.tiers = _calcDefaults().tiers;
+    s.tiers[s.tiers.length - 1].upTo = null;                   // the last band is always "anything longer"
+    return s;
+  } catch (_) { return _calcDefaults(); }
+})();
+let _calcRows = [{ fil: null, grams: '', cpg: '' }];
+const _calcN = v => { const x = parseFloat(v); return isNaN(x) ? 0 : x; };
+const _calcR = v => 'R ' + (Math.round((+v || 0) * 100) / 100).toFixed(2);
+const _calcSave = () => { try { localStorage.setItem(_CALC_KEY, JSON.stringify(_calcS)); } catch (_) {} };
+
+// Price per gram: what's typed on the row, else the filament's roll price ÷ roll weight (null = unknown)
+function _calcCpg(r) {
+  if (String(r.cpg ?? '').trim() !== '' && !isNaN(parseFloat(r.cpg)) && parseFloat(r.cpg) >= 0) return parseFloat(r.cpg);
+  const f = r.fil ? filById(r.fil) : null;
+  const g = f && FIL_ROLL_GRAMS[f.roll_size];
+  return f && +f.cost_price > 0 && g ? +f.cost_price / g : null;
+}
+const _calcTiersSorted = () => [..._calcS.tiers].sort((a, b) => (a.upTo ?? Infinity) - (b.upTo ?? Infinity));
+const _calcBandLabel = (t, prev) => t.upTo == null ? `over ${prev} h` : prev ? `${prev}–${t.upTo} h` : `up to ${t.upTo} h`;
+
+// Wear & tear for a print of `hours`: flat, or by band (whole print at its band's rate / each hour at its own band's rate)
+function _calcWear(hours) {
+  const S = _calcS;
+  if (S.wearMode === 'flat') {
+    const rate = _calcN(S.wearFlat);
+    return { cost: hours * rate, lines: hours ? [{ label: `${(+hours.toFixed(2))} h × ${_calcR(rate)}/h`, cost: hours * rate }] : [] };
+  }
+  const tiers = _calcTiersSorted();
+  let prev = 0;
+  if (S.wearApply === 'whole') {
+    for (const t of tiers) {
+      const top = t.upTo ?? Infinity;
+      if (hours <= top) { const rate = _calcN(t.rate); return { cost: hours * rate, lines: hours ? [{ label: `${(+hours.toFixed(2))} h is in the ${_calcBandLabel(t, prev)} band → ${_calcR(rate)}/h`, cost: hours * rate }] : [] }; }
+      prev = top;
+    }
+    return { cost: 0, lines: [] };
+  }
+  const lines = []; let cost = 0;
+  for (const t of tiers) {
+    const top = t.upTo ?? Infinity, h = Math.max(0, Math.min(hours, top) - prev), rate = _calcN(t.rate);
+    if (h > 0) { lines.push({ label: `${(+h.toFixed(2))} h in ${_calcBandLabel(t, prev)} × ${_calcR(rate)}/h`, cost: h * rate }); cost += h * rate; }
+    if (hours <= top) break;
+    prev = top;
+  }
+  return { cost, lines };
+}
+
+function _calcCompute() {
+  const S = _calcS;
+  const minutes = parseDuration(document.getElementById('calc-time')?.value || '');
+  const timeBad = Number.isNaN(minutes);
+  const hours = minutes > 0 ? minutes / 60 : 0;
+  const qty = Math.max(1, Math.floor(_calcN(document.getElementById('calc-qty')?.value)) || 1);
+  const fils = _calcRows.map(r => { const f = r.fil ? filById(r.fil) : null, grams = _calcN(r.grams), cpg = _calcCpg(r);
+    return { r, f, grams, cpg, cost: grams * (cpg ?? 0) }; });
+  const filCost = fils.reduce((s, x) => s + x.cost, 0);
+  const elecRate = S.elecMode === 'watts' ? _calcN(S.watts) / 1000 * _calcN(S.tariff) : _calcN(S.elecHour);
+  const elec = hours * elecRate;
+  const wear = _calcWear(hours);
+  const perItem = filCost + elec + wear.cost;
+  const total = perItem * qty;
+  const markup = _calcN(S.markup), roundTo = _calcN(S.roundTo);
+  const sellRaw = perItem * (1 + markup / 100);
+  const sellEach = roundTo > 0 ? Math.ceil(sellRaw / roundTo - 1e-9) * roundTo : sellRaw;
+  return { minutes: minutes > 0 ? minutes : 0, timeBad, hours, qty, fils, filCost, elecRate, elec, wear, perItem, total, markup, roundTo, sellEach, hasPrice: markup > 0 || roundTo > 0,
+           missingCost: fils.filter(x => x.grams > 0 && x.cpg == null), empty: !fils.some(x => x.grams > 0) && !(minutes > 0) };
+}
+
+function _calcResultHtml(c) {
+  if (c.empty) return '<div class="empty-state" style="padding:1.5rem .5rem"><div class="icon">🧮</div>Add the filament used and the print time to see what it should cost.</div>';
+  const row = (k, v, sub) => `<div class="cr-row"><span class="k">${k}${sub ? `<em>${sub}</em>` : ''}</span><span class="v">${v}</span></div>`;
+  const subs = list => list.map(l => `<div class="cr-sub"><span>${l.label}</span><span>${_calcR(l.cost)}</span></div>`).join('');
+  const filSubs = subs(c.fils.filter(x => x.grams > 0).map(x => ({
+    label: `${_ovEsc(x.f ? filLabel(x.f) : 'Custom')} · ${x.grams} g × ${x.cpg == null ? '?' : 'R ' + x.cpg.toFixed(4)}`, cost: x.cost })));
+  const timeTxt = c.minutes ? _ovEsc(fmtDuration(c.minutes)) : '—';
+  let h = `<div class="cr-big">${_calcR(c.perItem)}</div><div class="cr-bigsub">cost per item${c.qty > 1 ? ` · ${c.qty} items = <b style="color:var(--text)">${_calcR(c.total)}</b>` : ''}</div>`;
+  h += row('🧵 Filament', _calcR(c.filCost)) + filSubs;
+  h += row('⚡ Electricity', _calcR(c.elec), `${timeTxt} × ${_calcR(c.elecRate)}/h`);
+  h += row('🔧 Wear &amp; tear', _calcR(c.wear.cost)) + subs(c.wear.lines);
+  if (c.qty > 1) h += `<div class="cr-total">${row('Cost per item', _calcR(c.perItem))}${row(`Cost for ${c.qty}`, `<b>${_calcR(c.total)}</b>`)}</div>`;
+  if (c.hasPrice) {
+    const profit = (c.sellEach - c.perItem) * c.qty;
+    h += `<div class="cr-total">${row(`Price each${c.markup ? ` (+${c.markup}%)` : ''}`, `<b>${_calcR(c.sellEach)}</b>`, c.roundTo > 0 ? `rounded up to the next R ${c.roundTo}` : '')}`
+       + (c.qty > 1 ? row(`Price for ${c.qty}`, `<b>${_calcR(c.sellEach * c.qty)}</b>`) : '')
+       + row('Profit', _calcR(profit)) + '</div>';
+  }
+  if (c.timeBad) h += '<div class="cr-warn">Print time not recognised — try “6h 38m”, “6:38” or “398” (minutes).</div>';
+  if (c.missingCost.length) h += `<div class="cr-warn">No price for ${c.missingCost.map(x => _ovEsc(x.f ? filLabel(x.f) : 'a filament')).join(', ')} — type a price per gram, or set the roll's cost on the Filaments page.</div>`;
+  return h;
+}
+
+// ── page ──
+async function loadCalculator() {
+  await _pmEnsureFilaments();
+  const s = _calcS, set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
+  set('calc-elec-mode', s.elecMode); set('calc-elec-hour', s.elecHour || ''); set('calc-watts', s.watts || ''); set('calc-tariff', s.tariff || '');
+  set('calc-wear-mode', s.wearMode); set('calc-wear-flat', s.wearFlat || ''); set('calc-wear-apply', s.wearApply);
+  set('calc-markup', s.markup || ''); set('calc-round', String(s.roundTo || 0));
+  _calcRender();
+}
+function _calcRender() { _calcRowsRender(); _calcTiersRender(); _calcView(); calcRecalc(); }
+function _calcView() {
+  const show = (id, on) => { const el = document.getElementById(id); if (el) el.style.display = on ? '' : 'none'; };
+  const watts = _calcS.elecMode === 'watts', tiered = _calcS.wearMode === 'tiered';
+  show('calc-elec-hour-wrap', !watts); show('calc-watts-wrap', watts); show('calc-tariff-wrap', watts);
+  show('calc-wear-flat-wrap', !tiered); show('calc-wear-apply-wrap', tiered); show('calc-tiers', tiered);
+}
+function _calcSetting(key, val, numeric = true) {
+  _calcS[key] = numeric ? _calcN(val) : val;
+  _calcSave(); _calcView(); calcRecalc();
+}
+function calcRecalc() {
+  const c = _calcCompute();
+  const out = document.getElementById('calc-result'); if (out) out.innerHTML = _calcResultHtml(c);
+  c.fils.forEach((x, i) => { const el = document.querySelector(`[data-calc-line="${i}"]`); if (el) el.textContent = x.grams > 0 && x.cpg != null ? _calcR(x.cost) : '—'; });
+  const ro = document.getElementById('calc-elec-readout');
+  if (ro) ro.textContent = _calcS.elecMode === 'watts' ? `${_calcN(_calcS.watts)} W × ${_calcR(_calcN(_calcS.tariff))}/kWh = ${_calcR(c.elecRate)} per hour` : '';
+}
+function calcClear() {
+  _calcRows = [{ fil: null, grams: '', cpg: '' }];
+  const t = document.getElementById('calc-time'); if (t) t.value = '';
+  const q = document.getElementById('calc-qty'); if (q) q.value = '1';
+  _calcRowsRender(); calcRecalc();
+}
+
+// ── filament rows ──
+function _calcRowsRender() {
+  const box = document.getElementById('calc-fils'); if (!box) return;
+  box.innerHTML = `<div class="calc-fil-head"><span>Filament</span><span>Grams used</span><span>Price per gram</span><span style="text-align:right">Cost</span><span></span></div>`
+    + _calcRows.map((r, i) => {
+      const f = r.fil ? filById(r.fil) : null, auto = _calcCpg({ ...r, cpg: '' });
+      const pick = f
+        ? `<div class="calc-fil-cur">${filSpool(f, 20, '')}<span class="t"><strong>${_ovEsc(filLabel(f))}</strong><em>${_ovEsc([f.brand || 'Unknown brand', f.colour_variant && f.colour_variant !== 'Single' ? f.colour_variant : '', f.roll_size].filter(Boolean).join(' · '))}</em></span>
+             <button type="button" class="row-icon-btn" title="Choose a different filament" onclick="_calcRows[${i}].fil=null;_calcRowsRender();calcRecalc()">⇄</button></div>`
+        : _rollPickHtml('calc', i, 'Search filament — e.g. petg black, dual…', null, null);
+      return `<div class="calc-fil-row">${pick}
+        <input type="number" min="0" step="0.1" class="calc-in" placeholder="g" value="${_ovEsc(r.grams)}" oninput="_calcRows[${i}].grams=this.value;calcRecalc()">
+        <input type="number" min="0" step="0.0001" class="calc-in" placeholder="${auto != null ? auto.toFixed(4) : 'R / g'}" value="${_ovEsc(r.cpg)}" title="${auto != null ? 'From the filament’s roll price — type here to override' : 'No roll price set — type a price per gram'}" oninput="_calcRows[${i}].cpg=this.value;calcRecalc()">
+        <span class="calc-line" data-calc-line="${i}">—</span>
+        ${_calcRows.length > 1 ? `<button type="button" class="row-icon-btn del" title="Remove" onclick="_calcRows.splice(${i},1);_calcRowsRender();calcRecalc()">✕</button>` : '<span></span>'}
+      </div>`;
+    }).join('');
+}
+function _calcAddRow() { _calcRows.push({ fil: null, grams: '', cpg: '' }); _calcRowsRender(); calcRecalc(); }
+function _calcPickFil(i, id) {
+  if (!_calcRows[i]) return;
+  _calcRows[i].fil = id; _calcRows[i].cpg = '';
+  _calcRowsRender(); calcRecalc();
+  document.querySelectorAll('#calc-fils .calc-fil-row')[i]?.querySelector('input[placeholder="g"]')?.focus();
+}
+
+// ── wear & tear bands ──
+function _calcTiersRender() {
+  const box = document.getElementById('calc-tiers'); if (!box) return;
+  const t = _calcS.tiers, last = t.length - 1;
+  box.innerHTML = `<div class="calc-hint" style="margin:.2rem 0 .3rem">Each band covers prints up to that many hours. Longer prints fall into the last band.</div>`
+    + t.map((b, i) => `<div class="calc-tier">
+        <span>${i === 0 ? 'Up to' : 'Then up to'}</span>
+        ${i === last ? '<span class="open">any longer print</span>' : `<input type="number" min="0" step="0.5" class="calc-in" value="${b.upTo ?? ''}" oninput="_calcTier(${i},'upTo',this.value)" onchange="_calcTiersRender()"><span>h</span>`}
+        <span>→ R</span><input type="number" min="0" step="0.01" class="calc-in" value="${b.rate || ''}" placeholder="0.00" oninput="_calcTier(${i},'rate',this.value)"><span>per hour</span>
+        ${i !== last ? `<button type="button" class="row-icon-btn del" title="Remove this band" onclick="_calcTierRemove(${i})">✕</button>` : ''}
+      </div>`).join('')
+    + `<button type="button" class="btn btn-sm btn-outline" style="margin-top:.4rem" onclick="_calcTierAdd()">＋ Add a band</button>`;
+}
+function _calcTier(i, key, val) { const b = _calcS.tiers[i]; if (!b) return; b[key] = _calcN(val); _calcSave(); calcRecalc(); }
+function _calcTierAdd() {
+  const t = _calcS.tiers, last = t.length - 1, prev = t[last - 1];
+  t.splice(last, 0, { upTo: (prev?.upTo || 0) + 2, rate: prev?.rate ?? t[last].rate });
+  _calcSave(); _calcTiersRender(); calcRecalc();
+}
+function _calcTierRemove(i) { if (_calcS.tiers.length > 1 && i < _calcS.tiers.length - 1) { _calcS.tiers.splice(i, 1); _calcSave(); _calcTiersRender(); calcRecalc(); } }
 
 // ─────────────────── HELPERS ───────────────────
 const fmt  = v => 'R ' + (v ?? 0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
@@ -4211,8 +4631,37 @@ function _singleColourModelWarning(modelId, plateId) {
     + `It will print in the plate’s colour${f ? ` — ${filLabel(f)}` : ''} instead.${ids.length > 1 ? ` For its own colours, use a ${_multiPrinterNames()} plate.` : ''}\n\n`
     + `Add it to this plate anyway?`;
 }
-function _pipePrinterDragOver(el, printer) {
-  const bad = !!(_pipeDragId && _printerFitError(_pipeDragId, printer));
+// Where a plate dropped on `printer` really goes: that printer if it can take it; otherwise the plate's own printer (no error)
+function _printerTargetFor(plateId, printer) {
+  const err = _printerFitError(plateId, printer);
+  if (!err) return { printer, redirected: false };
+  const own = _pipePlates.find(p => p.id === plateId)?.printer_name;
+  if (own && own !== printer && !_printerFitError(plateId, own)) return { printer: own, redirected: true };
+  return { printer, redirected: false, error: err };
+}
+// The printer a plate sorts itself onto when dropped on a column rather than on a printer: its own, else the first that fits
+function _autoPrinterFor(plate) {
+  if (plate.printer_name && !_printerFitError(plate.id, plate.printer_name)) return plate.printer_name;
+  const multi = _plateColoursWith(plate.id, null) > 1;      // several colours → a multi-colour printer first
+  const pool = multi ? PIPE_PRINTERS.filter(p => _printerMax(p) > 1) : PIPE_PRINTERS;
+  return pool.find(p => !_printerFitError(plate.id, p)) || PIPE_PRINTERS.find(p => !_printerFitError(plate.id, p)) || null;
+}
+// A plate dropped anywhere on the Sliced / Printing column sorts itself into the right printer's card
+function onDropToStageColumn(event, stage) {
+  document.getElementById(stage === 'printing' ? 'pipe-col-printing' : 'pipe-col-sliced')?.classList.remove('drag-over');
+  if (event.defaultPrevented || _pipeDragType !== 'plate') return;          // a printer card already took it
+  const plate = _pipePlates.find(p => p.id === _pipeDragId);
+  if (!plate) return;
+  event.preventDefault();
+  const printer = _autoPrinterFor(plate);
+  if (!printer) { toast(`${plate.name || 'This plate'} has more colours than any printer takes — split it into one-colour plates`, 'error'); _pipeDragId = null; _pipeDragType = null; return; }
+  return stage === 'printing' ? onDropToPrinter(event, printer) : onDropToSliced(event, printer);
+}
+// A printer prints one plate at a time: the plate currently on it in the Printing column (other than `exceptId`)
+const _printerBusyPlate = (printer, exceptId) => _pipePlates.find(p => p.stage === 'printing' && p.printer_name === printer && p.id !== exceptId);
+const _printerBusyMsg = (printer, busy) => `The ${printer} is already printing “${busy.name || 'a plate'}” — only one plate at a time. Drag that one into Done when it finishes.`;
+function _pipePrinterDragOver(el, printer, stage) {
+  const bad = !!(_pipeDragId && (_printerTargetFor(_pipeDragId, printer).error || (stage === 'printing' && _printerBusyPlate(printer, _pipeDragId))));
   el.classList.toggle('drag-no', bad);
   el.classList.toggle('drag-over', !bad);
 }
@@ -4248,7 +4697,29 @@ function _fillModelsFromProducts(models) {
   });
 }
 
+// ── Collapsible columns: click a column's header (or its ▾) to fold it into a thin strip; remembered in this browser ──
+const _pipeColsCollapsed = (() => { try { return new Set(JSON.parse(localStorage.getItem('rc_pipe_collapsed') || '[]')); } catch (_) { return new Set(); } })();
+const _pipeColId = col => (col.className.match(/pipe-col-(idea|plating|sliced|printing|done|history)/) || [])[1];
+function _pipeColsInit() {
+  document.querySelectorAll('#pipe-board .pipe-col').forEach(col => {
+    const id = _pipeColId(col), head = col.querySelector('.pipe-col-header');
+    if (!id || !head) return;
+    if (!head.dataset.collapsible) {
+      head.dataset.collapsible = '1';
+      head.firstElementChild?.insertAdjacentHTML('afterbegin', '<button type="button" class="pipe-col-toggle" title="Collapse / expand this column">▾</button>');
+      head.addEventListener('click', e => { if (e.target.closest('button:not(.pipe-col-toggle), input, a')) return; _pipeColToggle(id); });
+    }
+    col.classList.toggle('collapsed', _pipeColsCollapsed.has(id));
+  });
+}
+function _pipeColToggle(id) {
+  if (_pipeColsCollapsed.has(id)) _pipeColsCollapsed.delete(id); else _pipeColsCollapsed.add(id);
+  try { localStorage.setItem('rc_pipe_collapsed', JSON.stringify([..._pipeColsCollapsed])); } catch (_) {}
+  _pipeColsInit();
+}
+
 async function loadPipeline() {
+  _pipeColsInit();
   const [modRes, platRes, folderRes, filRes] = await Promise.all([
     db.from('print_models').select('*').order('created_at', { ascending: false }),
     db.from('print_plates').select('*').order('created_at', { ascending: false }),
@@ -4274,6 +4745,8 @@ async function loadPipeline() {
     const { error } = await db.from('print_plates').update({ name: nm }).eq('id', p.id);
     if (!error) p.name = nm;
   }
+  // Done plates edited since they finished: bring their history entries in line (also repairs ones already out of step)
+  await Promise.all(_pipePlates.filter(p => p.stage === 'done').map(p => _syncHistoryFor(p.id)));
   // One-colour plates that never got their filament (models added before this was automatic) pick it up now
   await Promise.all(_pipePlates.filter(p => p.stage === 'plating' || p.stage === 'sliced').map(p => _plateAutoFilament(p.id)));
   // Sliced / Printing plates missing their usage take what the models already carry (grams + time)
@@ -4332,12 +4805,11 @@ function renderPipeline() {
       ? plates.map(p => _pipePlateCardHtml(p)).join('')
       : '<div style="color:var(--muted);font-size:.7rem;text-align:center;padding:.5rem">empty — drag a plate here</div>';
     return `<div class="pipe-printer-section" id="pipe-printer-${printerKey}"
-        ondragover="if(_pipeDragType==='plate'){event.preventDefault();_pipePrinterDragOver(this,'${printer}')}"
+        ondragover="if(_pipeDragType==='plate'){event.preventDefault();_pipePrinterDragOver(this,'${printer}','printing')}"
         ondragleave="if(!this.contains(event.relatedTarget))this.classList.remove('drag-over','drag-no')"
         ondrop="onDropToPrinter(event,'${printer}')">
       <div class="pipe-printer-label">
         <span>🖨 ${printer}${_printerCapHtml(printer)}</span>
-        <span style="font-weight:400;color:var(--muted)">${plates.length ? plates.length + (plates.length > 1 ? ' plates' : ' plate') : ''}</span>
       </div>
       ${body}
     </div>`;
@@ -4618,8 +5090,14 @@ async function onDropToPrinter(event, printerName) {
   if (section) section.classList.remove('drag-over', 'drag-no');
   if (_pipeDragType !== 'plate' || !_pipeDragId) return;
   const plateId = _pipeDragId;   // capture before dragend clears it (the confirm box is asynchronous)
-  const fitErr = _printerFitError(plateId, printerName);
-  if (fitErr) { toast(fitErr, 'error'); _pipeDragId = null; _pipeDragType = null; return; }
+  const tgt = _printerTargetFor(plateId, printerName);      // a printer that can't take it → the plate's own printer, not an error
+  if (tgt.error) { toast(tgt.error, 'error'); _pipeDragId = null; _pipeDragType = null; return; }
+  if (tgt.redirected) {
+    toast(`${_pipePlates.find(p => p.id === plateId)?.name || 'The plate'} can't print on the ${printerName} — sent to its own printer, the ${tgt.printer}`, 'info');
+    printerName = tgt.printer;
+  }
+  const busy = _printerBusyPlate(printerName, plateId);        // one plate per printer in the Printing column
+  if (busy) { toast(_printerBusyMsg(printerName, busy), 'error'); _pipeDragId = null; _pipeDragType = null; return; }
   const warn = _singleColourPlateWarning(plateId, printerName);
   if (warn && !(await confirmDialog(warn))) { _pipeDragId = null; _pipeDragType = null; return; }
 
@@ -4663,8 +5141,12 @@ async function onDropToSliced(event, printerName) {
   if (section) section.classList.remove('drag-over', 'drag-no');
   if (_pipeDragType !== 'plate' || !_pipeDragId) return;
   const plateId = _pipeDragId;   // capture before dragend clears it
-  const fitErr = _printerFitError(plateId, printerName);   // 1 colour on most printers, up to 4 on the U1
-  if (fitErr) { toast(fitErr, 'error'); return; }
+  const tgt = _printerTargetFor(plateId, printerName);     // 1 colour on most printers, up to 4 on the U1; otherwise the plate's own printer
+  if (tgt.error) { toast(tgt.error, 'error'); return; }
+  if (tgt.redirected) {
+    toast(`${_pipePlates.find(p => p.id === plateId)?.name || 'The plate'} can't go on the ${printerName} — sent to its own printer, the ${tgt.printer}`, 'info');
+    printerName = tgt.printer;
+  }
   const warn = _singleColourPlateWarning(plateId, printerName);
   if (warn && !(await confirmDialog(warn))) return;
 
@@ -4763,8 +5245,12 @@ async function _plateAutoFilament(plateId) {
 let _ideaFolders      = [];     // rows from idea_folders { id, name, parent_id }
 let _ideaFoldersReady = true;   // false when the idea_folders table doesn't exist yet
 let _ideaRenamingId   = null;   // folder currently being renamed inline
-const _ideaCollapsed  = (() => { try { return new Set(JSON.parse(localStorage.getItem('rc_idea_collapsed') || '[]')); } catch (_) { return new Set(); } })();
-function _ideaSaveCollapsed() { try { localStorage.setItem('rc_idea_collapsed', JSON.stringify([..._ideaCollapsed])); } catch (_) {} }
+// Folders start closed. Ones you open yourself stay open next time (_ideaOpen, saved); a folder that opens on its own so you can
+// see something land in it (_ideaPeek) is open for this visit only — otherwise one drop would leave it open for good.
+const _ideaOpen = (() => { try { return new Set(JSON.parse(localStorage.getItem('rc_idea_open') || '[]')); } catch (_) { return new Set(); } })();
+const _ideaPeek = new Set();
+const _ideaIsOpen = id => _ideaOpen.has(id) || _ideaPeek.has(id);
+function _ideaSaveOpen() { try { localStorage.setItem('rc_idea_open', JSON.stringify([..._ideaOpen])); } catch (_) {} }
 
 const _ideaById = id => _ideaFolders.find(f => f.id === id);
 // Folders keep the order you drag them into (idea_folders.sort_order); folders never ordered sort A–Z after them.
@@ -4833,7 +5319,7 @@ const _IDEA_GRIP = '<svg width="8" height="14" viewBox="0 0 8 14" aria-hidden="t
 function _ideaFolderHtml(folder, ideaModels, depth = 0) {
   const id        = folder.id;
   const jsId      = _invJs(id);
-  const collapsed = _ideaCollapsed.has(id);
+  const collapsed = !_ideaIsOpen(id);
   const subs      = _ideaChildren(id);
   const models    = _ideaModelsIn(id, ideaModels);
   const count     = _ideaDescCount(id, ideaModels);
@@ -4874,8 +5360,8 @@ function _ideaFolderHtml(folder, ideaModels, depth = 0) {
 
 function toggleIdeaFolder(id) {
   if (_ideaRenamingId === id) return;
-  if (_ideaCollapsed.has(id)) _ideaCollapsed.delete(id); else _ideaCollapsed.add(id);
-  _ideaSaveCollapsed();
+  if (_ideaIsOpen(id)) { _ideaOpen.delete(id); _ideaPeek.delete(id); } else _ideaOpen.add(id);
+  _ideaSaveOpen();
   renderPipeline();
 }
 
@@ -4891,7 +5377,7 @@ async function createIdeaFolder(parentId) {
     .insert([{ name: 'New folder', parent_id: parentId || null }]).select().single();
   if (error) { toast('Could not create folder: ' + error.message, 'error'); return; }
   _ideaFolders.push(data);
-  if (parentId) { _ideaCollapsed.delete(parentId); _ideaSaveCollapsed(); }
+  if (parentId) _ideaPeek.add(parentId);
   startRenameIdeaFolder(data.id);
 }
 
@@ -4940,7 +5426,7 @@ async function deleteIdeaFolder(id) {
   const { error } = await db.from('idea_folders').delete().eq('id', id);
   if (error) { toast('Delete failed: ' + error.message, 'error'); renderPipeline(); return; }
   _ideaFolders = _ideaFolders.filter(x => x.id !== id);
-  _ideaCollapsed.delete(id); _ideaSaveCollapsed();
+  _ideaOpen.delete(id); _ideaPeek.delete(id); _ideaSaveOpen();
   renderPipeline();
   toast('Folder deleted', 'success');
 }
@@ -5073,7 +5559,7 @@ function _ideaFolderDragOver(e, id) {
     if (_pipeDragId === id) return;                                   // over itself
     const r = head.getBoundingClientRect();
     const y = (e.clientY - r.top) / (r.height || 1);
-    const hasOpenContents = !_ideaCollapsed.has(id) && head.parentElement.querySelector(':scope > .idea-folder-body > :not(.idea-empty)');
+    const hasOpenContents = _ideaIsOpen(id) && head.parentElement.querySelector(':scope > .idea-folder-body > :not(.idea-empty)');
     if (y < 0.32) kind = 'before';
     else if (y > 0.68 && !hasOpenContents) kind = 'after';
     const parent = kind === 'into' ? id : (_ideaById(id)?.parent_id || null);
@@ -5109,16 +5595,16 @@ async function onDropToIdeaFolder(e, folderId, fromBody) {
   if (!id) return;
   if (type === 'plate') {
     if (!(await _ideaReturnPlate(id, folderId))) return;     // the plate's models go into this folder
-    _ideaCollapsed.delete(folderId); _ideaSaveCollapsed();
+    _ideaPeek.add(folderId);
   } else if (type === 'model') {
     await _ideaMoveModel(id, folderId);
-    _ideaCollapsed.delete(folderId); _ideaSaveCollapsed();   // open the target so you can see it landed
+    _ideaPeek.add(folderId);   // open the target so you can see it landed (this visit only)
   } else if (type === 'folder') {
     const target = _ideaById(drop.id);
     if (!target) return;
     if (drop.kind === 'into') {
       if (!(await _ideaPlaceFolder(id, drop.id, null))) return;
-      _ideaCollapsed.delete(drop.id); _ideaSaveCollapsed();
+      _ideaPeek.add(drop.id);
     } else {
       const parent = target.parent_id || null;
       let before = drop.id;
@@ -5319,7 +5805,7 @@ async function pmCreateFolder() {
   const { data, error } = await db.from('idea_folders').insert([{ name, parent_id: parent }]).select().single();
   if (error) { toast('Could not create folder: ' + error.message, 'error'); return; }
   _ideaFolders.push(data);
-  if (parent) { _ideaCollapsed.delete(parent); _ideaSaveCollapsed(); }
+  if (parent) _ideaPeek.add(parent);
   _pmFolderOptions(data.id);                     // select the new folder
   document.getElementById('pm-fp-newbtn').style.display = '';
   toast(`Folder “${name}” created`, 'success');
@@ -6309,11 +6795,12 @@ async function submitAddModel() {
   if (wasEdit) {
     const idx = _pipeModels.findIndex(m => m.id === _editModelId);
     if (idx !== -1) _pipeModels[idx] = data;
+    if (_pipePlates.find(p => p.id === data.plate_id)?.stage === 'done') await _syncHistoryFor(data.plate_id);   // fix its history entry too
   } else {
     _pipeModels.unshift(data);
     if (toPlate) await _plateAutoFilament(toPlate.id);   // a one-colour plate with no filament yet takes this model's colour
   }
-  if (folder) { _ideaCollapsed.delete(folder); _ideaSaveCollapsed(); }
+  if (folder) _ideaPeek.add(folder);
   // Optionally store the print details on the inventory product, so the next print job gets them automatically
   let backMsg = '';
   if (saveBack) {
@@ -6431,6 +6918,7 @@ async function _setPlatePrinter(plateId, printer) {
   if (!p || (p.printer_name || null) === (printer || null)) return false;
   if (printer) { const err = _printerFitError(plateId, printer); if (err) { toast(err, 'error'); return false; } }
   if (!printer && p.stage !== 'plating') return false;
+  if (printer && p.stage === 'printing') { const busy = _printerBusyPlate(printer, plateId); if (busy) { toast(_printerBusyMsg(printer, busy), 'error'); return false; } }
   const warn = _singleColourPlateWarning(plateId, printer);
   if (warn && !(await confirmDialog(warn))) return false;
   const newName = _plateNameFor(p, printer);               // an automatic name follows the printer; a typed one stays
@@ -7406,8 +7894,7 @@ function _ueHtml(strict) {
     const generic = !f || f.generic;
     const anyUse = ed.rows.some(r => r.listed?.has(ci));
     const pick = generic
-      ? `<select class="use-roll" data-col="${ci}" onchange="_ueSetRoll(${ci},this.value)">
-           <option value="">${f ? 'Choose roll…' : 'Choose a roll…'}</option>${_rollOptionsHtml('', f?.material_type, f?.colour1, ed.cols.map(x => x.fil))}</select>`
+      ? _rollPickHtml('ue', ci, f ? `Search the ${filLabel(f)} roll…` : 'Search for a roll…', f?.material_type, f?.colour1)
       : `<div class="ue-brand" title="${_ovEsc(filTitle(f))} — on hand ${_ovEsc(_spoolsText(f.open_spools))}">${_ovEsc(f.brand || 'Unknown brand')}
            <button type="button" class="row-icon-btn" title="Use a different roll" onclick="_ueChangeRoll(${ci})">⇄</button></div>`;
     return `<th class="ue-col">
@@ -7439,8 +7926,7 @@ function _ueHtml(strict) {
       </table>
     </div>
     <div class="use-foot">
-      ${canAdd ? `<select class="use-add${n ? '' : ' need'}" onchange="if(this.value){_ueAddCol(this.value);this.value=''}">
-        <option value="">${n ? `＋ Add a colour (${n}/${max})…` : '＋ Choose the roll this plate prints with…'}</option>${_rollOptionsHtml('', null, null, ed.cols.map(x => x.fil))}</select>`
+      ${canAdd ? `<div style="flex:1;min-width:0" class="${n ? '' : 'rp-need'}">${_rollPickHtml('ue', 'add', n ? `＋ Add a colour (${n}/${max}) — search rolls…` : '＋ Choose the roll this plate prints with — search…', null, null)}</div>`
         : `<span class="pm-hint" style="margin:0">${max === 1 ? `${_ovEsc(ed.printer || 'This printer')} prints one colour — use the ${_multiPrinterNames()} for more.` : `${max}/${max} colours — that's the maximum for a plate.`}</span>`}
     </div>
     <div class="ue-time">
@@ -7618,6 +8104,11 @@ function openPlateUsage(plateId) { openAdvancePlate(plateId, 'usage'); }
 async function submitAdvancePlate() {
   const plateId = document.getElementById('ap-plate-id').value;
   const stage   = document.getElementById('ap-target-stage').value;
+  if (stage === 'printing') {                                   // one plate per printer in the Printing column
+    const pr = document.getElementById('ap-printer')?.value || _pipePlates.find(p => p.id === plateId)?.printer_name;
+    const busy = pr && _printerBusyPlate(pr, plateId);
+    if (busy) { toast(_printerBusyMsg(pr, busy), 'error'); return; }
+  }
   if (Number.isNaN(_ue.minutes)) { _ueValidate(false); document.getElementById('ue-err').textContent = 'Print time not recognised — try “3h 20m”, “3:20” or “200”.'; return; }
   // Colour count (1–4) always applies once the plate is sliced; grams + time are required to print
   if (stage === 'printing' && !_ueValidate(true)) { toast('Fill in the filament usage before printing', 'error'); return; }
@@ -7707,8 +8198,7 @@ function _useRowsHtml(ctx) {
     const f = filById(r.fil);
     const generic = !f || f.generic;
     const head = generic
-      ? `<select class="use-roll" onchange="_useSetRoll('${ctx}',${i},this.value)">
-           <option value="">${f ? `Choose the ${_ovEsc(filLabel(f))} roll…` : 'Choose a roll…'}</option>${_rollOptionsHtml('', f?.material_type, f?.colour1)}</select>`
+      ? _rollPickHtml(ctx, i, f ? `Search for the ${filLabel(f)} roll…` : 'Search for a roll…', f?.material_type, f?.colour1)
       : `<span class="use-name">${_ovEsc(filLabel(f))} <span>· ${_ovEsc(f.brand || 'Unknown brand')}</span></span>
          <button type="button" class="row-icon-btn" title="Use a different roll" onclick="_useChangeRoll('${ctx}',${i})">⇄</button>`;
     return `<div class="use-row" data-i="${i}">
@@ -7719,10 +8209,61 @@ function _useRowsHtml(ctx) {
   }).join('');
   const total = rows.reduce((s, r) => s + (+r.grams || 0), 0);
   return `${html || '<div class="pm-hint" style="margin:.2rem 0 .5rem">No filaments recorded for this plate — add the roll(s) it used.</div>'}
-    <div class="use-foot"><select class="use-add" onchange="if(this.value){_useAdd('${ctx}',this.value);this.value=''}">
-      <option value="">＋ Add another roll…</option>${_rollOptionsHtml('', null, null)}</select>
+    <div class="use-foot"><div style="flex:1;min-width:0">${_rollPickHtml(ctx, 'add', '＋ Add another roll — search…', null, null)}</div>
       <span class="use-total">Total <strong>${fmtGrams(total) || '0 g'}</strong></span></div>
     <div class="use-err" id="${ctx}-use-err"></div>`;
+}
+// ── Searchable roll picker (replaces the long drop-down): type a colour, type or brand; rolls of the wanted colour come first ──
+function _rollPickHtml(ctx, key, placeholder, preferType, preferColour) {
+  return `<div class="rp" data-ctx="${ctx}" data-key="${key}" data-t="${_ovEsc(preferType || '')}" data-c="${_ovEsc(preferColour || '')}">
+    <input type="text" class="rp-in use-roll" data-col="${key}" placeholder="${_ovEsc(placeholder)}" autocomplete="off" spellcheck="false"
+      onfocus="_rpOpen(this)" oninput="_rpOpen(this)" onkeydown="_rpKey(event,this)" onblur="_rpClose(this)">
+    <div class="rp-list" style="display:none"></div></div>`;
+}
+function _rpRolls(inp) {
+  const d = inp.closest('.rp').dataset;
+  const tokens = inp.value.toLowerCase().split(/\s+/).filter(Boolean);
+  // Rolls already on the list / plate aren't offered again (the Finish window only when adding; the usage grid always)
+  const listed = d.ctx === 'ue' ? new Set((_ue?.cols || []).map(c => c.fil))
+    : d.key === 'add' ? new Set((_useState[d.ctx] || []).map(r => r.fil)) : new Set();
+  const pref = f => f.material_type === d.t && f.colour1 === d.c && !!d.t;
+  return (_filamentsCache || []).filter(f => !listed.has(f.id) && tokens.every(t => filHay(f).includes(t)))
+    .sort((a, b) => (pref(b) - pref(a)) || (a.material_type || '').localeCompare(b.material_type || '') || (a.colour1 || '').localeCompare(b.colour1 || '') || (a.brand || '').localeCompare(b.brand || ''));
+}
+function _rpOpen(inp) {
+  const list = inp.closest('.rp').querySelector('.rp-list');
+  const rolls = _rpRolls(inp), shown = rolls.slice(0, 40);
+  list.innerHTML = shown.length
+    ? shown.map((f, i) => `<div class="rp-opt${i === 0 ? ' hl' : ''}" data-id="${_ovEsc(f.id)}" onmousedown="event.preventDefault();_rpPick(this)">
+        ${filSpool(f, 16, '')}<span class="t"><strong>${_ovEsc(filLabel(f))}</strong><span>${_ovEsc([f.brand || 'Unknown brand', f.colour_variant && f.colour_variant !== 'Single' ? f.colour_variant : '', f.roll_size,
+          inp.closest('.rp').dataset.ctx === 'calc' ? (_calcCpg({ fil: f.id, cpg: '' }) != null ? `R ${_calcCpg({ fil: f.id, cpg: '' }).toFixed(4)}/g` : 'no price set') : 'on hand ' + _spoolsText(f.open_spools)].filter(Boolean).join(' · '))}</span></span></div>`).join('')
+      + (rolls.length > shown.length ? `<div class="rp-empty">+${rolls.length - shown.length} more — keep typing</div>` : '')
+    : `<div class="rp-empty">${inp.value.trim() ? `No rolls match “${_ovEsc(inp.value.trim())}”.` : 'No rolls in your filament library yet.'}</div>`;
+  list.style.display = '';
+  // Fixed under the box, so a table cell or scrolling area can't clip it; flips above near the bottom of the window
+  const r = inp.getBoundingClientRect(), w = Math.max(r.width, 290);
+  list.style.width = w + 'px';
+  list.style.left = Math.max(8, Math.min(r.left, window.innerWidth - w - 8)) + 'px';
+  const h = list.offsetHeight;
+  list.style.top = (r.bottom + 4 + h > window.innerHeight - 8 && r.top - h - 4 > 8 ? r.top - h - 4 : r.bottom + 4) + 'px';
+}
+window.addEventListener('scroll', e => { if (!e.target.closest?.('.rp-list')) document.querySelectorAll('.rp-list').forEach(l => { l.style.display = 'none'; }); }, true);
+function _rpClose(inp) { const l = inp.closest('.rp')?.querySelector('.rp-list'); if (l) l.style.display = 'none'; }
+function _rpPick(el) {
+  const wrap = el.closest('.rp'), id = el.dataset.id, { ctx, key } = wrap.dataset;
+  if (ctx === 'ue') { if (key === 'add') _ueAddCol(id); else _ueSetRoll(+key, id); return; }   // the plate's usage grid
+  if (ctx === 'calc') { _calcPickFil(+key, id); return; }                                      // the print calculator
+  if (key === 'add') _useAdd(ctx, id); else _useSetRoll(ctx, +key, id);
+}
+function _rpKey(e, inp) {
+  const list = inp.closest('.rp').querySelector('.rp-list');
+  const opts = [...list.querySelectorAll('.rp-opt')];
+  const at = Math.max(0, opts.findIndex(o => o.classList.contains('hl')));
+  const move = n => { e.preventDefault(); if (!opts.length) return; opts[at]?.classList.remove('hl'); const o = opts[(at + n + opts.length) % opts.length]; o.classList.add('hl'); o.scrollIntoView({ block: 'nearest' }); };
+  if (e.key === 'ArrowDown') move(1);
+  else if (e.key === 'ArrowUp') move(-1);
+  else if (e.key === 'Enter') { e.preventDefault(); if (opts[at]) _rpPick(opts[at]); }
+  else if (e.key === 'Escape' && list.style.display !== 'none') { e.preventDefault(); e.stopPropagation(); _rpClose(inp); }
 }
 function _useSubHtml(r) {
   const f = filById(r.fil);
@@ -7809,7 +8350,8 @@ async function _deductFilament(rows) {
     const f = filById(r.fil);
     if (!f || f.generic || !(+r.grams > 0)) continue;
     const a = _spoolsAfterUse(f, +r.grams);
-    const { error } = await db.from('filaments').update({ open_spools: a.spools, qty_stock: a.spools.length }).eq('id', f.id);
+    const { data: upd, error: updErr } = await db.from('filaments').update({ open_spools: a.spools, qty_stock: a.spools.length }).eq('id', f.id).select();
+    const error = updErr || (upd && upd.length ? null : { message: 'the database changed nothing (updates on filaments are being blocked)' });   // 0 rows updated = silently refused
     if (error) { warnings.push(`${filLabel(f)} (${f.brand}): ${error.message}`); continue; }
     f.open_spools = a.spools; f.qty_stock = a.spools.length;
     if (a.shortfall) warnings.push(`${filLabel(f)} · ${f.brand}: ${a.shortfall} g more than its spools showed`);
@@ -7877,15 +8419,81 @@ function _historyEntries() {
   const out = [];
   _pipePlates.forEach(p => {
     const log = Array.isArray(p.print_log) ? p.print_log : [];
-    log.forEach(e => out.push({ ...e, plate: p }));
-    // Plates finished before the history log existed
-    if (p.stage === 'done' && p.completed_at && !log.some(e => e.outcome === 'done')) {
+    log.forEach(e => { if (e.outcome !== 'removed') out.push({ ...e, plate: p }); });      // 'removed' = a deleted entry's marker
+    // Plates finished before the history log existed (and whose entry wasn't deleted)
+    if (p.stage === 'done' && p.completed_at && !log.some(e => e.outcome === 'done' || e.outcome === 'removed')) {
       out.push({ at: p.completed_at, outcome: 'done', printer: p.printer_name, plate: p,
         used: Array.isArray(p.filament_used) ? p.filament_used : [], grams: p.grams_used,
         items: _pipeModels.filter(m => m.plate_id === p.id).map(m => ({ name: m.name, qty: +m.qty_needed || 1 })) });
     }
   });
   return out.sort((a, b) => String(b.at).localeCompare(String(a.at)));
+}
+
+// Click a history card: everything recorded for that print
+function openHistoryEntry(plateId, at) {
+  const e = _historyEntries().find(x => x.plate.id === plateId && x.at === at);
+  if (!e) return;
+  const p = e.plate, ok = e.outcome === 'done';
+  const used = (e.used || []).filter(u => +u.grams > 0);
+  const total = used.length ? used.reduce((s, u) => s + +u.grams, 0) : (+e.grams || 0);
+  const row = (k, v) => v ? `<div class="hd-row"><span class="k">${k}</span><span class="v">${v}</span></div>` : '';
+  document.getElementById('hd-title').textContent = `${ok ? '✅ Printed OK' : '⚠️ Failed / partial'} — ${p.name || 'Plate'}`;
+  document.getElementById('hd-body').innerHTML =
+    row('When', _ovEsc(new Date(e.at).toLocaleString([], { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })))
+    + row('Printer', _ovEsc(e.printer || ''))
+    + row('Models', (e.items || []).map(i => `<div>${_ovEsc(i.name)} <span class="m">×${i.qty}</span></div>`).join(''))
+    + row('Filament used', used.map(u => { const f = filById(u.fil); return `<div class="hd-fil">${filSpool(f || null, 14, '')}${_ovEsc(f ? filLabel(f) : 'Unknown roll')}${f && !f.generic && f.brand ? ` <span class="m">· ${_ovEsc(f.brand)}</span>` : ''}<b>${fmtGrams(u.grams)}</b></div>`; }).join('')
+        + (used.length > 1 ? `<div class="hd-fil tot">Total<b>${fmtGrams(total)}</b></div>` : '') || (total ? fmtGrams(total) : ''))
+    + row('Print time', e.minutes ? _ovEsc(fmtDuration(e.minutes)) : '')
+    + row('Notes', e.notes ? _ovEsc(e.notes) : '')
+    + row('Plate now', _ovEsc(_PLATE_STAGE[p.stage] || p.stage || ''));
+  document.getElementById('hd-open').onclick = () => { closeHistoryEntry(); openPlateEditor(p.id); };
+  document.getElementById('hd-del').onclick = () => { closeHistoryEntry(); deleteHistoryEntry(p.id, e.at); };
+  document.getElementById('modal-hist').classList.add('open');
+}
+function closeHistoryEntry() { document.getElementById('modal-hist').classList.remove('open'); }
+
+// Delete one history entry. The plate itself stays where it is; only this record goes. A deleted "done" entry leaves a marker
+// so it isn't rebuilt from the plate.
+async function deleteHistoryEntry(plateId, at) {
+  const p = _pipePlates.find(x => x.id === plateId);
+  if (!p) return;
+  if (!(await confirmDialog('Delete this history entry? The plate stays where it is — only this record is removed.'))) return;
+  const log = Array.isArray(p.print_log) ? p.print_log : [];
+  const i = log.findIndex(e => e.at === at);
+  const next = i < 0 ? [...log, { at, outcome: 'removed' }]                                         // built from the plate itself (finished before history existed)
+    : log[i].outcome === 'done' ? log.map((e, j) => j === i ? { at, outcome: 'removed' } : e)
+    : log.filter((_, j) => j !== i);
+  const { error } = await db.from('print_plates').update({ print_log: next }).eq('id', plateId);
+  if (error) { toast('Could not delete the entry: ' + error.message, 'error'); return; }
+  p.print_log = next;
+  renderPipeline();
+  toast('History entry deleted', 'success');
+}
+
+// A done plate's history entry follows the plate: edit a model on a done print and its entry is corrected too
+const _stableJson = o => JSON.stringify(o, (k, v) => v && typeof v === 'object' && !Array.isArray(v) ? Object.fromEntries(Object.entries(v).sort(([a], [b]) => a.localeCompare(b))) : v);
+async function _syncHistoryFor(plateId) {
+  const p = _pipePlates.find(x => x.id === plateId);
+  if (!p || p.stage !== 'done' || !Array.isArray(p.print_log)) return false;
+  let idx = p.print_log.findIndex(e => e.outcome === 'done' && e.at === p.completed_at);
+  if (idx < 0) for (let i = p.print_log.length - 1; i >= 0; i--) if (p.print_log[i].outcome === 'done') { idx = i; break; }
+  if (idx < 0) return false;                                  // no entry (or it was deleted) — don't bring it back
+  const models = _pipeModels.filter(m => m.plate_id === p.id);
+  if (!models.length) return false;                           // models removed from the board → keep what was recorded
+  const old = p.print_log[idx];
+  const next = { ...old,
+    printer: p.printer_name || old.printer || null,
+    items: models.map(m => ({ name: m.name, qty: +m.qty_needed || 1 })),
+    used: Array.isArray(p.filament_used) && p.filament_used.length ? p.filament_used : old.used,
+    minutes: _planOf(p).minutes ?? old.minutes ?? null };
+  if (_stableJson(next) === _stableJson(old)) return false;
+  const log = p.print_log.map((e, i) => i === idx ? next : e);
+  const { error } = await db.from('print_plates').update({ print_log: log }).eq('id', p.id);
+  if (error) return false;
+  p.print_log = log;
+  return true;
 }
 
 function _histDayLabel(iso) {
@@ -7908,12 +8516,13 @@ function _historyHtml() {
     const usedArr = (e.used || []).filter(u => +u.grams > 0);
     const grams = usedArr.length ? usedArr.reduce((s, u) => s + +u.grams, 0) : (+e.grams || 0);
     const time = new Date(e.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    return `${head}<div class="hist-item ${ok ? 'ok' : 'failed'}" title="${_ovEsc(e.notes || '')}">
+    return `${head}<div class="hist-item ${ok ? 'ok' : 'failed'}" title="${_ovEsc(e.notes || 'Click for the details')}" onclick="openHistoryEntry('${_ovEsc(e.plate.id)}','${_ovEsc(e.at)}')">
       <div class="hist-top"><strong>${ok ? '✅' : '⚠️'} ${_ovEsc(e.plate?.name || 'Plate')}</strong><span>${time}${e.printer ? ' · ' + _ovEsc(e.printer) : ''}</span></div>
       ${(e.items || []).length ? `<div class="hist-items">${_ovEsc(e.items.map(i => `${i.name} ×${i.qty}`).join(', '))}</div>` : ''}
       <div class="hist-use">${usedArr.map(u => { const f = filById(u.fil); return `<span title="${_ovEsc(filTitle(f || {}))}">${filSpool(f || null, 11, '')}${fmtGrams(u.grams)}</span>`; }).join('')}
         ${!usedArr.length && grams ? `<span>${fmtGrams(grams)}</span>` : ''}${e.minutes ? `<span>⏱ ${fmtDuration(e.minutes)}</span>` : ''}</div>
       ${!ok ? `<div class="hist-note">${_ovEsc(e.notes || 'Print failed')}</div>` : ''}
+      <button type="button" class="hist-del" title="Delete this history entry" onclick="event.stopPropagation();deleteHistoryEntry('${_ovEsc(e.plate.id)}','${_ovEsc(e.at)}')">🗑</button>
     </div>`;
   }).join('');
   const more = all.length > _histLimit ? `<button class="pipe-stage-btn" style="width:100%" onclick="_histLimit+=40;renderPipeline()">Show older (${all.length - _histLimit} more)</button>` : '';
@@ -8192,7 +8801,7 @@ let _filSpoolColMissing = false;   // true until the spool_weight_g SQL has been
 
 async function _saveFilamentRow(id) {
   const row = (_filamentsCache||[]).find(f => f.id === id);
-  if (!row) return;
+  if (!row) return false;
   _filShowStatus('saving…');
   const payload = {
     brand:          row.brand           || null,
@@ -8208,16 +8817,23 @@ async function _saveFilamentRow(id) {
     qty_stock:      Array.isArray(row.open_spools) ? row.open_spools.length : (row.qty_stock ?? null),
   };
   if (!_filSpoolColMissing) payload.spool_weight_g = row.spool_weight_g ?? null;
-  let { error } = await db.from('filaments').update(payload).eq('id', id);
-  if (error && /spool_weight_g/.test(error.message)) {
-    // Column not created yet → save everything else, warn once
-    _filSpoolColMissing = true;
-    delete payload.spool_weight_g;
-    ({ error } = await db.from('filaments').update(payload).eq('id', id));
-    toast('Spool weight not saved — run the spool_weight_g SQL in Supabase first', 'error');
+  const write = () => db.from('filaments').update(payload).eq('id', id).select();
+  let { data: saved, error } = await write();
+  // Columns not created yet (spool_weight_g, open_spools, qty_stock): save everything else and say what wasn't stored
+  const dropped = [];
+  for (let n = 0; error && n < 3; n++) {
+    const missing = ['spool_weight_g', 'open_spools', 'qty_stock'].find(k => k in payload && error.message.includes(k));
+    if (!missing) break;
+    if (missing === 'spool_weight_g') _filSpoolColMissing = true;
+    delete payload[missing]; dropped.push(missing);
+    ({ data: saved, error } = await write());
   }
-  if (error) { _filShowStatus('❌ save failed'); toast('Save error: ' + error.message, 'error'); }
-  else _filShowStatus('✓ saved', 1500);
+  if (dropped.length) toast(`${dropped.join(' + ')} can't be stored yet — run the filaments SQL in Supabase (columns are missing)`, 'error');
+  // Supabase reports "success" even when a row-level-security rule refuses the update and 0 rows change — treat that as a failure
+  if (!error && !(saved && saved.length)) error = { message: 'the database accepted the request but changed nothing — updates on the filaments table are being blocked (row-level security)' };
+  if (error) { _filShowStatus('❌ save failed'); toast('Save error: ' + error.message, 'error'); return false; }
+  _filShowStatus('✓ saved', 1500);
+  return true;
 }
 
 function _filShowStatus(msg, clearAfter) {
@@ -8253,9 +8869,14 @@ async function saveFilaments() {
   if (!_filDirty) return;
   if (!(await confirmDialog(`Save ${_filDirtyIds.size} change(s) to the filaments table?`))) return;
   _filShowStatus('saving…');
-  let errors = 0;
+  let failed = 0;
   for (const id of _filDirtyIds) {
-    await _saveFilamentRow(id);
+    if (!(await _saveFilamentRow(id))) failed++;
+  }
+  if (failed) {                     // don't claim success; keep the edits so they can be saved again
+    _filShowStatus(`❌ ${failed} not saved`);
+    toast(`${failed} filament change(s) were NOT saved — see the error`, 'error');
+    return;
   }
   _filClearDirty();
   _filShowStatus('✓ All changes saved', 2500);
@@ -9077,7 +9698,7 @@ async function loadLoyverseItems() {
 
 // ─────────────────── INVENTORY PAGE ───────────────────
 let _invItems      = [];
-let _invCatFilter  = 'all';
+const _invCatSel   = new Set();   // categories being filtered to; empty = all
 let _stockLevels   = {};   // Map<variant_id, {qty_on_hand, low_stock_threshold}>
 let _stocktakeMode = false;
 let _stocktakeDraft= {};   // Map<variant_id, number> — pending counts during stocktake
@@ -9166,6 +9787,33 @@ async function adjustStock(variantId, itemName, variantName, delta, channel, not
   renderInventory();
 }
 
+// ── "Stock ▾" menu: log a sale · count stock · stocktake history ──
+function _stockMenuClose() { document.getElementById('stock-menu')?.remove(); }
+function _stockMenuToggle(btn) {
+  if (document.getElementById('stock-menu')) { _stockMenuClose(); return; }
+  const menu = document.createElement('div');
+  menu.id = 'stock-menu'; menu.className = 'pr-menu';
+  menu.innerHTML = `<div class="pr-menu-h">Stock</div>
+    <button type="button" class="pr-item" data-a="sale"><span class="pr-ic">🛒</span><span class="pr-n">Log a sale</span><span class="pr-cap">takes stock off</span></button>
+    <button type="button" class="pr-item" data-a="count"><span class="pr-ic">📋</span><span class="pr-n">Count stock</span><span class="pr-cap">new stocktake</span></button>
+    <button type="button" class="pr-item" data-a="history"><span class="pr-ic">🕘</span><span class="pr-n">Stocktake history</span></button>`;
+  document.body.appendChild(menu);
+  const r = btn.getBoundingClientRect();
+  menu.style.left = Math.max(8, Math.min(r.left, window.innerWidth - menu.offsetWidth - 8)) + 'px';
+  menu.style.top = (r.bottom + 6) + 'px';
+  menu.addEventListener('click', e => {
+    const a = e.target.closest('.pr-item')?.dataset.a;
+    if (!a) return;
+    _stockMenuClose();
+    if (a === 'sale') openLogSaleModal();
+    else if (a === 'count') toggleStocktakeMode();
+    else if (a === 'history') openStocktakeHistory();
+  });
+}
+document.addEventListener('mousedown', e => { if (!e.target.closest('#stock-menu, #stk-take-btn')) _stockMenuClose(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') _stockMenuClose(); });
+window.addEventListener('scroll', _stockMenuClose, true);
+
 function toggleStocktakeMode(force) {
   _stocktakeMode = (force === false) ? false : !_stocktakeMode;
   _stocktakeDraft = {};
@@ -9204,7 +9852,7 @@ const _localDate = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth()
 
 function _stocktakeScope() {
   const q = (document.getElementById('inv-search')?.value || '').trim();
-  const bits = [_invCatFilter === 'all' ? 'All categories' : `Category: ${_invCatFilter}`];
+  const bits = [_invCatSel.size ? `Category: ${[..._invCatSel].join(', ')}` : 'All categories'];
   if (q) bits.push(`search “${q}”`);
   return bits.join(' · ');
 }
@@ -9693,33 +10341,75 @@ async function submitLogSale() {
   document.getElementById('modal-log-sale').classList.remove('open');
 }
 
+// ── Category filter: one compact button + a searchable multi-select list (instead of a wall of pills) ──
+// Chosen categories show as small removable chips beside the button; none chosen = all categories.
+const _invCatSort = (a, b) => (a === 'Uncategorised') - (b === 'Uncategorised') || a.localeCompare(b, undefined, { sensitivity: 'base', numeric: true });
+function _invCatCounts() {      // category → number of products (a product with variants counts once)
+  const m = new Map();
+  _invItems.forEach(r => { const c = r.category_name || 'Uncategorised'; if (!m.has(c)) m.set(c, new Set()); m.get(c).add(r.loyverse_id || r.variant_id); });
+  return m;
+}
 function _buildInvCatPills() {
-  const cats = [...new Set(_invItems.map(i => i.category_name || 'Uncategorised'))].sort();
+  const counts = _invCatCounts();
+  const cats = [...counts.keys()].sort(_invCatSort);
   const dl = document.getElementById('inv-cat-list');
   if (dl) dl.innerHTML = cats.filter(c => c !== 'Uncategorised').map(c => `<option value="${_ovEsc(c)}">`).join('');
+  [..._invCatSel].forEach(c => { if (!counts.has(c)) _invCatSel.delete(c); });      // a category that no longer exists can't stay selected
+  const sel = [..._invCatSel].sort(_invCatSort);
   const container = document.getElementById('inv-cat-pills');
-  container.innerHTML =
-    ['All', ...cats].map(c =>
-      `<button class="filter-btn inv-cat-pill${(_invCatFilter === 'all' ? c === 'All' : _invCatFilter === c) ? ' active' : ''}"
-         onclick="setInvCat('${c.replace(/'/g,"\\'")}')">
-        ${c}
-      </button>`
-    ).join('');
+  if (!container) return;
+  container.innerHTML = `<button type="button" class="inv-cat-btn${sel.length ? ' on' : ''}" id="inv-cat-btn" onclick="_invCatPanelToggle()">📁 ${sel.length ? `${sel.length} categor${sel.length === 1 ? 'y' : 'ies'}` : `All categories <span class="n">${cats.length}</span>`} <span class="chev">▾</span></button>`
+    + sel.map((c, i) => `<span class="inv-cat-chip">${_ovEsc(c)}<button type="button" title="Remove" onclick="_invCatToggle(${i},true)">✕</button></span>`).join('')
+    + (sel.length ? `<button type="button" class="if-link" onclick="_invCatClear()">Clear</button>` : '');
+  container._sel = sel;
 }
+function _invCatApply() { _buildInvCatPills(); _invCatPanelRender(); renderInventory(); }
+function _invCatToggle(i, fromChip) {
+  const c = fromChip ? document.getElementById('inv-cat-pills')._sel[i] : _invCatPanelCats[i];
+  if (c == null) return;
+  if (_invCatSel.has(c)) _invCatSel.delete(c); else _invCatSel.add(c);
+  _invCatApply();
+}
+function _invCatClear() { _invCatSel.clear(); _invCatApply(); }
 
-function setInvCat(cat) {
-  _invCatFilter = cat === 'All' ? 'all' : cat;
-  document.querySelectorAll('.inv-cat-pill').forEach(p =>
-    p.classList.toggle('active',
-      (_invCatFilter === 'all' ? p.textContent.trim() === 'All' : p.textContent.trim() === _invCatFilter)));
-  renderInventory();
+let _invCatPanelCats = [];
+function _invCatPanelClose() { document.getElementById('inv-cat-panel')?.remove(); }
+function _invCatPanelToggle() {
+  if (document.getElementById('inv-cat-panel')) { _invCatPanelClose(); return; }
+  const btn = document.getElementById('inv-cat-btn'); if (!btn) return;
+  const panel = document.createElement('div');
+  panel.id = 'inv-cat-panel';
+  panel.innerHTML = `<div class="icp-search"><span>🔍</span><input type="text" id="icp-q" placeholder="Find a category…" autocomplete="off" spellcheck="false"
+      oninput="_invCatPanelRender()" onkeydown="_invCatPanelKey(event)"></div><div class="icp-list" id="icp-list"></div>
+    <div class="icp-foot"><button type="button" class="if-link" onclick="_invCatClear()">Clear selection</button><button type="button" class="btn btn-sm btn-outline" onclick="_invCatPanelClose()">Done</button></div>`;
+  document.body.appendChild(panel);
+  const r = btn.getBoundingClientRect();
+  panel.style.left = Math.max(8, Math.min(r.left, window.innerWidth - panel.offsetWidth - 8)) + 'px';
+  panel.style.top = (r.bottom + 6) + 'px';
+  _invCatPanelRender();
+  document.getElementById('icp-q').focus();
 }
+function _invCatPanelRender() {
+  const list = document.getElementById('icp-list'); if (!list) return;
+  const q = (document.getElementById('icp-q')?.value || '').toLowerCase().trim();
+  const counts = _invCatCounts();
+  _invCatPanelCats = [...counts.keys()].filter(c => c.toLowerCase().includes(q)).sort(_invCatSort);
+  list.innerHTML = _invCatPanelCats.length
+    ? _invCatPanelCats.map((c, i) => `<div class="icp-row${_invCatSel.has(c) ? ' on' : ''}${i === 0 && q ? ' hl' : ''}" onmousedown="event.preventDefault();_invCatToggle(${i})"><span class="box">${_invCatSel.has(c) ? '✓' : ''}</span><span class="nm">${_ovEsc(c)}</span><span class="n">${counts.get(c).size}</span></div>`).join('')
+    : '<div class="icp-empty">No category matches.</div>';
+}
+function _invCatPanelKey(e) {
+  if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); _invCatPanelClose(); }
+  else if (e.key === 'Enter') { e.preventDefault(); if (_invCatPanelCats.length) _invCatToggle(0); }
+}
+document.addEventListener('mousedown', e => { if (!e.target.closest('#inv-cat-panel, #inv-cat-btn')) _invCatPanelClose(); });
+window.addEventListener('scroll', e => { if (!e.target.closest?.('#inv-cat-panel')) _invCatPanelClose(); }, true);
 
 // ── Inline editing state ──────────────────────────────────────────────────
 let _invDraft    = {};          // { variant_id: { field: value } } — unsaved edits
 let _invEditing  = new Set();   // loyverse_ids currently in edit mode
 let _invExpanded = new Set();   // loyverse_ids whose variant rows are open
-let _invNewVids  = new Set();   // rows added with ＋ Add Row / ＋ variant — inserted on Save, dropped on Cancel
+let _invNewVids  = new Set();   // rows added with ＋ Add Item / ＋ variant — inserted on Save, dropped on Cancel
 const _invIsDirty = vid => !!_invDraft[vid] || _invNewVids.has(vid);
 const _INV_NUM_FIELDS = new Set(['cost_price', 'default_price', 'grams_per_unit', 'print_minutes']);
 const _INV_FIELD_LABEL = { cost_price: 'Cost price', default_price: 'Sell price', grams_per_unit: 'Filament grams', print_minutes: 'Print time' };
@@ -9924,7 +10614,7 @@ function renderInventory() {
   _invItems.forEach(row => {
     const cat = row.category_name || 'Uncategorised';
     const isNew = _invNewVids.has(row.variant_id);          // unsaved rows always stay visible
-    if (!isNew && _invCatFilter !== 'all' && cat !== _invCatFilter) return;
+    if (!isNew && _invCatSel.size && !_invCatSel.has(cat)) return;
     const qMatch = isNew || !query
       || (row.item_name || '').toLowerCase().includes(query)
       || (row.variant_name || '').toLowerCase().includes(query)
@@ -10221,12 +10911,12 @@ function _invFocusProblem(row, field) {
   if (el) { el.focus(); el.scrollIntoView({ block: 'center' }); }
 }
 
-// ＋ Add Row → a new item row in edit mode (saved with 💾 Save, removed by ✕ Cancel)
+// ＋ Add Item → a new item row in edit mode (saved with 💾 Save, removed by ✕ Cancel)
 function invAddItemRow() {
   const stamp = Date.now();
   const row = {
     variant_id: 'mvar-' + stamp + '-0', loyverse_id: 'manual-' + stamp,
-    item_name: '', category_name: _invCatFilter !== 'all' && _invCatFilter !== 'Uncategorised' ? _invCatFilter : null,
+    item_name: '', category_name: _invCatSel.size === 1 && !_invCatSel.has('Uncategorised') ? [..._invCatSel][0] : null,
     variant_name: null, sku: null, cost_price: null, default_price: null, filament_ids: [],
   };
   _invItems.unshift(row);
