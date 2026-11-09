@@ -694,6 +694,7 @@
     /* print calculator */
     .calc-wrap { display:grid; grid-template-columns:minmax(0,1.3fr) minmax(300px,.8fr); gap:1rem; align-items:start; }
     .calc-right { position:sticky; top:1rem; }
+    .calc-wrap.file-over .slc-drop { border-color:var(--accent); background:rgba(99,102,241,.16); }
     @media (max-width:1000px) { .calc-wrap { grid-template-columns:1fr; } .calc-right { position:static; } }
     .calc-card { margin-bottom:1rem; }
     .calc-hint { font-size:.7rem; font-weight:400; color:var(--muted); text-transform:none; letter-spacing:0; margin-left:.35rem; }
@@ -703,18 +704,119 @@
     .calc-in { width:100%; padding:.5rem .65rem; background:var(--input-bg); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:.9rem; outline:none; font-family:inherit; }
     .calc-in:focus { border-color:var(--accent); }
     select.calc-in { appearance:auto; cursor:pointer; }
-    .calc-fil-row { display:grid; grid-template-columns:minmax(0,1fr) 84px 104px 84px 26px; gap:.5rem; align-items:center; padding:.5rem 0; border-bottom:1px solid rgba(255,255,255,.07); }
-    .calc-fil-head { display:grid; grid-template-columns:minmax(0,1fr) 84px 104px 84px 26px; gap:.5rem; font-size:.62rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); padding-bottom:.2rem; }
+    .calc-fil-row { display:grid; grid-template-columns:minmax(0,1fr) 78px 92px 92px 74px 26px; gap:.5rem; align-items:center; padding:.5rem 0; border-bottom:1px solid rgba(255,255,255,.07); }
+    .calc-fil-head { display:grid; grid-template-columns:minmax(0,1fr) 78px 92px 92px 74px 26px; gap:.5rem; font-size:.62rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); padding-bottom:.2rem; }
+    .calc-type.on { background:var(--accent); border-color:var(--accent); color:#fff; }
+    /* what you type (grams, print time) stands out; what fills itself in (price, electricity, cost) is quiet, and turns amber if you override it */
+    .calc-in.calc-main { border:1.5px solid var(--accent); background:rgba(99,102,241,.12); color:#fff; font-weight:700; font-size:.95rem; box-shadow:0 0 0 3px rgba(99,102,241,.18); }
+    .calc-in.calc-main:focus { box-shadow:0 0 0 3px rgba(99,102,241,.4); }
+    .calc-in.calc-main::placeholder { color:#a5b4fc; font-weight:500; opacity:.7; }
+    .calc-fil-row .calc-in.calc-auto { background:transparent; border:1px dashed rgba(255,255,255,.16); color:var(--muted); }
+    .calc-fil-row .calc-in.calc-auto:focus { border:1px solid var(--accent); color:var(--text); background:var(--input-bg); }
+    .calc-fil-row .calc-in.calc-ovr { border:1px solid #f59e0b; color:var(--text); }
+    .calc-fil-row .calc-line { color:var(--muted); }
+    .calc-head-in { color:#a5b4fc; }
+    .calc-fil-head em { font-style:normal; color:var(--muted); text-transform:none; letter-spacing:0; font-weight:500; margin-left:.2rem; }
+    .calc-ct { display:grid; grid-template-columns:minmax(0,1.3fr) 74px 92px 86px 96px 76px 26px; gap:.5rem; align-items:center; padding:.3rem 0; }
+    .calc-ct-head { font-size:.62rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); padding-bottom:.1rem; }
+    .calc-ct .calc-in { padding:.4rem .5rem; font-size:.84rem; }
+    .calc-ct-v { font-size:.82rem; color:var(--muted); }
+    .calc-actions { display:flex; flex-wrap:wrap; gap:.4rem; margin-top:.6rem; }
+    .mc-fig { display:flex; flex-wrap:wrap; gap:.3rem 1.1rem; padding:.55rem .7rem; margin:.4rem 0 .8rem; border-radius:10px; background:rgba(99,102,241,.08); border:1px solid rgba(99,102,241,.3); font-size:.78rem; color:var(--muted); }
+    .mc-fig b { color:var(--text); margin-left:.3rem; }
+    .mc-list { max-height:210px; overflow-y:auto; margin-bottom:.8rem; }
+    .mc-prod { padding:.4rem .6rem; border-radius:8px; cursor:pointer; border:1px solid transparent; display:flex; flex-direction:column; }
+    .mc-prod:hover { background:rgba(255,255,255,.05); }
+    .mc-prod.on { background:rgba(99,102,241,.16); border-color:var(--accent); }
+    .mc-prod strong { font-size:.86rem; }
+    .mc-prod em { font-style:normal; font-weight:500; color:var(--muted); font-size:.78rem; }
+    .mc-prod span { font-size:.7rem; color:var(--muted); }
+    .mc-for { font-size:.8rem; color:var(--muted); margin:.2rem 0 .4rem; }
+    .mc-for b { color:var(--text); }
+    .mc-ck { display:grid; grid-template-columns:auto minmax(0,1fr) auto auto; gap:.6rem; align-items:center; padding:.4rem .2rem; border-top:1px solid rgba(255,255,255,.07); font-size:.84rem; cursor:pointer; }
+    .mc-ck.off { opacity:.5; cursor:default; }
+    .mc-ck .was { color:var(--muted); font-size:.76rem; text-align:right; }
+    .mc-ck .to { text-align:right; min-width:7rem; }
+    .ch-row { display:flex; align-items:center; justify-content:space-between; gap:.6rem; padding:.55rem 0; border-top:1px solid rgba(255,255,255,.07); }
+    .ch-main { min-width:0; display:flex; flex-direction:column; }
+    .ch-main strong { font-size:.88rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .ch-main span { font-size:.72rem; color:var(--muted); }
+    .ch-main span b { color:var(--text); }
+    .ch-act { display:flex; gap:.3rem; align-items:center; flex-shrink:0; }
+    /* a settings card that starts folded: the title row (with a one-line summary) opens it */
+    .calc-hist-card { background:linear-gradient(180deg,rgba(45,212,191,.10),rgba(45,212,191,.04)) !important; border-color:rgba(45,212,191,.45) !important; }
+    .calc-hist-card > summary::before { color:#5eead4; }
+    .calc-hist-card > summary h3 { color:#5eead4; }
+    .calc-edit-bar { display:flex; align-items:center; justify-content:space-between; gap:.6rem; flex-wrap:wrap; padding:.6rem .8rem; margin-bottom:.6rem; border-radius:10px; background:rgba(45,212,191,.12); border:1px solid rgba(45,212,191,.45); font-size:.85rem; }
+    .ch-item + .ch-item { }
+    .ch-detail { padding:.2rem .2rem .8rem 1.1rem; font-size:.84rem; }
+    .chd-h { margin:.55rem 0 .2rem; font-size:.7rem; letter-spacing:.06em; text-transform:uppercase; color:#5eead4; }
+    .chd-r { display:flex; justify-content:space-between; gap:1rem; padding:.15rem 0; color:#94a3b8; }
+    .chd-r b { color:#e2e8f0; font-weight:600; text-align:right; }
+    .calc-fold > summary { cursor:pointer; list-style:none; user-select:none; display:flex; align-items:center; gap:.5rem; }
+    .calc-fold > summary::-webkit-details-marker { display:none; }
+    .calc-fold > summary::before { content:'▸'; color:#a5b4fc; font-size:.8rem; transition:transform .15s; }
+    .calc-fold[open] > summary::before { transform:rotate(90deg); }
+    .calc-fold > summary h3 { margin:0; }
+    .calc-more { margin:.3rem 0 .6rem; }
+    .calc-more > summary { cursor:pointer; font-size:.78rem; font-weight:600; color:#a5b4fc; padding:.25rem 0; list-style:none; user-select:none; }
+    .calc-more > summary::-webkit-details-marker { display:none; }
+    .calc-more > summary::before { content:'▸'; display:inline-block; margin-right:.35rem; transition:transform .15s; }
+    .calc-more[open] > summary::before { transform:rotate(90deg); }
+    .calc-more > summary:hover { color:#c7d2fe; }
+    .calc-extra { display:grid; grid-template-columns:minmax(0,1fr) 96px 170px 26px; gap:.5rem; align-items:center; margin-bottom:.5rem; }
+    .calc-obj { display:grid; grid-template-columns:minmax(0,1fr) 90px 150px; gap:.5rem; align-items:center; margin-bottom:.4rem; }
+    @media (max-width:700px) { .calc-fil-row, .calc-fil-head, .calc-ct { grid-template-columns:repeat(3, minmax(0,1fr)); } }
     .calc-fil-cur { display:flex; align-items:center; gap:.5rem; min-width:0; }
     .calc-fil-cur .t { min-width:0; display:flex; flex-direction:column; }
     .calc-fil-cur strong { font-size:.85rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
     .calc-fil-cur em { font-style:normal; font-size:.68rem; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
     .calc-line { text-align:right; font-size:.84rem; font-weight:600; }
+    .calc-pickcell { min-width:0; display:flex; flex-direction:column; gap:.4rem; }
+    .calc-types { display:flex; flex-wrap:wrap; align-items:center; gap:.3rem; }
+    .calc-or { font-size:.7rem; color:var(--muted); margin-right:.15rem; }
+    .calc-matname { display:inline-block; min-width:4.5rem; color:var(--text); font-weight:600; }
+    .calc-type { background:rgba(99,102,241,.12); border:1px solid rgba(99,102,241,.4); color:#c7d2fe; border-radius:999px; padding:.18rem .7rem; font-size:.78rem; font-weight:600; cursor:pointer; font-family:inherit; }
+    .calc-type:hover { background:var(--accent); border-color:var(--accent); color:#fff; }
+    .calc-type-ic { font-size:1.15rem; width:20px; text-align:center; }
     .calc-fil-row .calc-in { padding:.4rem .5rem; font-size:.82rem; }
     .calc-tier { display:flex; align-items:center; gap:.45rem; flex-wrap:wrap; padding:.35rem 0; font-size:.84rem; color:var(--muted); }
     .calc-tier .calc-in { width:84px; padding:.35rem .5rem; font-size:.82rem; }
     .calc-tier .open { color:var(--text); }
     .calc-result { padding:1.1rem 1.2rem; }
+    /* the three figures that matter: cost to make, price to charge, profit */
+    .cr-sum { border:1px solid rgba(255,255,255,.12); border-radius:12px; overflow:hidden; }
+    .cr-s-row { display:grid; grid-template-columns:minmax(0,1.25fr) repeat(var(--cols, 1), minmax(0,1fr)); gap:.5rem; align-items:baseline; padding:.65rem .9rem; }
+    .cr-s-row + .cr-s-row { border-top:1px solid rgba(255,255,255,.08); }
+    .cr-s-row .v { text-align:right; font-variant-numeric:tabular-nums; }
+    .cr-s-row.head { padding:.45rem .9rem; background:rgba(255,255,255,.04); font-size:.66rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); }
+    .cr-s-row.head .v { font-size:.66rem; }
+    .cr-s-row.cost .k, .cr-s-row.cost .v { font-size:1rem; color:var(--text); }
+    .cr-s-row.cost .k { color:var(--muted); }
+    .cr-s-row.price { background:rgba(99,102,241,.14); }
+    .cr-s-row.price .k { font-size:.95rem; font-weight:700; }
+    .cr-s-row.price .v { font-size:1.55rem; font-weight:800; color:#fff; }
+    .cr-s-row.profit { background:rgba(16,185,129,.1); }
+    .cr-s-row.profit .k { font-size:.95rem; font-weight:700; color:#6ee7b7; }
+    .cr-s-row.profit .v { font-size:1.3rem; font-weight:800; color:#6ee7b7; }
+    .cr-note { font-size:.74rem; color:var(--muted); margin:.55rem .1rem 0; line-height:1.5; }
+    .cr-note b { color:var(--text); }
+    .cr-basis { text-transform:none; letter-spacing:0; font-weight:500; margin-left:.35rem; color:var(--muted); }
+    .cr-subtotal { font-weight:700; border-top:1px solid rgba(255,255,255,.18) !important; }
+    .cr-hero { display:flex; justify-content:space-between; align-items:flex-end; gap:1rem; }
+    .cr-lbl { font-size:.64rem; font-weight:700; letter-spacing:.07em; text-transform:uppercase; color:var(--muted); margin-bottom:.1rem; }
+    .cr-profit { font-size:1.5rem; font-weight:800; line-height:1.1; color:#6ee7b7; }
+    .cr-kpis { display:flex; flex-wrap:wrap; gap:.3rem 1.1rem; margin:.7rem 0 .3rem; padding:.55rem .7rem; border-radius:10px; background:rgba(16,185,129,.07); border:1px solid rgba(16,185,129,.3); font-size:.76rem; color:var(--muted); }
+    .cr-kpis b { color:var(--text); font-size:.92rem; margin-left:.35rem; }
+    .cr-kpis i { font-style:normal; font-size:.66rem; margin-left:.3rem; }
+    .cr-sec { font-size:.64rem; font-weight:700; letter-spacing:.07em; text-transform:uppercase; color:var(--muted); margin:.9rem 0 .15rem; }
+    .cr-table { font-size:.8rem; }
+    .cr-tr { display:grid; grid-template-columns:minmax(0,1.5fr) 1fr 1fr 1fr; gap:.4rem; padding:.32rem 0; border-top:1px solid rgba(255,255,255,.07); }
+    .cr-tr > span:not(:first-child) { text-align:right; }
+    .cr-tr i { font-style:normal; color:var(--muted); font-size:.68rem; margin-left:.35rem; }
+    .cr-th { font-size:.62rem; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); border-top:none; }
+    .cr-tr.tot { font-weight:700; border-top:1px dashed rgba(255,255,255,.2); }
+    .cr-pf { color:#6ee7b7; }
     .cr-big { font-size:2rem; font-weight:800; line-height:1.1; }
     .cr-bigsub { font-size:.74rem; color:var(--muted); margin:.15rem 0 .8rem; }
     .cr-row { display:flex; justify-content:space-between; gap:.8rem; padding:.45rem 0; border-top:1px solid rgba(255,255,255,.07); font-size:.88rem; }
@@ -1794,46 +1896,53 @@
 
     <!-- ── PRINT CALCULATOR PAGE ── -->
     <div id="page-calculator" class="page">
-      <div class="calc-wrap">
+      <div class="calc-wrap" ondragover="_calcDragOver(event)" ondragleave="if(!this.contains(event.relatedTarget))this.classList.remove('file-over')" ondrop="_calcDrop(event)">
         <div class="calc-left">
           <div class="chart-card calc-card">
-            <h3>🧵 Filament <span class="calc-hint">pick the actual filament — each one has its own price</span></h3>
+            <h3>🧵 Filament <span class="calc-hint">click a type — its price and electricity fill in, then enter the grams</span></h3>
+            <div id="calc-import"></div>
             <div id="calc-fils"></div>
-            <button type="button" class="btn btn-sm btn-outline" onclick="_calcAddRow()">＋ Add another filament <span class="calc-hint" style="margin-left:.3rem">(dual / multi-colour)</span></button>
+            <button type="button" class="btn btn-sm btn-outline" onclick="_calcAddRow()">＋ Add another filament <span class="calc-hint" style="margin-left:.3rem">(dual / mixed materials)</span></button>
           </div>
 
           <div class="chart-card calc-card">
             <h3>⏱ Time &amp; quantity</h3>
             <div class="calc-grid2">
               <div class="form-group"><label>Print time <span class="calc-hint">e.g. 6h 38m or 6:38</span></label>
-                <input id="calc-time" type="text" class="calc-in" placeholder="6h 38m" autocomplete="off" oninput="calcRecalc()"></div>
-              <div class="form-group"><label>Quantity <span class="calc-hint">identical items</span></label>
-                <input id="calc-qty" type="number" min="1" step="1" value="1" class="calc-in" oninput="calcRecalc()"></div>
+                <input id="calc-time" type="text" class="calc-in calc-main" placeholder="6h 38m" autocomplete="off" oninput="calcRecalc()"></div>
+              <div class="form-group"><label><span id="calc-qty-label">Objects on the plate</span> <span class="calc-hint" id="calc-qty-hint">how many it holds</span></label>
+                <input id="calc-qty" type="number" min="1" step="1" value="1" class="calc-in" oninput="_calcQty()"></div>
             </div>
-            <div class="calc-hint">Grams and time are for <b>one</b> item; the total multiplies by the quantity.</div>
-          </div>
-
-          <div class="chart-card calc-card">
-            <h3>⚡ Electricity</h3>
-            <div class="calc-grid2">
-              <div class="form-group"><label>How do you want to enter it?</label>
-                <select id="calc-elec-mode" class="calc-in" onchange="_calcSetting('elecMode',this.value,false)">
-                  <option value="hour">Cost per hour of printing</option>
-                  <option value="watts">From printer watts × tariff</option>
+            <details class="calc-more">
+              <summary>More options <span class="calc-hint">one item or a whole plate · how the cost is split</span></summary>
+              <div class="form-group" style="margin-top:.7rem"><label>The grams and time above are for</label>
+                <select id="calc-scope" class="calc-in" onchange="_calcScope()">
+                  <option value="plate" selected>A whole sliced plate — split the cost between its objects</option>
+                  <option value="item">One item — the quantity multiplies the cost</option>
                 </select></div>
-              <div class="form-group" id="calc-elec-hour-wrap"><label>Electricity <span class="calc-hint">R per hour</span></label>
-                <input id="calc-elec-hour" type="number" min="0" step="0.01" class="calc-in" placeholder="0.00" oninput="_calcSetting('elecHour',this.value)"></div>
-              <div class="form-group" id="calc-watts-wrap" style="display:none"><label>Printer power <span class="calc-hint">average watts</span></label>
-                <input id="calc-watts" type="number" min="0" step="1" class="calc-in" placeholder="250" oninput="_calcSetting('watts',this.value)"></div>
-              <div class="form-group" id="calc-tariff-wrap" style="display:none"><label>Tariff <span class="calc-hint">R per kWh</span></label>
-                <input id="calc-tariff" type="number" min="0" step="0.01" class="calc-in" placeholder="0.00" oninput="_calcSetting('tariff',this.value)"></div>
-            </div>
-            <div class="calc-hint" id="calc-elec-readout"></div>
+              <div id="calc-plate-opts">
+                <div class="form-group"><label>Split the cost</label>
+                  <select id="calc-split" class="calc-in" onchange="_calcScope()">
+                    <option value="equal" selected>Equally between the objects</option>
+                    <option value="weight">By each object's weight</option>
+                  </select></div>
+              </div>
+            </details>
+            <div id="calc-objs"></div>
+            <div class="calc-hint" id="calc-scope-hint">Enter the <b>whole plate’s</b> grams (include the prime tower) and time from your slicer. The cost is split between its objects.</div>
           </div>
 
-          <div class="chart-card calc-card">
-            <h3>🔧 Wear &amp; tear <span class="calc-hint">per hour, per item</span></h3>
-            <div class="calc-grid2">
+          <details class="chart-card calc-card calc-fold" id="calc-extras-card">
+            <summary><h3>➕ Extras <span class="calc-hint" id="calc-extras-sum">optional — a keychain, packaging…</span></h3></summary>
+            <div style="margin-top:.9rem">
+              <div class="calc-hint" style="margin-bottom:.6rem">Anything else that goes into the cost, such as a keychain ring or a box. Count it on every object, or once for the whole job.</div>
+              <div id="calc-extras"></div>
+            </div>
+          </details>
+
+          <details class="chart-card calc-card calc-fold">
+            <summary><h3>🔧 Wear &amp; tear <span class="calc-hint" id="calc-wear-sum">per hour</span></h3></summary>
+            <div class="calc-grid2" style="margin-top:.9rem">
               <div class="form-group"><label>Rate type</label>
                 <select id="calc-wear-mode" class="calc-in" onchange="_calcSetting('wearMode',this.value,false)">
                   <option value="tiered">Changes with print length (bands)</option>
@@ -1848,11 +1957,11 @@
                 </select></div>
             </div>
             <div id="calc-tiers"></div>
-          </div>
+          </details>
 
-          <div class="chart-card calc-card">
-            <h3>💰 Price <span class="calc-hint">optional</span></h3>
-            <div class="calc-grid2">
+          <details class="chart-card calc-card calc-fold">
+            <summary><h3>💰 Price <span class="calc-hint" id="calc-price-sum">markup and rounding</span></h3></summary>
+            <div class="calc-grid2" style="margin-top:.9rem">
               <div class="form-group"><label>Markup on cost <span class="calc-hint">%</span></label>
                 <input id="calc-markup" type="number" min="0" step="1" class="calc-in" placeholder="0" oninput="_calcSetting('markup',this.value)"></div>
               <div class="form-group"><label>Round the price up to</label>
@@ -1860,13 +1969,32 @@
                   <option value="0">No rounding</option><option value="1">Next R 1</option><option value="5">Next R 5</option><option value="10">Next R 10</option>
                 </select></div>
             </div>
-          </div>
-          <div class="calc-hint" style="margin:.2rem 0 1rem">Your rates are saved in this browser, so they're there next time. The job above (filament, time, quantity) isn't saved.</div>
+          </details>
+
+          <details class="chart-card calc-card calc-fold">
+            <summary><h3>⚙ Filament types <span class="calc-hint" id="calc-types-sum">your roll prices and electricity</span></h3></summary>
+            <div style="margin-top:.9rem"><div id="calc-types"></div></div>
+          </details>
+
+          <details class="chart-card calc-card calc-fold calc-hist-card" id="calc-hist-card">
+            <summary><h3>🕘 Saved prints <span class="calc-hint" id="calc-hist-sum">none yet</span></h3></summary>
+            <div style="margin-top:.9rem">
+              <div id="calc-hist-note"></div>
+              <input id="calc-hist-q" type="text" class="calc-in" placeholder="Search saved prints…" autocomplete="off" oninput="_calcHistRender()" style="margin-bottom:.6rem">
+              <div id="calc-hist"></div>
+            </div>
+          </details>
         </div>
 
         <div class="calc-right">
+          <div id="calc-edit-bar"></div>
           <div class="chart-card calc-result" id="calc-result"></div>
-          <button type="button" class="btn btn-sm btn-outline" style="margin-top:.6rem" onclick="calcClear()">↺ Clear this job</button>
+          <div class="calc-actions">
+            <button type="button" class="btn btn-sm btn-outline" onclick="calcSaveOpen()" title="Keep this calculation under a name">💾 Save to history</button>
+            <button type="button" class="btn btn-sm btn-outline" onclick="calcApplyOpen()" title="Put the price, cost, grams and time on a product you already have">📌 Apply to a product</button>
+            <button type="button" class="btn btn-sm btn-outline" onclick="calcNewProductOpen()" title="Add it to the inventory as a new product">＋ New product</button>
+            <button type="button" class="btn btn-sm btn-outline" onclick="calcClear()">↺ Clear this job</button>
+          </div>
         </div>
       </div>
     </div>
@@ -2309,6 +2437,18 @@
   </div>
 </div>
 
+<!-- Print calculator: save / apply to a product / new product -->
+<div class="modal-overlay" id="modal-calc" onmousedown="if(event.target===this)closeCalcModal()">
+  <div class="modal" style="max-width:580px">
+    <div class="modal-header">
+      <h2 id="mc-title">Print calculator</h2>
+      <button class="modal-close" onclick="closeCalcModal()">✕</button>
+    </div>
+    <div id="mc-body"></div>
+    <div class="form-actions" id="mc-actions"></div>
+  </div>
+</div>
+
 <!-- History entry details -->
 <div class="modal-overlay" id="modal-hist" onmousedown="if(event.target===this)closeHistoryEntry()">
   <div class="modal" style="max-width:520px">
@@ -2736,31 +2876,69 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') _closeNavMen
 window.addEventListener('scroll', _closeNavMenu, true);
 
 // ═══════════════════ PRINT COST CALCULATOR ═══════════════════
-// cost per item = filament (grams × that filament's price per gram, per row) + electricity (hours × R/h) + wear & tear (hours × rate,
-// the rate flat or set by print-length bands). Rates are kept in this browser; the job itself isn't saved.
+// You define your filament types once (roll weight, roll price, electricity per minute). Choosing a type on a row fills in its price per
+// gram and electricity rate, so a job is just grams + print time. cost per item = filament (grams × R per gram) + electricity (minutes ×
+// R per minute) + wear & tear (hours × rate, flat or by print-length bands). Settings are kept in this browser; the job itself isn't saved.
 const _CALC_KEY = 'rc_calc_settings';
-const _calcDefaults = () => ({ elecMode: 'hour', elecHour: 0, watts: 250, tariff: 0, wearMode: 'tiered', wearFlat: 0, wearApply: 'whole',
-  tiers: [{ upTo: 2, rate: 0 }, { upTo: 6, rate: 0 }, { upTo: null, rate: 0 }], markup: 0, roundTo: 0 });
-let _calcS = (() => {
+const _calcDefaults = () => ({
+  types: [{ name: 'PLA Single', grams: 1000, price: 300, elec: 0.008 }, { name: 'PLA Dual', grams: 750, price: 330, elec: 0.008 }, { name: 'PETG', grams: 1000, price: 300, elec: 0.011 }],
+  // wear & tear: R5 per hour up to 3 h, R10 per hour for every hour after that
+  wearMode: 'tiered', wearFlat: 0, wearApply: 'progressive',
+  tiers: [{ upTo: 3, rate: 5 }, { upTo: null, rate: 10 }], markup: 300, roundTo: 5 });
+// The first defaults (PETG R250, listed first): if those are what's saved untouched, move to the current defaults
+const _calcOldTypes = JSON.stringify([{ name: 'PETG', grams: 1000, price: 250, elec: 0.011 }, { name: 'PLA Single', grams: 1000, price: 300, elec: 0.008 }, { name: 'PLA Dual', grams: 750, price: 330, elec: 0.008 }]);
+const _calcNormalise = saved => {
   try {
-    const s = { ..._calcDefaults(), ...JSON.parse(localStorage.getItem(_CALC_KEY) || '{}') };
+    saved = saved && typeof saved === 'object' ? saved : {};
+    const s = { ..._calcDefaults(), ...saved };
+    if (saved.types && JSON.stringify(saved.types) === _calcOldTypes) s.types = _calcDefaults().types;
+    // wear & tear never filled in (all bands R0, no flat rate) → the default bands
+    if ((!saved.tiers || saved.tiers.every(t => !t.rate)) && !saved.wearFlat) { s.tiers = _calcDefaults().tiers; s.wearMode = 'tiered'; s.wearApply = _calcDefaults().wearApply; }
+    if (!saved.markup && !saved.roundTo) { s.markup = _calcDefaults().markup; s.roundTo = _calcDefaults().roundTo; }     // never set (0 / 0) → the default markup and rounding
+    if (!Array.isArray(s.types) || !s.types.length) s.types = _calcDefaults().types;
     if (!Array.isArray(s.tiers) || !s.tiers.length) s.tiers = _calcDefaults().tiers;
     s.tiers[s.tiers.length - 1].upTo = null;                   // the last band is always "anything longer"
     return s;
   } catch (_) { return _calcDefaults(); }
-})();
-let _calcRows = [{ fil: null, grams: '', cpg: '' }];
+};
+// Settings live in Supabase (calc_settings); this browser only keeps a copy so the page opens instantly
+let _calcS = (() => { try { return _calcNormalise(JSON.parse(localStorage.getItem(_CALC_KEY) || '{}')); } catch (_) { return _calcDefaults(); } })();
+let _calcSetRemote = null, _calcSetTimer = null;
+// A new filament row starts on PLA Single (or your first type if you've renamed it); cpg / emin are only set when you type over the type's own price / electricity
+function _calcNewRow() { const t = _calcS.types.find(x => x.name === 'PLA Single') || _calcS.types[0]; return { type: t ? t.name : null, grams: '', cpg: '', emin: '' }; }
+let _calcRows = [_calcNewRow()];
 const _calcN = v => { const x = parseFloat(v); return isNaN(x) ? 0 : x; };
 const _calcR = v => 'R ' + (Math.round((+v || 0) * 100) / 100).toFixed(2);
-const _calcSave = () => { try { localStorage.setItem(_CALC_KEY, JSON.stringify(_calcS)); } catch (_) {} };
-
-// Price per gram: what's typed on the row, else the filament's roll price ÷ roll weight (null = unknown)
-function _calcCpg(r) {
-  if (String(r.cpg ?? '').trim() !== '' && !isNaN(parseFloat(r.cpg)) && parseFloat(r.cpg) >= 0) return parseFloat(r.cpg);
-  const f = r.fil ? filById(r.fil) : null;
-  const g = f && FIL_ROLL_GRAMS[f.roll_size];
-  return f && +f.cost_price > 0 && g ? +f.cost_price / g : null;
+const _calcPerMin = v => 'R ' + (Math.round(v * 10000) / 10000).toString() + '/min';
+const _calcSave = () => {
+  try { localStorage.setItem(_CALC_KEY, JSON.stringify(_calcS)); } catch (_) {}
+  clearTimeout(_calcSetTimer); _calcSetTimer = setTimeout(_calcSettingsPush, 500);
+};
+async function _calcSettingsPush() {
+  const { error } = await db.from('calc_settings').upsert([{ id: 'main', data: _calcS, updated_at: new Date().toISOString() }]);
+  if (error) { if (_calcSetRemote !== false) toast('Calculator settings could not be saved to Supabase — run the calculator SQL (Saved prints card → Copy the SQL)', 'error'); _calcSetRemote = false; }
+  else _calcSetRemote = true;
 }
+async function _calcSettingsLoad() {
+  const { data, error } = await db.from('calc_settings').select('*').eq('id', 'main');
+  if (error) { _calcSetRemote = false; return; }
+  _calcSetRemote = true;
+  if (data && data[0] && data[0].data) {
+    _calcS = _calcNormalise(data[0].data);
+    try { localStorage.setItem(_CALC_KEY, JSON.stringify(_calcS)); } catch (_) {}
+    const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
+    set('calc-wear-mode', _calcS.wearMode); set('calc-wear-flat', _calcS.wearFlat || ''); set('calc-wear-apply', _calcS.wearApply);
+    set('calc-markup', _calcS.markup || ''); set('calc-round', String(_calcS.roundTo || 0));
+    _calcRender();
+  } else _calcSettingsPush();                       // nothing in Supabase yet: move this browser's settings up
+}
+
+const _calcType = name => _calcS.types.find(t => t.name === name) || null;
+const _calcTypeCpg = t => t && _calcN(t.grams) > 0 && _calcN(t.price) > 0 ? _calcN(t.price) / _calcN(t.grams) : null;     // R per gram = roll price ÷ roll weight
+const _calcTyped = v => String(v ?? '').trim() !== '' && !isNaN(parseFloat(v)) && parseFloat(v) >= 0;
+const _calcCpg  = r => _calcTyped(r.cpg) ? parseFloat(r.cpg) : _calcTypeCpg(_calcType(r.type));                          // null = no price yet
+const _calcEmin = r => _calcTyped(r.emin) ? parseFloat(r.emin) : (_calcType(r.type) ? _calcN(_calcType(r.type).elec) : null);   // R per minute
+
 const _calcTiersSorted = () => [..._calcS.tiers].sort((a, b) => (a.upTo ?? Infinity) - (b.upTo ?? Infinity));
 const _calcBandLabel = (t, prev) => t.upTo == null ? `over ${prev} h` : prev ? `${prev}–${t.upTo} h` : `up to ${t.upTo} h`;
 
@@ -2791,108 +2969,283 @@ function _calcWear(hours) {
   return { cost, lines };
 }
 
+// Electricity rate (R per minute) for the print: each filament row's rate; several materials are averaged by grams (equally before any grams)
+function _calcElecRate(fils) {
+  const parts = fils.filter(x => x.emin != null);
+  if (!parts.length) return { perMin: 0, detail: 'pick a filament type' };
+  const totalW = parts.reduce((s, x) => s + x.grams, 0);
+  const m = totalW > 0 ? parts.reduce((s, x) => s + x.emin * x.grams, 0) / totalW : parts.reduce((s, x) => s + x.emin, 0) / parts.length;
+  const names = [...new Set(parts.map(x => x.r.type).filter(Boolean))];
+  return { perMin: m, detail: names.length === 1 ? `${names[0]} ${_calcPerMin(m)}` : names.length ? `${names.join(' + ')} avg ${_calcPerMin(m)}` : _calcPerMin(m) };
+}
 function _calcCompute() {
   const S = _calcS;
   const minutes = parseDuration(document.getElementById('calc-time')?.value || '');
   const timeBad = Number.isNaN(minutes);
-  const hours = minutes > 0 ? minutes / 60 : 0;
+  const mins = minutes > 0 ? minutes : 0, hours = mins / 60;
   const qty = Math.max(1, Math.floor(_calcN(document.getElementById('calc-qty')?.value)) || 1);
-  const fils = _calcRows.map(r => { const f = r.fil ? filById(r.fil) : null, grams = _calcN(r.grams), cpg = _calcCpg(r);
-    return { r, f, grams, cpg, cost: grams * (cpg ?? 0) }; });
+  const fils = _calcRows.map(r => { const grams = _calcN(r.grams), cpg = _calcCpg(r);
+    return { r, grams, cpg, emin: _calcEmin(r), cost: grams * (cpg ?? 0) }; });
   const filCost = fils.reduce((s, x) => s + x.cost, 0);
-  const elecRate = S.elecMode === 'watts' ? _calcN(S.watts) / 1000 * _calcN(S.tariff) : _calcN(S.elecHour);
-  const elec = hours * elecRate;
+  const er = _calcElecRate(fils);
+  const elec = mins * er.perMin;
   const wear = _calcWear(hours);
-  const perItem = filCost + elec + wear.cost;
-  const total = perItem * qty;
+  // The numbers are for one item (× quantity), or for a whole sliced plate that is then split between its objects
+  const plate = document.getElementById('calc-scope')?.value === 'plate';
+  // Extras (a keychain, packaging…): "each" = once per object / item, "once" = once for the whole job. They're costs, so the markup applies to them too.
+  const exRows = _calcExtras.filter(x => _calcN(x.amount) > 0);
+  const exEach = exRows.filter(x => x.per !== 'once').reduce((s, x) => s + _calcN(x.amount), 0), exOnce = exRows.filter(x => x.per === 'once').reduce((s, x) => s + _calcN(x.amount), 0);
+  const word = plate ? 'object' : 'item';
+  const extraLines = exRows.map(x => { const a = _calcN(x.amount), each = x.per !== 'once';
+    return plate ? { label: `${_ovEsc(x.name || 'Extra')} · ${_calcR(a)}${each ? ` × ${qty} ${word}${qty === 1 ? '' : 's'}` : ' once'}`, cost: each ? a * qty : a }
+                 : { label: `${_ovEsc(x.name || 'Extra')} · ${_calcR(a)}${each ? '' : ` once ÷ ${qty} item${qty === 1 ? '' : 's'}`}`, cost: each ? a : a / qty }; });
+  const extraTotal = extraLines.reduce((s, l) => s + l.cost, 0);
+  const base = filCost + elec + wear.cost;
+  const subtotal = base + extraTotal;                                // one item (with its share of the "once" extras), or the whole plate
   const markup = _calcN(S.markup), roundTo = _calcN(S.roundTo);
-  const sellRaw = perItem * (1 + markup / 100);
-  const sellEach = roundTo > 0 ? Math.ceil(sellRaw / roundTo - 1e-9) * roundTo : sellRaw;
-  return { minutes: minutes > 0 ? minutes : 0, timeBad, hours, qty, fils, filCost, elecRate, elec, wear, perItem, total, markup, roundTo, sellEach, hasPrice: markup > 0 || roundTo > 0,
-           missingCost: fils.filter(x => x.grams > 0 && x.cpg == null), empty: !fils.some(x => x.grams > 0) && !(minutes > 0) };
+  const up = v => { const s = v * (1 + markup / 100); return roundTo > 0 ? Math.ceil(s / roundTo - 1e-9) * roundTo : s; };
+  let objs = [], splitBy = 'equal';
+  if (plate) {
+    const gs = Array.from({ length: qty }, (_, i) => _calcN(_calcObjs[i]?.grams)), sumG = gs.reduce((a, b) => a + b, 0);
+    splitBy = document.getElementById('calc-split')?.value === 'weight' && sumG > 0 ? 'weight' : 'equal';       // weights unfilled → equal
+    // the shared cost follows the split; an "each object" extra goes to every object in full
+    objs = gs.map((g, i) => { const share = splitBy === 'weight' ? g / sumG : 1 / qty, cost = (base + exOnce) * share + exEach;
+      return { name: (_calcObjs[i]?.name || '').trim() || `Object ${i + 1}`, grams: g, share, cost, sell: up(cost) }; });
+  }
+  const perItem = plate ? subtotal / qty : subtotal;                // plate: the average cost of one object
+  const total = plate ? subtotal : subtotal * qty;
+  const sellEach = plate ? objs.reduce((s, o) => s + o.sell, 0) / qty : up(subtotal);
+  return { minutes: mins, timeBad, hours, qty, fils, filCost, elecPerMin: er.perMin, elecDetail: er.detail, elec, wear, perItem, total, markup, roundTo, sellEach, hasPrice: markup > 0 || roundTo > 0,
+           plate, splitBy, objs, subtotal, extraLines, extraTotal, missingCost: fils.filter(x => x.grams > 0 && x.cpg == null), empty: !fils.some(x => x.grams > 0) && !(mins > 0) };
 }
 
 function _calcResultHtml(c) {
-  if (c.empty) return '<div class="empty-state" style="padding:1.5rem .5rem"><div class="icon">🧮</div>Add the filament used and the print time to see what it should cost.</div>';
+  if (c.empty) return '<div class="empty-state" style="padding:1.5rem .5rem"><div class="icon">🧮</div>Click a filament type, then enter the grams and the print time to see what it should cost.</div>';
   const row = (k, v, sub) => `<div class="cr-row"><span class="k">${k}${sub ? `<em>${sub}</em>` : ''}</span><span class="v">${v}</span></div>`;
   const subs = list => list.map(l => `<div class="cr-sub"><span>${l.label}</span><span>${_calcR(l.cost)}</span></div>`).join('');
   const filSubs = subs(c.fils.filter(x => x.grams > 0).map(x => ({
-    label: `${_ovEsc(x.f ? filLabel(x.f) : 'Custom')} · ${x.grams} g × ${x.cpg == null ? '?' : 'R ' + x.cpg.toFixed(4)}`, cost: x.cost })));
+    label: `${_ovEsc(x.r.type || 'Filament')} · ${x.grams} g × ${x.cpg == null ? '?' : 'R ' + x.cpg.toFixed(4)}`, cost: x.cost })));
   const timeTxt = c.minutes ? _ovEsc(fmtDuration(c.minutes)) : '—';
-  let h = `<div class="cr-big">${_calcR(c.perItem)}</div><div class="cr-bigsub">cost per item${c.qty > 1 ? ` · ${c.qty} items = <b style="color:var(--text)">${_calcR(c.total)}</b>` : ''}</div>`;
-  h += row('🧵 Filament', _calcR(c.filCost)) + filSubs;
-  h += row('⚡ Electricity', _calcR(c.elec), `${timeTxt} × ${_calcR(c.elecRate)}/h`);
-  h += row('🔧 Wear &amp; tear', _calcR(c.wear.cost)) + subs(c.wear.lines);
-  if (c.qty > 1) h += `<div class="cr-total">${row('Cost per item', _calcR(c.perItem))}${row(`Cost for ${c.qty}`, `<b>${_calcR(c.total)}</b>`)}</div>`;
-  if (c.hasPrice) {
-    const profit = (c.sellEach - c.perItem) * c.qty;
-    h += `<div class="cr-total">${row(`Price each${c.markup ? ` (+${c.markup}%)` : ''}`, `<b>${_calcR(c.sellEach)}</b>`, c.roundTo > 0 ? `rounded up to the next R ${c.roundTo}` : '')}`
-       + (c.qty > 1 ? row(`Price for ${c.qty}`, `<b>${_calcR(c.sellEach * c.qty)}</b>`) : '')
-       + row('Profit', _calcR(profit)) + '</div>';
+  const weighted = c.plate && c.splitBy === 'weight';
+  const priced = c.hasPrice;
+  const fmtPct = v => `${Math.round(v * 10) / 10}%`;
+  // ── 1) the three things you want to know: what it costs, what to charge, what you make ──
+  // columns: one item / object, and the whole lot when there's more than one (a plate split by weight shows the whole plate, objects below)
+  const cols = [];
+  const colOf = (label, cost, price) => ({ label, cost, price, profit: price != null ? price - cost : null });
+  if (c.plate) {
+    const allPrice = priced ? c.objs.reduce((s, o) => s + o.sell, 0) : null;
+    if (c.qty > 1 && !weighted) cols.push(colOf('Each object', c.perItem, priced ? c.objs[0].sell : null));
+    cols.push(colOf(c.qty > 1 ? `Whole plate (${c.qty})` : 'This plate', c.total, allPrice));
+  } else {
+    cols.push(colOf(c.qty > 1 ? 'Each item' : 'This item', c.perItem, priced ? c.sellEach : null));
+    if (c.qty > 1) cols.push(colOf(`All ${c.qty} items`, c.perItem * c.qty, priced ? c.sellEach * c.qty : null));
   }
-  if (c.timeBad) h += '<div class="cr-warn">Print time not recognised — try “6h 38m”, “6:38” or “398” (minutes).</div>';
-  if (c.missingCost.length) h += `<div class="cr-warn">No price for ${c.missingCost.map(x => _ovEsc(x.f ? filLabel(x.f) : 'a filament')).join(', ')} — type a price per gram, or set the roll's cost on the Filaments page.</div>`;
+  const line = (cls, label, get) => `<div class="cr-s-row ${cls}"><span class="k">${label}</span>${cols.map(col => `<span class="v">${get(col)}</span>`).join('')}</div>`;
+  let h = `<div class="cr-sum" style="--cols:${cols.length}">
+      <div class="cr-s-row head"><span class="k"></span>${cols.map(col => `<span class="v">${_ovEsc(col.label)}</span>`).join('')}</div>
+      ${line('cost', 'Cost to make', col => _calcR(col.cost))}
+      ${line('price', 'Price to charge', col => col.price != null ? _calcR(col.price) : '—')}
+      ${line('profit', 'Profit', col => col.profit != null ? _calcR(col.profit) : '—')}
+    </div>`;
+  if (priced) {
+    const last = cols[cols.length - 1], margin = last.price > 0 ? last.profit / last.price * 100 : 0, markup = last.cost > 0 ? last.profit / last.cost * 100 : 0;
+    h += `<div class="cr-note">Margin <b>${fmtPct(margin)}</b> (profit as a share of the price) · Markup <b>${fmtPct(markup)}</b> on cost${c.roundTo > 0 ? ` · price rounded up to the next R ${c.roundTo}` : ''}</div>`;
+  } else h += '<div class="cr-note">Set a markup under <b>Price</b> to see what to charge and the profit.</div>';
+  // a plate split by weight: each object's own figures
+  if (weighted) {
+    h += `<div class="cr-sec">Each object</div><div class="cr-table"><div class="cr-tr cr-th"><span></span><span>Cost</span><span>Charge</span><span>Profit</span></div>`
+      + c.objs.map(o => `<div class="cr-tr"><span>${_ovEsc(o.name)}<i>${Math.round(o.share * 1000) / 10}%</i></span><span>${_calcR(o.cost)}</span><span><b>${priced ? _calcR(o.sell) : '—'}</b></span><span class="cr-pf">${priced ? _calcR(o.sell - o.cost) : '—'}</span></div>`).join('') + '</div>';
+  }
+  // ── 2) how the cost builds up, and how the price follows from it ──
+  const basis = c.plate ? 'whole plate' : 'per item';
+  const bCost = c.plate ? c.total : c.perItem, bPrice = priced ? (c.plate ? c.objs.reduce((s, o) => s + o.sell, 0) : c.sellEach) : null;
+  h += `<div class="cr-sec">How it adds up <span class="cr-basis">${basis}</span></div>`;
+  h += row('🧵 Filament', _calcR(c.filCost)) + filSubs;
+  h += row('⚡ Electricity', _calcR(c.elec), `${timeTxt} × ${_ovEsc(c.elecDetail)}`);
+  h += row('🔧 Wear &amp; tear', _calcR(c.wear.cost)) + subs(c.wear.lines);
+  if (c.extraLines.length) h += row('➕ Extras', _calcR(c.extraTotal)) + subs(c.extraLines);
+  h += `<div class="cr-row cr-subtotal"><span class="k">Cost to make</span><span class="v">${_calcR(bCost)}</span></div>`;
+  if (priced) {
+    const mk = _calcR2(bCost * c.markup / 100), rounding = _calcR2(_calcR2(bPrice) - _calcR2(bCost) - mk);     // built from the rounded figures so the lines add up exactly
+    h += row(`+ Markup (${c.markup}%)`, _calcR(mk));
+    if (Math.abs(rounding) >= 0.005) h += row(`+ Rounding${c.roundTo > 0 ? ` (up to the next R ${c.roundTo})` : ''}`, _calcR(rounding));
+    h += `<div class="cr-row cr-subtotal"><span class="k">Price to charge</span><span class="v">${_calcR(bPrice)}</span></div>`;
+  }  if (c.timeBad) h += '<div class="cr-warn">Print time not recognised — try “6h 38m”, “6:38” or “398” (minutes).</div>';
+  if (c.missingCost.length) h += '<div class="cr-warn">A filament row has grams but no price — click a filament type, or type a price per gram.</div>';
   return h;
 }
 
 // ── page ──
-async function loadCalculator() {
-  await _pmEnsureFilaments();
+function loadCalculator() {
   const s = _calcS, set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
-  set('calc-elec-mode', s.elecMode); set('calc-elec-hour', s.elecHour || ''); set('calc-watts', s.watts || ''); set('calc-tariff', s.tariff || '');
   set('calc-wear-mode', s.wearMode); set('calc-wear-flat', s.wearFlat || ''); set('calc-wear-apply', s.wearApply);
   set('calc-markup', s.markup || ''); set('calc-round', String(s.roundTo || 0));
   _calcRender();
+  _calcScope();                                   // labels for the current mode (a whole plate unless you change it under "More options")
+  _calcSettingsLoad();                            // your types, wear & tear and price settings (Supabase)
+  _calcHistLoad();                                // saved prints (Supabase, or this browser until the table exists)
 }
-function _calcRender() { _calcRowsRender(); _calcTiersRender(); _calcView(); calcRecalc(); }
+function _calcRender() { _calcImportRender(); _calcRowsRender(); _calcTypesRender(); _calcTiersRender(); _calcView(); calcRecalc(); }
 function _calcView() {
   const show = (id, on) => { const el = document.getElementById(id); if (el) el.style.display = on ? '' : 'none'; };
-  const watts = _calcS.elecMode === 'watts', tiered = _calcS.wearMode === 'tiered';
-  show('calc-elec-hour-wrap', !watts); show('calc-watts-wrap', watts); show('calc-tariff-wrap', watts);
+  const tiered = _calcS.wearMode === 'tiered';
   show('calc-wear-flat-wrap', !tiered); show('calc-wear-apply-wrap', tiered); show('calc-tiers', tiered);
 }
 function _calcSetting(key, val, numeric = true) {
   _calcS[key] = numeric ? _calcN(val) : val;
   _calcSave(); _calcView(); calcRecalc();
 }
+// One-line description of the wear & tear rates, shown while that section is folded
+function _calcWearSummary() {
+  const S = _calcS;
+  if (S.wearMode === 'flat') return `${_calcR(_calcN(S.wearFlat))} per hour`;
+  const tiers = _calcTiersSorted(); let prev = 0;
+  const parts = tiers.map(t => { const p = `${_calcR(_calcN(t.rate))}/h ${t.upTo == null ? `over ${prev} h` : `up to ${t.upTo} h`}`; if (t.upTo != null) prev = t.upTo; return p; });
+  return parts.join(' · ') + (S.wearApply === 'whole' ? ' (whole print at its band)' : '');
+}
 function calcRecalc() {
+  const ws = document.getElementById('calc-wear-sum'); if (ws) ws.textContent = _calcWearSummary();
+  const es = document.getElementById('calc-extras-sum');
+  if (es) { const ex = _calcExtras.filter(x => _calcN(x.amount) > 0); es.textContent = ex.length ? ex.map(x => `${x.name || 'Extra'} ${_calcR(x.amount)}`).join(' · ') : 'optional — a keychain, packaging…'; }
+  const ps = document.getElementById('calc-price-sum');
+  if (ps) ps.textContent = _calcN(_calcS.markup) > 0 || _calcN(_calcS.roundTo) > 0
+    ? `${_calcN(_calcS.markup)}% markup${_calcN(_calcS.roundTo) > 0 ? ` · rounded up to the next R ${_calcN(_calcS.roundTo)}` : ''}` : 'no markup';
+  const ts = document.getElementById('calc-types-sum');                    // while folded: each type's price per gram at a glance
+  if (ts) ts.textContent = _calcS.types.map(t => `${t.name || '?'} ${_calcTypeCpg(t) != null ? 'R ' + _calcTypeCpg(t).toFixed(2) + '/g' : '—'}`).join(' · ') + ' — change when prices change';
   const c = _calcCompute();
   const out = document.getElementById('calc-result'); if (out) out.innerHTML = _calcResultHtml(c);
   c.fils.forEach((x, i) => { const el = document.querySelector(`[data-calc-line="${i}"]`); if (el) el.textContent = x.grams > 0 && x.cpg != null ? _calcR(x.cost) : '—'; });
-  const ro = document.getElementById('calc-elec-readout');
-  if (ro) ro.textContent = _calcS.elecMode === 'watts' ? `${_calcN(_calcS.watts)} W × ${_calcR(_calcN(_calcS.tariff))}/kWh = ${_calcR(c.elecRate)} per hour` : '';
+  if (c.plate && c.splitBy === 'weight') c.objs.forEach((o, i) => { const el = document.getElementById(`calc-os-${i}`); if (el) el.textContent = `${Math.round(o.share * 1000) / 10}% · ${_calcR(o.cost)}`; });
 }
 function calcClear() {
-  _calcRows = [{ fil: null, grams: '', cpg: '' }];
+  _calcRows = [_calcNewRow()];
+  _calcImp = null; _calcImportRender();
+  _calcObjs = []; _calcExtras = []; _calcEditId = null; _calcEditBar();
   const t = document.getElementById('calc-time'); if (t) t.value = '';
   const q = document.getElementById('calc-qty'); if (q) q.value = '1';
-  _calcRowsRender(); calcRecalc();
+  _calcRowsRender(); _calcScope();
 }
 
-// ── filament rows ──
+// ── one item, or a whole plate split between its objects ──
+// "Plate" = the grams and time come from a sliced plate (prime tower and all) holding several objects: the plate's cost is shared out
+// between them — equally, or by each object's weight.
+let _calcObjs = [];       // [{ name, grams }] — used when splitting by weight
+function _calcScope() {
+  const plate = document.getElementById('calc-scope')?.value === 'plate';
+  const set = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
+  set('calc-qty-label', plate ? 'Objects on the plate' : 'Quantity'); set('calc-qty-hint', plate ? 'how many it holds' : 'identical items');
+  const hint = document.getElementById('calc-scope-hint');
+  if (hint) hint.innerHTML = plate ? 'Enter the <b>whole plate’s</b> grams (include the prime tower) and time from your slicer. The cost is split between its objects.'
+                                   : 'Grams and time are for <b>one</b> item; the total multiplies by the quantity.';
+  const opts = document.getElementById('calc-plate-opts'); if (opts) opts.style.display = plate ? '' : 'none';
+  _calcExtrasRender();                            // "on every object / item" follows the mode
+  _calcObjsRender(); calcRecalc();
+}
+function _calcQty() { _calcObjsRender(); calcRecalc(); }
+
+// ── Extras: a keychain, packaging… (optional) ──
+// Each extra is a cost: "on every object / item" (× the count) or "once for the job". They go into the cost, so the markup applies too.
+let _calcExtras = [];     // [{ name, amount, per: 'each' | 'once' }]
+const _calcExtraRecent = () => _calcS.extraRecent || [];
+function _calcExtrasRender() {
+  const box = document.getElementById('calc-extras'); if (!box) return;
+  const word = document.getElementById('calc-scope')?.value === 'plate' ? 'object' : 'item';
+  const chips = _calcExtraRecent().map((x, i) => `<button type="button" class="calc-type" onclick="_calcExtraAdd(${i})" title="Add it again">＋ ${_ovEsc(x.name)} <span style="opacity:.7">${_calcR(x.amount)}</span></button>`).join('');
+  box.innerHTML = (chips ? `<div class="calc-types" style="margin-bottom:.7rem"><span class="calc-or">Used before:</span>${chips}</div>` : '')
+    + _calcExtras.map((x, i) => `<div class="calc-extra"><input type="text" class="calc-in" placeholder="e.g. Keychain" value="${_ovEsc(x.name)}" oninput="_calcExtraSet(${i},'name',this.value)" onchange="_calcExtraRemember(${i})">
+        <input type="number" min="0" step="0.01" class="calc-in calc-main" placeholder="R" value="${_ovEsc(x.amount)}" oninput="_calcExtraSet(${i},'amount',this.value)" onchange="_calcExtraRemember(${i})">
+        <select class="calc-in" onchange="_calcExtraSet(${i},'per',this.value)"><option value="each"${x.per !== 'once' ? ' selected' : ''}>on every ${word}</option><option value="once"${x.per === 'once' ? ' selected' : ''}>once for the job</option></select>
+        <button type="button" class="row-icon-btn del" title="Remove" onclick="_calcExtras.splice(${i},1);_calcExtrasRender();calcRecalc()">✕</button></div>`).join('')
+    + `<button type="button" class="btn btn-sm btn-outline" onclick="_calcExtraAdd()">＋ Add an extra</button>`;
+}
+function _calcExtraAdd(recentIdx) {
+  const r = recentIdx != null ? _calcExtraRecent()[recentIdx] : null;
+  _calcExtras.push({ name: r ? r.name : '', amount: r ? String(r.amount) : '', per: 'each' });
+  _calcExtrasRender(); calcRecalc();
+  if (!r) { const ins = document.querySelectorAll('#calc-extras .calc-extra input[type="text"]'); ins[ins.length - 1]?.focus(); }
+}
+function _calcExtraSet(i, k, v) { if (_calcExtras[i]) { _calcExtras[i][k] = v; calcRecalc(); } }
+function _calcExtraRemember(i) {          // names you've used are offered again as one-click chips
+  const x = _calcExtras[i]; if (!x || !String(x.name).trim() || !(_calcN(x.amount) > 0)) return;
+  const list = _calcExtraRecent().filter(e => e.name.toLowerCase() !== x.name.trim().toLowerCase());
+  list.unshift({ name: x.name.trim(), amount: _calcN(x.amount) });
+  _calcS.extraRecent = list.slice(0, 8); _calcSave();
+}
+function _calcObjsRender() {
+  const box = document.getElementById('calc-objs'); if (!box) return;
+  const on = document.getElementById('calc-scope')?.value === 'plate' && document.getElementById('calc-split')?.value === 'weight';
+  box.style.display = on ? '' : 'none';
+  if (!on) return;
+  const n = Math.max(1, Math.floor(_calcN(document.getElementById('calc-qty')?.value)) || 1);
+  while (_calcObjs.length < n) _calcObjs.push({ name: '', grams: '' });
+  box.innerHTML = `<div class="calc-hint" style="margin:.1rem 0 .4rem">Each object’s weight in grams (the slicer’s per-object figure, or weigh one). Its share of the plate’s cost follows the weights.</div>`
+    + _calcObjs.slice(0, n).map((o, i) => `<div class="calc-obj"><input type="text" class="calc-in" placeholder="Object ${i + 1}" value="${_ovEsc(o.name)}" oninput="_calcObjs[${i}].name=this.value;calcRecalc()">
+        <input type="number" min="0" step="0.1" class="calc-in" placeholder="g" value="${_ovEsc(o.grams)}" oninput="_calcObjs[${i}].grams=this.value;calcRecalc()">
+        <span class="calc-hint" id="calc-os-${i}"></span></div>`).join('');
+}
+
+// ── filament rows: click a type, enter grams ──
 function _calcRowsRender() {
   const box = document.getElementById('calc-fils'); if (!box) return;
-  box.innerHTML = `<div class="calc-fil-head"><span>Filament</span><span>Grams used</span><span>Price per gram</span><span style="text-align:right">Cost</span><span></span></div>`
+  box.innerHTML = `<div class="calc-fil-head"><span>Filament type</span><span class="calc-head-in">Grams used</span><span>R per gram <em>auto</em></span><span>R per minute <em>auto</em></span><span style="text-align:right">Cost</span><span></span></div>`
     + _calcRows.map((r, i) => {
-      const f = r.fil ? filById(r.fil) : null, auto = _calcCpg({ ...r, cpg: '' });
-      const pick = f
-        ? `<div class="calc-fil-cur">${filSpool(f, 20, '')}<span class="t"><strong>${_ovEsc(filLabel(f))}</strong><em>${_ovEsc([f.brand || 'Unknown brand', f.colour_variant && f.colour_variant !== 'Single' ? f.colour_variant : '', f.roll_size].filter(Boolean).join(' · '))}</em></span>
-             <button type="button" class="row-icon-btn" title="Choose a different filament" onclick="_calcRows[${i}].fil=null;_calcRowsRender();calcRecalc()">⇄</button></div>`
-        : _rollPickHtml('calc', i, 'Search filament — e.g. petg black, dual…', null, null);
-      return `<div class="calc-fil-row">${pick}
-        <input type="number" min="0" step="0.1" class="calc-in" placeholder="g" value="${_ovEsc(r.grams)}" oninput="_calcRows[${i}].grams=this.value;calcRecalc()">
-        <input type="number" min="0" step="0.0001" class="calc-in" placeholder="${auto != null ? auto.toFixed(4) : 'R / g'}" value="${_ovEsc(r.cpg)}" title="${auto != null ? 'From the filament’s roll price — type here to override' : 'No roll price set — type a price per gram'}" oninput="_calcRows[${i}].cpg=this.value;calcRecalc()">
+      const t = _calcType(r.type), autoCpg = _calcTypeCpg(t);
+      const chips = _calcS.types.map((x, k) => `<button type="button" class="calc-type${x.name === r.type ? ' on' : ''}" onclick="_calcSetType(${i},${k})">${_ovEsc(x.name)}</button>`).join('');
+      const cpgVal = _calcTyped(r.cpg) ? r.cpg : (autoCpg != null ? autoCpg.toFixed(4) : '');
+      const emVal = _calcTyped(r.emin) ? r.emin : (t ? String(_calcN(t.elec)) : '');
+      return `<div class="calc-fil-row"><div class="calc-types">${chips || '<span class="calc-hint">Add a filament type below</span>'}</div>
+        <input type="number" min="0" step="0.1" class="calc-in calc-main" placeholder="g" value="${_ovEsc(r.grams)}" oninput="_calcRows[${i}].grams=this.value;calcRecalc()">
+        <input type="number" min="0" step="0.0001" class="calc-in ${_calcTyped(r.cpg) ? 'calc-ovr' : 'calc-auto'}" placeholder="R / g" value="${_ovEsc(cpgVal)}" title="${t ? `${_ovEsc(t.name)}: R ${_calcN(t.price)} ÷ ${_calcN(t.grams)} g — type here to override` : 'Click a type, or type a price per gram'}" oninput="_calcRows[${i}].cpg=this.value;calcRecalc()" onchange="_calcRowsRender()">
+        <input type="number" min="0" step="0.001" class="calc-in ${_calcTyped(r.emin) ? 'calc-ovr' : 'calc-auto'}" placeholder="R / min" value="${_ovEsc(emVal)}" title="Electricity per minute of printing — type here to override" oninput="_calcRows[${i}].emin=this.value;calcRecalc()" onchange="_calcRowsRender()">
         <span class="calc-line" data-calc-line="${i}">—</span>
         ${_calcRows.length > 1 ? `<button type="button" class="row-icon-btn del" title="Remove" onclick="_calcRows.splice(${i},1);_calcRowsRender();calcRecalc()">✕</button>` : '<span></span>'}
       </div>`;
     }).join('');
 }
-function _calcAddRow() { _calcRows.push({ fil: null, grams: '', cpg: '' }); _calcRowsRender(); calcRecalc(); }
-function _calcPickFil(i, id) {
-  if (!_calcRows[i]) return;
-  _calcRows[i].fil = id; _calcRows[i].cpg = '';
+function _calcAddRow() { _calcRows.push(_calcNewRow()); _calcRowsRender(); calcRecalc(); }
+function _calcSetType(i, k) {
+  const t = _calcS.types[k]; if (!_calcRows[i] || !t) return;
+  _calcRows[i].type = t.name; _calcRows[i].cpg = ''; _calcRows[i].emin = '';       // price per gram + electricity come from the type
   _calcRowsRender(); calcRecalc();
   document.querySelectorAll('#calc-fils .calc-fil-row')[i]?.querySelector('input[placeholder="g"]')?.focus();
+}
+
+// ── filament types (your roll prices + electricity per minute) ──
+function _calcTypesRender() {
+  const box = document.getElementById('calc-types'); if (!box) return;
+  box.innerHTML = `<div class="calc-ct calc-ct-head"><span>Type</span><span>Roll (g)</span><span>Roll price (R)</span><span>R per gram</span><span>Electricity R/min</span><span>≈ R / hour</span><span></span></div>`
+    + _calcS.types.map((t, i) => `<div class="calc-ct">
+        <input type="text" class="calc-in" value="${_ovEsc(t.name)}" placeholder="e.g. PETG" oninput="_calcTypeEdit(${i},'name',this.value)">
+        <input type="number" min="0" step="1" class="calc-in" value="${_ovEsc(t.grams ?? '')}" oninput="_calcTypeEdit(${i},'grams',this.value)">
+        <input type="number" min="0" step="0.01" class="calc-in" value="${_ovEsc(t.price ?? '')}" oninput="_calcTypeEdit(${i},'price',this.value)">
+        <span class="calc-ct-v" id="ct-cpg-${i}">${_calcTypeCpg(t) != null ? 'R ' + _calcTypeCpg(t).toFixed(4) : '—'}</span>
+        <input type="number" min="0" step="0.001" class="calc-in" value="${_ovEsc(t.elec ?? '')}" oninput="_calcTypeEdit(${i},'elec',this.value)">
+        <span class="calc-ct-v" id="ct-eh-${i}">${_calcR(_calcN(t.elec) * 60)}</span>
+        ${_calcS.types.length > 1 ? `<button type="button" class="row-icon-btn del" title="Remove this type" onclick="_calcTypeRemove(${i})">✕</button>` : '<span></span>'}
+      </div>`).join('')
+    + `<button type="button" class="btn btn-sm btn-outline" style="margin-top:.5rem" onclick="_calcTypeAdd()">＋ Add a type</button>
+       <div class="calc-hint" style="margin-top:.5rem">R per gram = roll price ÷ roll weight. Electricity is the rate per minute of printing (about R3.20/kWh: 150 W ≈ R0.008, 200 W ≈ R0.011, 270 W ≈ R0.014).</div>`;
+}
+function _calcTypeEdit(i, field, val) {
+  const t = _calcS.types[i]; if (!t) return;
+  if (field === 'name') { const old = t.name; t.name = val; _calcRows.forEach(r => { if (r.type === old) r.type = val; }); }
+  else t[field] = _calcN(val);
+  _calcSave();
+  const cpg = document.getElementById(`ct-cpg-${i}`); if (cpg) cpg.textContent = _calcTypeCpg(t) != null ? 'R ' + _calcTypeCpg(t).toFixed(4) : '—';
+  const eh = document.getElementById(`ct-eh-${i}`); if (eh) eh.textContent = _calcR(_calcN(t.elec) * 60);
+  _calcRowsRender(); calcRecalc();
+}
+function _calcTypeAdd() {
+  _calcS.types.push({ name: '', grams: 1000, price: 0, elec: 0.008 });
+  _calcSave(); _calcTypesRender(); _calcRowsRender(); calcRecalc();
+  const inputs = document.querySelectorAll('#calc-types .calc-ct input[type="text"]'); inputs[inputs.length - 1]?.focus();
+}
+function _calcTypeRemove(i) {
+  if (_calcS.types.length < 2) return;
+  const gone = _calcS.types.splice(i, 1)[0];
+  _calcRows.forEach(r => { if (r.type === gone.name) { r.type = null; r.cpg = ''; r.emin = ''; } });
+  _calcSave(); _calcTypesRender(); _calcRowsRender(); calcRecalc();
 }
 
 // ── wear & tear bands ──
@@ -2915,6 +3268,435 @@ function _calcTierAdd() {
   _calcSave(); _calcTiersRender(); calcRecalc();
 }
 function _calcTierRemove(i) { if (_calcS.tiers.length > 1 && i < _calcS.tiers.length - 1) { _calcS.tiers.splice(i, 1); _calcSave(); _calcTiersRender(); calcRecalc(); } }
+
+// ── Fill from a sliced file (.gcode / .gcode.3mf): grams per filament + print time ──
+let _calcImp = null;      // { res, pairs: [{ d, type }], notes } — what the last file said, shown in the banner
+const _calcHasFiles = e => [...(e.dataTransfer?.types || [])].includes('Files');
+function _calcDragOver(e) { if (!_calcHasFiles(e)) return; e.preventDefault(); e.currentTarget.classList.add('file-over'); }
+function _calcDrop(e) {
+  e.currentTarget.classList.remove('file-over');
+  if (!_calcHasFiles(e) || e.defaultPrevented) return;
+  e.preventDefault();
+  _calcReadFile(e.dataTransfer.files[0]);
+}
+// The file says "PLA" / "PETG": use the type whose name contains it (for PLA, "Single" first — the file can't tell a dual-colour roll)
+function _calcTypeForDetected(d) {
+  const T = String(d.type || '').toUpperCase(); if (!T) return null;
+  const base = T.split(/[^A-Z0-9]/)[0];
+  const hits = _calcS.types.filter(t => t.name.toUpperCase().includes(T) || (base && t.name.toUpperCase().includes(base)));
+  return (hits.find(t => /single/i.test(t.name)) || hits[0] || {}).name || null;
+}
+async function _calcReadFile(file) {
+  if (!file) return;
+  let res;
+  try { res = await readSlicerFile(file); }
+  catch (e) { toast(e.message || 'Couldn’t read that file', 'error'); return; }
+  if (!res.filaments.length && res.minutes == null) { toast('No filament or print time found in that file', 'error'); return; }
+  _calcFillFrom(res);
+}
+function _calcFillFrom(res) {
+  const notes = [], pairs = [];
+  const rows = (res.filaments || []).map(d => {
+    const type = _calcTypeForDetected(d);
+    pairs.push({ d, type });
+    if (!type) notes.push(`No filament type matches ${d.type || 'one of the filaments'} — click the right type on its row.`);
+    return { type, grams: d.grams != null ? String(Math.round(d.grams * 10) / 10) : '', cpg: '', emin: '' };
+  });
+  if (pairs.some(p => p.type && /single/i.test(p.type)) && _calcS.types.some(t => /dual/i.test(t.name))) notes.push('PLA is priced as PLA Single — click PLA Dual on its row if it’s a dual-colour filament.');
+  if (rows.length) _calcRows = rows;
+  if (res.minutes != null) { const t = document.getElementById('calc-time'); if (t) t.value = fmtDuration(res.minutes); }
+  // A sliced file's numbers are for the whole plate: switch to plate mode, and use the objects the file lists (a .3mf names them)
+  const objNames = (res.objects || []).filter(Boolean);
+  const scope = document.getElementById('calc-scope'); if (scope) scope.value = 'plate';
+  if (objNames.length > 1) {
+    _calcObjs = objNames.map(n => ({ name: String(n).replace(/\.(stl|3mf|obj|step|stp)$/i, ''), grams: '' }));
+    const q = document.getElementById('calc-qty'); if (q) q.value = String(objNames.length);
+    notes.push(`The plate holds ${objNames.length} objects (${objNames.map(n => String(n).replace(/\.(stl|3mf|obj|step|stp)$/i, '')).join(', ')}) — the cost is split between them.`);
+  } else notes.push('These are the whole plate’s numbers — set “Objects on the plate” to how many it holds to get the price per object.');
+  _calcScope();
+  if ((res.filaments || []).some(d => d.approx)) notes.push('Grams worked out from filament length (approx).');
+  if (!rows.length) notes.push('The file has no filament amounts — only the print time was filled in.');
+  _calcImp = { res, pairs, notes };
+  _calcRowsRender(); _calcImportRender(); calcRecalc();
+}
+function _calcUseFilePlate(i) {
+  const r = _calcImp?.res; if (!r?.plates?.[i]) return;
+  _calcFillFrom({ ...r, ...r.plates[i], plates: r.plates, plateAt: i });
+}
+function _calcImportRender() {
+  const box = document.getElementById('calc-import'); if (!box) return;
+  const input = `<input type="file" accept=".gcode,.gco,.g,.3mf" style="display:none" onchange="_calcReadFile(this.files[0]);this.value=''">`;
+  if (!_calcImp) {
+    box.innerHTML = `<label class="slc-drop" style="margin:0 0 .8rem" ondragover="event.preventDefault();this.classList.add('over')" ondragleave="this.classList.remove('over')"
+        ondrop="event.preventDefault();event.stopPropagation();this.classList.remove('over');_calcReadFile(event.dataTransfer.files[0])">${input}
+        <span class="slc-ic">📄</span><span><b>Drop a sliced .gcode or .3mf here</b> to fill in the type, grams and print time — or click to choose</span></label>`;
+    return;
+  }
+  const r = _calcImp.res;
+  const items = _calcImp.pairs.map(({ d, type }) => `<span class="slc-item">${d.hex ? `<span class="slc-dot" style="background:${_ovEsc(d.hex)}"></span>` : ''}${_ovEsc(d.type || 'Filament')} ${d.grams != null ? fmtGrams(d.grams) : '?'}${type ? ` → <b>${_ovEsc(type)}</b>` : ' <em>(pick a type)</em>'}</span>`).join('');
+  const plates = r.plates && r.plates.length > 1
+    ? `<div class="slc-plates">This file has ${r.plates.length} plates: ${r.plates.map((pl, i) => `<button type="button" class="slc-pl${i === r.plateAt ? ' on' : ''}" onclick="_calcUseFilePlate(${i})">Plate ${pl.index || i + 1}</button>`).join('')}</div>` : '';
+  box.innerHTML = `<div class="slc-banner">
+      <div class="slc-h">📄 Filled from <b>${_ovEsc(r.name)}</b>${r.minutes != null ? ` · ⏱ ${_ovEsc(fmtDuration(r.minutes))}` : ''} <span>— check the types below</span></div>
+      <div class="slc-items">${items || '<em>No filament amounts found in the file.</em>'}</div>
+      ${plates}${_calcImp.notes.length ? `<div class="slc-note">${_calcImp.notes.map(_ovEsc).join(' ')}</div>` : ''}
+      <label class="if-link slc-again">↺ Use a different file${input}</label></div>`;
+}
+
+// ── Keep a calculation: save it to history, apply it to an existing product, or add it as a new product ──
+// What gets passed on is per object (a whole plate is split first): cost → cost_price, price → default_price, grams → grams_per_unit,
+// time → print_minutes. History lives in the calc_history table; until that exists it's kept in this browser.
+const _CALC_HIST_KEY = 'rc_calc_history';
+const _CALC_HIST_SQL = `create table if not exists public.calc_history (
+  id uuid primary key default gen_random_uuid(),
+  created_at timestamptz not null default now(),
+  name text not null,
+  data jsonb not null default '{}'::jsonb
+);
+alter table public.calc_history enable row level security;
+drop policy if exists "signed-in users manage calc_history" on public.calc_history;
+create policy "signed-in users manage calc_history" on public.calc_history for all to authenticated using (true) with check (true);
+grant select, insert, update, delete on table public.calc_history to authenticated;
+create table if not exists public.calc_settings (
+  id text primary key,
+  data jsonb not null default '{}'::jsonb,
+  updated_at timestamptz not null default now()
+);
+alter table public.calc_settings enable row level security;
+drop policy if exists "signed-in users manage calc_settings" on public.calc_settings;
+create policy "signed-in users manage calc_settings" on public.calc_settings for all to authenticated using (true) with check (true);
+grant select, insert, update, delete on table public.calc_settings to authenticated;
+notify pgrst, 'reload schema';`;
+let _calcHist = [];                // newest first: { id, created_at, name, data, local? }
+let _calcHistRemote = null;        // null = not tried yet, true = saved in Supabase, false = this browser only
+const _calcHistLocalGet = () => { try { return JSON.parse(localStorage.getItem(_CALC_HIST_KEY) || '[]'); } catch (_) { return []; } };
+const _calcHistLocalSet = list => { try { localStorage.setItem(_CALC_HIST_KEY, JSON.stringify(list)); } catch (_) {} };
+async function _calcHistLoad() {
+  const local = _calcHistLocalGet().map(e => ({ ...e, local: true }));
+  const { data, error } = await db.from('calc_history').select('*').order('created_at', { ascending: false });
+  if (error) { _calcHistRemote = false; _calcHist = local; }
+  else {
+    _calcHistRemote = true;
+    let moved = [];
+    if (local.length) {                                          // the table exists now: move what was saved in this browser into it
+      const { data: ins, error: e2 } = await db.from('calc_history').insert(local.map(e => ({ name: e.name, data: e.data, created_at: e.created_at }))).select();
+      if (!e2) { _calcHistLocalSet([]); moved = ins || []; toast(`Moved ${local.length} saved print${local.length === 1 ? '' : 's'} from this browser into Supabase`, 'success'); }
+    }
+    const kept = moved.length ? [] : local;                      // couldn't move them → keep showing them from this browser
+    _calcHist = [...[...(data || []), ...moved].map(r => ({ id: r.id, created_at: r.created_at, name: r.name, data: r.data || {} })), ...kept];
+  }
+  _calcHist.sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
+  _calcHistRender();
+}
+
+// The job as typed, and the figures it works out to
+function _calcInputs() {
+  return { rows: _calcRows.map(r => ({ ...r })), time: document.getElementById('calc-time')?.value || '', qty: document.getElementById('calc-qty')?.value || '1',
+           scope: document.getElementById('calc-scope')?.value || 'plate', split: document.getElementById('calc-split')?.value || 'equal',
+           objs: _calcObjs.map(o => ({ ...o })), extras: _calcExtras.map(x => ({ ...x })), file: _calcImp?.res?.name || null };
+}
+// What one object / item costs and sells for, and its grams and print time (a whole plate is split first)
+function _calcFigures(c) {
+  const totalG = c.fils.reduce((s, x) => s + x.grams, 0), priced = c.hasPrice;
+  if (!c.plate) return { mode: 'item', each: { name: '', cost: c.perItem, price: priced ? c.sellEach : null, grams: totalG, minutes: c.minutes } };
+  if (c.splitBy === 'weight') return { mode: 'weight', objects: c.objs.map(o => ({ name: o.name, cost: o.cost, price: priced ? o.sell : null, grams: o.grams > 0 ? o.grams : o.share * totalG, minutes: c.minutes * o.share })) };
+  return { mode: 'equal', n: c.qty, each: { name: '', cost: c.perItem, price: priced ? c.objs[0].sell : null, grams: totalG / c.qty, minutes: c.minutes / c.qty } };
+}
+function _calcHeadline(c) {
+  const cost = c.plate ? c.total : c.perItem * c.qty;
+  const price = c.hasPrice ? (c.plate ? c.objs.reduce((s, o) => s + o.sell, 0) : c.sellEach * c.qty) : null;
+  return { cost, price, profit: price != null ? price - cost : null, margin: price ? (price - cost) / price * 100 : null, qty: c.qty, plate: c.plate, minutes: c.minutes,
+           breakdown: { fil: c.filCost, elec: c.elec, wear: c.wear.cost, extras: c.extraTotal || 0, subtotal: c.subtotal } };
+}
+const _calcFigOptions = f => f.mode === 'weight' ? f.objects.map((o, i) => ({ key: String(i), label: o.name })) : [{ key: 'each', label: f.mode === 'equal' ? `Each of the ${f.n} objects` : 'This item' }];
+const _calcFigPick = (f, key) => f.mode === 'weight' ? (f.objects[+key] || f.objects[0]) : f.each;
+const _calcStem = n => String(n || '').replace(/\.(gcode|gco|g|3mf)$/i, '').replace(/\.gcode$/i, '').trim();
+const _calcR2 = v => Math.round((+v || 0) * 100) / 100;
+
+// ── the window used by all three actions ──
+let _calcSrc = null;        // { name, figures, inputs? } — the live calculation, or a saved one
+let _calcSel = null;        // product (variant_id) chosen in "Apply to a product"
+function _calcSourceLive() {
+  const c = _calcCompute();
+  if (c.empty || c.timeBad) { toast(c.timeBad ? 'Fix the print time first' : 'Enter the filament grams and the print time first', 'info'); return null; }
+  return { name: _calcStem(_calcImp?.res?.name), figures: _calcFigures(c), headline: _calcHeadline(c), inputs: _calcInputs() };
+}
+function _calcModal(title, body, actions) {
+  document.getElementById('mc-title').textContent = title;
+  document.getElementById('mc-body').innerHTML = body;
+  document.getElementById('mc-actions').innerHTML = actions;
+  document.getElementById('modal-calc').classList.add('open');
+}
+function closeCalcModal() { document.getElementById('modal-calc').classList.remove('open'); }
+const _calcSrcOf = (kind, id) => kind === 'live' ? _calcSourceLive()
+  : (e => e ? { name: e.name, figures: e.data.figures, headline: e.data.headline, inputs: e.data.inputs, entry: e } : null)(_calcHist.find(x => x.id === id));
+// Which object's figures to use (only asked when a plate is split by weight)
+function _calcFigPickerHtml(f) {
+  const opts = _calcFigOptions(f);
+  return opts.length > 1 ? `<div class="form-group"><label>Use the figures of</label><select id="mc-obj" class="calc-in" onchange="_calcFigRefresh()">${opts.map(o => `<option value="${_ovEsc(o.key)}">${_ovEsc(o.label)}</option>`).join('')}</select></div>`
+                        : `<input type="hidden" id="mc-obj" value="${_ovEsc(opts[0].key)}">`;
+}
+const _calcFigNow = () => _calcSrc ? _calcFigPick(_calcSrc.figures, document.getElementById('mc-obj')?.value) : null;
+function _calcFigSummaryHtml(fig) {
+  return `<div class="mc-fig"><span>Cost <b>${_calcR(fig.cost)}</b></span><span>Price <b>${fig.price != null ? _calcR(fig.price) : '—'}</b></span><span>Grams <b>${fig.grams > 0 ? Math.round(fig.grams * 10) / 10 + ' g' : '—'}</b></span><span>Print time <b>${fig.minutes > 0 ? _ovEsc(fmtDuration(Math.round(fig.minutes))) : '—'}</b></span></div>`;
+}
+
+// 1) save to history
+let _calcEditId = null;       // the saved print being edited (null = a fresh calculation)
+const _calcEditEntry = () => _calcEditId ? _calcHist.find(x => x.id === _calcEditId) : null;
+function _calcEditBar() {
+  const box = document.getElementById('calc-edit-bar'); if (!box) return;
+  const e = _calcEditEntry();
+  box.innerHTML = e ? `<div class="calc-edit-bar"><span>✏️ Editing <b>${_ovEsc(e.name)}</b> — change anything, then save</span>
+      <span><button type="button" class="btn btn-sm btn-green" onclick="calcSaveOpen()">💾 Save changes</button> <button type="button" class="btn btn-sm btn-outline" onclick="calcClear()">Stop editing</button></span></div>` : '';
+}
+function calcSaveOpen(kind, id) {
+  const src = _calcSrcOf(kind || 'live', id); if (!src) return;
+  _calcSrc = src;
+  const h = src.headline, ed = (kind || 'live') === 'live' ? _calcEditEntry() : null;
+  _calcModal(ed ? '✏️ Save changes' : '💾 Save to history',
+    `<div class="form-group"><label>Item name <span class="calc-hint">${ed ? 'rename it here if you like' : 'so you can find it later'}</span></label>
+       <input id="mc-name" type="text" class="calc-in" value="${_ovEsc(ed ? ed.name : (src.name || ''))}" placeholder="e.g. Clownfish keyring ×4" autocomplete="off" onkeydown="if(event.key==='Enter')calcSaveDo(${ed ? 'true' : 'false'})"></div>
+     <div class="mc-fig"><span>Cost <b>${_calcR(h.cost)}</b></span><span>Price <b>${h.price != null ? _calcR(h.price) : '—'}</b></span><span>Profit <b>${h.profit != null ? _calcR(h.profit) : '—'}</b></span></div>`,
+    ed ? `<button type="button" class="btn btn-outline" onclick="closeCalcModal()">Cancel</button><button type="button" class="btn btn-outline" onclick="calcSaveDo(false)">Save as new</button><button type="button" class="btn btn-green" onclick="calcSaveDo(true)">✓ Update “${_ovEsc(ed.name)}”</button>`
+       : `<button type="button" class="btn btn-outline" onclick="closeCalcModal()">Cancel</button><button type="button" class="btn btn-green" onclick="calcSaveDo(false)">✓ Save</button>`);
+  setTimeout(() => document.getElementById('mc-name')?.focus(), 40);
+}
+async function calcSaveDo(update) {
+  const name = (document.getElementById('mc-name')?.value || '').trim();
+  if (!name) { toast('Give it a name', 'error'); document.getElementById('mc-name')?.focus(); return; }
+  const src = _calcSrc; if (!src) return;
+  const data = { inputs: src.inputs, figures: src.figures, headline: src.headline };
+  const cur = update === true ? _calcEditEntry() : null;
+  if (cur) {                                                     // overwrite the saved print
+    if (cur.local) _calcHistLocalSet(_calcHistLocalGet().map(x => x.id === cur.id ? { ...x, name, data } : x));
+    else {
+      const { data: rows, error } = await db.from('calc_history').update({ name, data }).eq('id', cur.id).select();
+      if (error || !rows?.length) { toast('Could not update: ' + (error ? error.message : 'nothing changed — check the table permissions'), 'error'); return; }
+    }
+    cur.name = name; cur.data = data;
+    closeCalcModal(); _calcEditBar(); _calcHistRender();
+    toast(`Updated “${name}”`, 'success'); return;
+  }
+  let entry = null;
+  if (_calcHistRemote !== false) {
+    const { data: row, error } = await db.from('calc_history').insert([{ name, data }]).select().single();
+    if (!error && row) { entry = { id: row.id, created_at: row.created_at, name: row.name, data: row.data || data }; _calcHistRemote = true; }
+    else _calcHistRemote = false;
+  }
+  if (!entry) {                                                  // the table isn't there yet → keep it in this browser
+    entry = { id: 'l-' + Date.now(), created_at: new Date().toISOString(), name, data, local: true };
+    _calcHistLocalSet([entry, ..._calcHistLocalGet()]);
+  }
+  _calcHist.unshift(entry);
+  if (_calcEditId) { _calcEditId = entry.id; _calcEditBar(); }   // keep editing the new copy
+  closeCalcModal(); _calcHistRender();
+  toast(`Saved “${name}” to history${entry.local ? ' (this browser only — see Saved prints)' : ''}`, 'success');
+}
+
+// 2) apply to an existing product
+async function calcApplyOpen(kind, id) {
+  const src = _calcSrcOf(kind || 'live', id); if (!src) return;
+  _calcSrc = src; _calcSel = null;
+  await _ensureInventoryData();
+  _calcModal('📌 Apply to a product',
+    `<div class="form-group"><label>Product</label><input id="mc-q" type="text" class="calc-in" placeholder="Search — name, variant, SKU or category…" autocomplete="off" oninput="_calcApplyList()"></div>
+     <div id="mc-list" class="mc-list"></div>
+     ${_calcFigPickerHtml(src.figures)}
+     <div id="mc-apply"></div>`,
+    `<button type="button" class="btn btn-outline" onclick="closeCalcModal()">Cancel</button><button type="button" class="btn btn-green" id="mc-go" onclick="calcApplyDo()" disabled>✓ Apply to the product</button>`);
+  _calcApplyList(); _calcFigRefresh();
+  setTimeout(() => document.getElementById('mc-q')?.focus(), 40);
+}
+function _calcApplyList() {
+  const box = document.getElementById('mc-list'); if (!box) return;
+  const tokens = (document.getElementById('mc-q')?.value || '').toLowerCase().split(/\s+/).filter(Boolean);
+  const rows = tokens.length ? _invItems.filter(r => { const h = _pmInvHay(r); return tokens.every(t => h.includes(t)); }).slice(0, 40) : [];
+  box.innerHTML = rows.length ? rows.map(r => `<div class="mc-prod${r.variant_id === _calcSel ? ' on' : ''}" onclick="_calcSelectProduct('${_invJs(r.variant_id)}')">
+      <strong>${_ovEsc(r.item_name || '')}${r.variant_name ? ` <em>${_ovEsc(r.variant_name)}</em>` : ''}</strong>
+      <span>${_ovEsc(_pmCatOf(r))} · price ${r.default_price != null && r.default_price !== '' ? _calcR(r.default_price) : '—'} · cost ${r.cost_price != null && r.cost_price !== '' ? _calcR(r.cost_price) : '—'}</span></div>`).join('')
+    : `<div class="calc-hint" style="padding:.5rem 0">${tokens.length ? 'No product matches.' : 'Type to find the product these numbers belong to.'}</div>`;
+}
+function _calcSelectProduct(vid) { _calcSel = vid; _calcApplyList(); _calcFigRefresh(); }
+function _calcFigRefresh() {
+  const box = document.getElementById('mc-apply'); if (!box) return;
+  const fig = _calcFigNow(), r = _invItems.find(x => x.variant_id === _calcSel);
+  const go = document.getElementById('mc-go'); if (go) go.disabled = !r;
+  if (!fig) return;
+  if (!r) { box.innerHTML = _calcFigSummaryHtml(fig); return; }
+  const old = (v, f) => v != null && v !== '' ? f(+v) : '—';
+  const rowOf = (id, label, now, was, ok) => `<label class="mc-ck${ok ? '' : ' off'}"><input type="checkbox" id="mc-ck-${id}"${ok ? ' checked' : ' disabled'}><span class="l">${label}</span><span class="was">${was}</span><span class="to">${ok ? '→ <b>' + now + '</b>' : 'nothing to apply'}</span></label>`;
+  box.innerHTML = `<div class="mc-for">Applying to <b>${_ovEsc(_pmInvLabel(r))}</b></div>`
+    + rowOf('price', 'Selling price', fig.price != null ? _calcR(fig.price) : '', old(r.default_price, _calcR), fig.price != null)
+    + rowOf('cost', 'Cost price', _calcR(fig.cost), old(r.cost_price, _calcR), true)
+    + rowOf('grams', 'Grams per unit', `${Math.round(fig.grams * 10) / 10} g`, old(r.grams_per_unit, v => v + ' g'), fig.grams > 0)
+    + rowOf('mins', 'Print time', fig.minutes > 0 ? fmtDuration(Math.round(fig.minutes)) : '', old(r.print_minutes, v => fmtDuration(v)), fig.minutes > 0);
+}
+async function calcApplyDo() {
+  const r = _invItems.find(x => x.variant_id === _calcSel), fig = _calcFigNow();
+  if (!r || !fig) { toast('Choose a product first', 'error'); return; }
+  const ck = id => document.getElementById('mc-ck-' + id)?.checked;
+  const upd = {};
+  if (ck('price') && fig.price != null) upd.default_price = _calcR2(fig.price);
+  if (ck('cost')) upd.cost_price = _calcR2(fig.cost);
+  if (ck('grams') && fig.grams > 0) upd.grams_per_unit = Math.round(fig.grams * 10) / 10;
+  if (ck('mins') && fig.minutes > 0) upd.print_minutes = Math.round(fig.minutes);
+  if (!Object.keys(upd).length) { toast('Tick at least one thing to apply', 'info'); return; }
+  let { data, error } = await db.from('loyverse_items').update(upd).eq('variant_id', r.variant_id).select();
+  let dropped = [];
+  for (const col of ['grams_per_unit', 'print_minutes']) {         // columns that may not exist yet: save the rest
+    if (error && error.message.includes(col)) { delete upd[col]; dropped.push(col); ({ data, error } = await db.from('loyverse_items').update(upd).eq('variant_id', r.variant_id).select()); }
+  }
+  if (!error && !(data && data.length)) error = { message: 'the database changed nothing (updates on inventory are being blocked)' };
+  if (error) { toast('Could not update the product: ' + error.message, 'error'); return; }
+  Object.assign(r, upd);
+  closeCalcModal();
+  if (document.getElementById('page-inventory')?.classList.contains('active')) renderInventory();
+  loadLoyverseItems();
+  toast(`Updated “${_pmInvLabel(r)}”${dropped.length ? ` — ${dropped.join(' + ')} not stored yet (run the print-details SQL)` : ''}`, dropped.length ? 'error' : 'success');
+}
+
+// 3) add as a new product
+async function calcNewProductOpen(kind, id) {
+  const src = _calcSrcOf(kind || 'live', id); if (!src) return;
+  _calcSrc = src;
+  await _ensureInventoryData();
+  const cats = [...new Set(_invItems.map(r => r.category_name).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+  const fig = _calcFigPick(src.figures, _calcFigOptions(src.figures)[0].key);
+  _calcModal('＋ Add as a new product',
+    `${_calcFigPickerHtml(src.figures).replace('onchange="_calcFigRefresh()"', 'onchange="_calcNewFill()"')}
+     <div class="calc-grid2">
+       <div class="form-group"><label>Item name <span class="calc-hint">required</span></label><input id="mc-n-name" type="text" class="calc-in" value="${_ovEsc(src.name || '')}" autocomplete="off"></div>
+       <div class="form-group"><label>Variant <span class="calc-hint">optional</span></label><input id="mc-n-var" type="text" class="calc-in" placeholder="e.g. Blue" autocomplete="off"></div>
+       <div class="form-group"><label>Category</label><input id="mc-n-cat" type="text" class="calc-in" list="mc-cats" placeholder="Pick or type a new one" autocomplete="off"><datalist id="mc-cats">${cats.map(c => `<option value="${_ovEsc(c)}">`).join('')}</datalist></div>
+       <div class="form-group"><label>SKU <span class="calc-hint">optional</span></label><input id="mc-n-sku" type="text" class="calc-in" autocomplete="off"></div>
+       <div class="form-group"><label>Selling price (R) <span class="calc-hint">required</span></label><input id="mc-n-price" type="number" min="0" step="0.01" class="calc-in"></div>
+       <div class="form-group"><label>Cost price (R)</label><input id="mc-n-cost" type="number" min="0" step="0.01" class="calc-in"></div>
+       <div class="form-group"><label>Grams per unit</label><input id="mc-n-grams" type="number" min="0" step="0.1" class="calc-in"></div>
+       <div class="form-group"><label>Print time</label><input id="mc-n-mins" type="text" class="calc-in" placeholder="e.g. 1h 20m"></div>
+     </div>
+     <div class="calc-hint">Prefilled from the calculation — change anything before adding. It's added to the Inventory page like any other product.</div>`,
+    `<button type="button" class="btn btn-outline" onclick="closeCalcModal()">Cancel</button><button type="button" class="btn btn-green" onclick="calcNewProductDo()">＋ Add product</button>`);
+  _calcNewFill();
+  setTimeout(() => document.getElementById('mc-n-name')?.focus(), 40);
+}
+function _calcNewFill() {
+  const fig = _calcFigNow(); if (!fig) return;
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
+  set('mc-n-price', fig.price != null ? _calcR2(fig.price) : ''); set('mc-n-cost', _calcR2(fig.cost));
+  set('mc-n-grams', fig.grams > 0 ? Math.round(fig.grams * 10) / 10 : ''); set('mc-n-mins', fig.minutes > 0 ? fmtDuration(Math.round(fig.minutes)) : '');
+  if (_calcSrc.figures.mode === 'weight') { const n = document.getElementById('mc-n-name'); if (n && (!n.value || n.dataset.auto)) { n.value = fig.name; n.dataset.auto = '1'; } }
+}
+async function calcNewProductDo() {
+  const val = id => (document.getElementById(id)?.value || '').trim();
+  const name = val('mc-n-name'), variant = val('mc-n-var'), category = val('mc-n-cat'), sku = val('mc-n-sku');
+  if (!name) { toast('The new product needs a name', 'error'); document.getElementById('mc-n-name')?.focus(); return; }
+  if (val('mc-n-price') === '' || isNaN(+val('mc-n-price')) || +val('mc-n-price') < 0) { toast('Enter the selling price', 'error'); document.getElementById('mc-n-price')?.focus(); return; }
+  const mins = val('mc-n-mins') === '' ? null : parseDuration(val('mc-n-mins'));
+  if (Number.isNaN(mins)) { toast('Print time not recognised — try “1h 20m” or “80”', 'error'); document.getElementById('mc-n-mins')?.focus(); return; }
+  const same = _invItems.some(r => String(r.item_name || '').trim().toLowerCase() === name.toLowerCase() && String(r.variant_name || '').trim().toLowerCase() === variant.toLowerCase());
+  if (same && !(await confirmDialog(`A product called “${name}${variant ? ' — ' + variant : ''}” already exists. Add another anyway?`, { ok: 'Add anyway' }))) return;
+  const stamp = Date.now();
+  const ins = { variant_id: 'mvar-' + stamp + '-0', loyverse_id: 'manual-' + stamp, item_name: name, category_name: category || null, variant_name: variant || null, sku: sku || null,
+                cost_price: val('mc-n-cost') === '' ? null : _calcR2(val('mc-n-cost')), default_price: _calcR2(val('mc-n-price')) };
+  if (val('mc-n-grams') !== '' && +val('mc-n-grams') > 0) ins.grams_per_unit = Math.round(+val('mc-n-grams') * 10) / 10;
+  if (mins > 0) ins.print_minutes = Math.round(mins);
+  let { error } = await db.from('loyverse_items').insert([ins]);
+  const dropped = [];
+  for (const col of ['grams_per_unit', 'print_minutes']) {
+    if (error && error.message.includes(col)) { delete ins[col]; dropped.push(col); ({ error } = await db.from('loyverse_items').insert([ins])); }
+  }
+  if (error) { toast('Could not add the product: ' + error.message, 'error'); return; }
+  _invItems.unshift({ ...ins, filament_ids: [] });
+  closeCalcModal();
+  if (typeof _buildInvCatPills === 'function') _buildInvCatPills();
+  if (document.getElementById('page-inventory')?.classList.contains('active')) renderInventory();
+  loadLoyverseItems();
+  toast(`Added “${name}${variant ? ' — ' + variant : ''}” to the inventory${dropped.length ? ` — ${dropped.join(' + ')} not stored yet (run the print-details SQL)` : ''}`, dropped.length ? 'error' : 'success');
+}
+
+// ── saved prints list ──
+function _calcHistRender() {
+  const box = document.getElementById('calc-hist'); if (!box) return;
+  const sum = document.getElementById('calc-hist-sum'); if (sum) sum.textContent = _calcHist.length ? `${_calcHist.length} saved` : 'none yet';
+  const cnt = document.getElementById('calc-hist-count'); if (cnt) cnt.textContent = _calcHist.length ? `(${_calcHist.length})` : '';
+  const note = document.getElementById('calc-hist-note');
+  if (note) note.innerHTML = _calcHistRemote === false
+    ? `<div class="cr-warn" style="margin:0 0 .7rem">Saved in <b>this browser only</b> for now. To keep them (and your calculator settings) in Supabase, run the table SQL once. <button type="button" class="if-link" onclick="calcCopyHistSql()">Copy the SQL</button></div>` : '';
+  const q = (document.getElementById('calc-hist-q')?.value || '').toLowerCase().trim();
+  const list = _calcHist.filter(e => !q || e.name.toLowerCase().includes(q));
+  box.innerHTML = list.length ? list.map(e => {
+    const h = e.data?.headline || {}, d = new Date(e.created_at);
+    const open = _calcHistOpenIds.has(e.id);
+    return `<div class="ch-item"><div class="ch-row" style="cursor:pointer" onclick="_calcHistToggle(event,'${_ovEsc(e.id)}')" title="Click for the calculated details"><div class="ch-main"><strong>${open ? '▾' : '▸'} ${_ovEsc(e.name)}</strong>
+        <span>${_ovEsc(d.toLocaleDateString())} · cost ${_calcR(h.cost)}${h.price != null ? ` · price <b>${_calcR(h.price)}</b> · profit ${_calcR(h.profit)}` : ''}${h.qty > 1 ? ` · ${h.qty} ${h.plate ? 'objects' : 'items'}` : ''}${h.minutes ? ` · ${_ovEsc(fmtDuration(Math.round(h.minutes)))}` : ''}</span></div>
+      <div class="ch-act"><button type="button" class="btn btn-sm btn-outline" onclick="_calcHistToggle(event,'${_ovEsc(e.id)}',true)" title="Show the calculated details">${open ? 'Hide' : 'Details'}</button>
+        <button type="button" class="btn btn-sm btn-outline" onclick="calcHistLoad('${_ovEsc(e.id)}')" title="Put these inputs back in the calculator to change them">✏️ Edit</button>
+        <button type="button" class="btn btn-sm btn-outline" onclick="calcApplyOpen('hist','${_ovEsc(e.id)}')" title="Apply to an existing product">📌</button>
+        <button type="button" class="btn btn-sm btn-outline" onclick="calcNewProductOpen('hist','${_ovEsc(e.id)}')" title="Add as a new product">＋</button>
+        <button type="button" class="row-icon-btn del" onclick="calcHistDelete('${_ovEsc(e.id)}')" title="Delete">🗑</button></div></div>${open ? _calcHistDetail(e) : ''}</div>`;
+  }).join('') : `<div class="calc-hint">${_calcHist.length ? 'Nothing matches.' : 'Nothing saved yet — use “Save to history” next to the result.'}</div>`;
+}
+// click a saved print to see what it worked out to
+const _calcHistOpenIds = new Set();
+function _calcHistToggle(ev, id, force) {
+  if (!force && ev.target.closest && ev.target.closest('button')) return;
+  ev.stopPropagation?.();
+  _calcHistOpenIds.has(id) ? _calcHistOpenIds.delete(id) : _calcHistOpenIds.add(id);
+  _calcHistRender();
+}
+function _calcHistDetail(e) {
+  const d = e.data || {}, inp = d.inputs || {}, h = d.headline || {}, f = d.figures || {};
+  const row = (k, v) => `<div class="chd-r"><span>${k}</span><b>${v}</b></div>`;
+  const dur = m => m > 0 ? _ovEsc(fmtDuration(Math.round(m))) : '—';
+  const gr = g => g > 0 ? Math.round(g * 10) / 10 + ' g' : '—';
+  let o = '';
+  const fils = (inp.rows || []).filter(r => _calcN(r.grams) > 0);
+  if (fils.length) o += `<div class="chd-h">Filament</div>` + fils.map(r => row(_ovEsc(r.type || 'Custom'), gr(_calcN(r.grams)))).join('');
+  o += `<div class="chd-h">Job</div>` + row('Print time', _ovEsc(inp.time || dur(h.minutes))) + row(h.plate ? 'Objects on the plate' : 'Quantity', h.qty || inp.qty || 1);
+  const ex = (inp.extras || []).filter(x => _calcN(x.amount) > 0);
+  if (ex.length) o += `<div class="chd-h">Extras</div>` + ex.map(x => row(_ovEsc(x.name || 'Extra'), `${_calcR(x.amount)} ${x.per === 'once' ? 'once' : 'each'}`)).join('');
+  const b = h.breakdown;
+  o += `<div class="chd-h">Worked out${b ? (h.plate ? ' — whole plate' : ' — per item') : ''}</div>`;
+  if (b) o += row('🧵 Filament', _calcR(b.fil)) + row('⚡ Electricity', _calcR(b.elec)) + row('🔧 Wear &amp; tear', _calcR(b.wear)) + (b.extras ? row('➕ Extras', _calcR(b.extras)) : '');
+  o += row('Cost to make', _calcR(h.cost));
+  if (h.price != null) o += row('Selling price', `<span style="color:#fff">${_calcR(h.price)}</span>`) + row('Profit', `${_calcR(h.profit)}${h.margin != null ? ` · ${Math.round(h.margin)}% margin` : ''}`);
+  const line = x => `${_calcR(x.cost)} cost${x.price != null ? ` · ${_calcR(x.price)} price` : ''} · ${gr(x.grams)} · ${dur(x.minutes)}`;
+  if (f.mode === 'weight' && f.objects) o += `<div class="chd-h">Per object</div>` + f.objects.map(x => row(_ovEsc(x.name || 'Object'), line(x))).join('');
+  else if (f.each) o += `<div class="chd-h">${f.mode === 'equal' ? `Each of ${f.n} objects` : 'Per item'}</div>` + row('Each', line(f.each));
+  return `<div class="ch-detail">${o}<div class="calc-hint" style="margin-top:.5rem">Figures as saved, at the rates of the day. Use ✏️ Edit to re-price at today's rates.</div></div>`;
+}
+// "🕘 Saved prints" button: open the saved-prints card and scroll to it
+function calcHistOpen() {
+  const card = document.getElementById('calc-hist-card'); if (!card) return;
+  card.open = true; _calcHistRender();
+  card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+function calcHistLoad(id) {
+  const e = _calcHist.find(x => x.id === id), inp = e?.data?.inputs; if (!inp) return;
+  _calcRows = (inp.rows || []).map(r => ({ type: r.type ?? null, grams: r.grams ?? '', cpg: r.cpg ?? '', emin: r.emin ?? '' }));
+  if (!_calcRows.length) _calcRows = [_calcNewRow()];
+  _calcObjs = (inp.objs || []).map(o => ({ ...o }));
+  _calcExtras = (inp.extras || []).map(x => ({ name: x.name || '', amount: x.amount ?? '', per: x.per === 'once' ? 'once' : 'each' }));
+  if (_calcExtras.length) document.getElementById('calc-extras-card')?.setAttribute('open', '');
+  _calcImp = null;
+  const set = (i, v) => { const el = document.getElementById(i); if (el) el.value = v; };
+  set('calc-time', inp.time || ''); set('calc-qty', inp.qty || '1'); set('calc-scope', inp.scope || 'plate'); set('calc-split', inp.split || 'equal');
+  _calcImportRender(); _calcRowsRender(); _calcScope();
+  _calcEditId = e.id; _calcEditBar();
+  window.scrollTo?.(0, 0); document.getElementById('page-calculator')?.scrollTo?.(0, 0);
+  toast(`Editing “${e.name}” — priced at your current rates. Save changes when done`, 'success');
+}
+async function calcHistDelete(id) {
+  const e = _calcHist.find(x => x.id === id); if (!e) return;
+  if (!(await confirmDialog(`Delete “${e.name}” from your saved prints?`))) return;
+  if (e.local) _calcHistLocalSet(_calcHistLocalGet().filter(x => x.id !== id));
+  else { const { error } = await db.from('calc_history').delete().eq('id', id); if (error) { toast('Could not delete: ' + error.message, 'error'); return; } }
+  _calcHist = _calcHist.filter(x => x.id !== id);
+  if (_calcEditId === id) { _calcEditId = null; _calcEditBar(); }
+  _calcHistRender();
+}
+function calcCopyHistSql() { navigator.clipboard?.writeText(_CALC_HIST_SQL).then(() => toast('SQL copied — paste it into the Supabase SQL Editor and run it', 'success'), () => toast('Could not copy', 'error')); }
 
 // ─────────────────── HELPERS ───────────────────
 const fmt  = v => 'R ' + (v ?? 0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
@@ -4483,6 +5265,8 @@ const filHay = f => `${f.brand || ''} ${f.material_type || ''} ${f.colour_varian
 function parseDuration(s) {
   s = String(s ?? '').trim().toLowerCase()
     .replace(/days?/g, 'd').replace(/(hours?|hrs?)/g, 'h').replace(/(minutes?|mins?)/g, 'm').replace(/(seconds?|secs?)/g, 's');
+  // A bare number on the end counts as the next smaller unit: "2h 29" = 2h 29m, "1d 3" = 1d 3h, "2h30m15" = 2h30m15s
+  s = s.replace(/([dhm])\s*(\d+(?:\.\d+)?)$/, (m, u, n) => u + ' ' + n + ({ d: 'h', h: 'm', m: 's' })[u]);
   if (!s) return null;
   let m = s.match(/^(\d+):(\d{1,2})(?::(\d{1,2}))?$/);
   if (m) return Math.round(+m[1] * 60 + +m[2] + (+m[3] || 0) / 60);
@@ -7054,7 +7838,8 @@ async function _readSliced3mf(file) {
         hex: _normHex(f.getAttribute('color')), grams: parseFloat(f.getAttribute('used_g')), approx: false,
       })).filter(f => Number.isFinite(f.grams) && f.grams > 0.005);
       const sec = parseFloat(meta('prediction'));
-      return { index: +meta('index') || null, minutes: Number.isFinite(sec) ? Math.round(sec / 60) : null, filaments: fils };
+      const objects = [...pl.getElementsByTagName('object')].filter(o => o.getAttribute('skipped') !== 'true').map(o => o.getAttribute('name') || '');
+      return { index: +meta('index') || null, minutes: Number.isFinite(sec) ? Math.round(sec / 60) : null, filaments: fils, objects };
     }).filter(pl => pl.filaments.length || pl.minutes != null);
     if (plates.length) return { name: file.name, ...plates[0], plates, plateAt: 0 };
   }
@@ -8265,7 +9050,7 @@ function _rpOpen(inp) {
   list.innerHTML = shown.length
     ? shown.map((f, i) => `<div class="rp-opt${i === 0 ? ' hl' : ''}" data-id="${_ovEsc(f.id)}" onmousedown="event.preventDefault();_rpPick(this)">
         ${filSpool(f, 16, '')}<span class="t"><strong>${_ovEsc(filLabel(f))}</strong><span>${_ovEsc([f.brand || 'Unknown brand', f.colour_variant && f.colour_variant !== 'Single' ? f.colour_variant : '', f.roll_size,
-          inp.closest('.rp').dataset.ctx === 'calc' ? (_calcCpg({ fil: f.id, cpg: '' }) != null ? `R ${_calcCpg({ fil: f.id, cpg: '' }).toFixed(4)}/g` : 'no price set') : 'on hand ' + _spoolsText(f.open_spools)].filter(Boolean).join(' · '))}</span></span></div>`).join('')
+          'on hand ' + _spoolsText(f.open_spools)].filter(Boolean).join(' · '))}</span></span></div>`).join('')
       + (rolls.length > shown.length ? `<div class="rp-empty">+${rolls.length - shown.length} more — keep typing</div>` : '')
     : `<div class="rp-empty">${inp.value.trim() ? `No rolls match “${_ovEsc(inp.value.trim())}”.` : 'No rolls in your filament library yet.'}</div>`;
   list.style.display = '';
@@ -8281,7 +9066,6 @@ function _rpClose(inp) { const l = inp.closest('.rp')?.querySelector('.rp-list')
 function _rpPick(el) {
   const wrap = el.closest('.rp'), id = el.dataset.id, { ctx, key } = wrap.dataset;
   if (ctx === 'ue') { if (key === 'add') _ueAddCol(id); else _ueSetRoll(+key, id); return; }   // the plate's usage grid
-  if (ctx === 'calc') { _calcPickFil(+key, id); return; }                                      // the print calculator
   if (ctx === 'he') { _heSetRoll(+key, id); return; }                                          // editing a history entry
   if (key === 'add') _useAdd(ctx, id); else _useSetRoll(ctx, +key, id);
 }
@@ -9243,6 +10027,7 @@ const BACKUP_TABLES = [
   { name: 'idea_folders',    conflict: 'id',         optional: true },
   { name: 'print_plates',    conflict: 'id',         optional: true },
   { name: 'print_models',    conflict: 'id',         optional: true },
+  { name: 'calc_history',    conflict: 'id',         optional: true },
 ];
 
 const _isMissingTable = e => /42P01|PGRST205|does not exist|schema cache/i.test(`${e?.code || ''} ${e?.message || ''}`);
