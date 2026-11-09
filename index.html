@@ -683,6 +683,14 @@
     .plate-progress-tag { display:inline-flex; align-items:center; gap:.4rem; font-size:.72rem; font-weight:600; color:#fdba74; background:rgba(249,115,22,.12); border:1px solid rgba(249,115,22,.4); border-radius:999px; padding:.2rem .65rem; }
     .plate-progress-tag::before { content:''; width:7px; height:7px; border-radius:50%; background:#f97316; animation:pp-pulse 1.4s ease-in-out infinite; }
     @keyframes pp-pulse { 0%, 100% { opacity:1 } 50% { opacity:.25 } }
+    .he-row { display:grid; grid-template-columns:minmax(0,1fr) 84px 26px; gap:.5rem; align-items:center; margin-bottom:.4rem; }
+    .he-row .calc-in { padding:.4rem .5rem; font-size:.84rem; }
+    #modal-hist .form-group { margin-bottom:.8rem; }
+    /* title and the Save / Cancel row stay put; only the middle scrolls, so the buttons are always in view */
+    #modal-hist .modal { display:flex; flex-direction:column; overflow:hidden; }
+    #modal-hist .modal-header { flex-shrink:0; margin-bottom:1rem; }
+    #modal-hist #hd-body { flex:1 1 auto; min-height:0; overflow-y:auto; padding-right:.35rem; }
+    #modal-hist .form-actions { flex-shrink:0; margin-top:.9rem; padding-top:.9rem; border-top:1px solid rgba(255,255,255,.08); }
     /* print calculator */
     .calc-wrap { display:grid; grid-template-columns:minmax(0,1.3fr) minmax(300px,.8fr); gap:1rem; align-items:start; }
     .calc-right { position:sticky; top:1rem; }
@@ -1121,6 +1129,8 @@
     .hist-del { position:absolute; right:.35rem; bottom:.3rem; background:none; border:none; color:var(--muted); cursor:pointer; font-size:.72rem; padding:.1rem .25rem; border-radius:5px; opacity:0; transition:opacity .15s; font-family:inherit; }
     .hist-item:hover .hist-del, .hist-del:focus-visible { opacity:.8; }
     .hist-del:hover { opacity:1 !important; color:var(--red); background:rgba(239,68,68,.12); }
+    .hist-del.hist-edit { right:1.9rem; }
+    .hist-del.hist-edit:hover { color:#a5b4fc; background:rgba(99,102,241,.16); }
     .hist-top { display:flex; justify-content:space-between; gap:.4rem; align-items:baseline; }
     .hist-top strong { font-size:.8rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
     .hist-top span { font-size:.66rem; color:var(--muted); white-space:nowrap; }
@@ -2307,12 +2317,17 @@
       <button class="modal-close" onclick="closeHistoryEntry()">✕</button>
     </div>
     <div id="hd-body"></div>
-    <div class="form-actions" style="justify-content:space-between">
+    <div class="form-actions" style="justify-content:space-between" id="hd-view-actions">
       <button type="button" class="btn btn-sm btn-outline pe-del" id="hd-del">🗑 Delete entry</button>
       <span style="display:flex;gap:.5rem">
+        <button type="button" class="btn btn-sm btn-outline" onclick="histEditStart()">✏️ Edit</button>
         <button type="button" class="btn btn-sm btn-outline" id="hd-open">Open plate</button>
         <button type="button" class="btn btn-green" onclick="closeHistoryEntry()">Close</button>
       </span>
+    </div>
+    <div class="form-actions" id="hd-edit-actions" style="display:none">
+      <button type="button" class="btn btn-outline" onclick="histEditCancel()">Cancel</button>
+      <button type="button" class="btn btn-green" onclick="histEditSave()">✓ Save changes</button>
     </div>
   </div>
 </div>
@@ -4840,6 +4855,7 @@ function _pipeModelCardHtml(m) {
     ? (ids.map(id => filById(id)?.colour1).filter(Boolean).join(', ') || '—')
     : (m.colour_name || '<span class="no-col">No colour yet</span>');
   const urgent = m.is_urgent ? ' urgent' : '';
+  const hasCol = _modelFils(m).length > 0 || !!(m.colour_name && FIL_HEX_MAP[m.colour_name]);   // colours attached yet?
   return `<div class="pipe-model-card${urgent}" id="pmc-${m.id}"
     draggable="true" data-model-id="${m.id}">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:.3rem">
@@ -4851,11 +4867,11 @@ function _pipeModelCardHtml(m) {
         <button onclick="event.stopPropagation();deletePipeModel('${m.id}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:.72rem;opacity:.5" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.5">✕</button>
       </div>
     </div>
-    <div style="display:flex;align-items:center;gap:.4rem;margin-top:.35rem;font-size:.75rem;color:var(--muted)">
+    ${hasCol ? `<div style="display:flex;align-items:center;gap:.4rem;margin-top:.35rem;font-size:.75rem;color:var(--muted)">
       <span style="display:flex;gap:3px;align-items:center">${swatches}</span>
       <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:140px">${colLabel}</span>
       <span style="margin-left:auto;flex-shrink:0">×${m.qty_needed || 1}</span>
-    </div>
+    </div>` : (+m.qty_needed > 1 ? `<div style="margin-top:.25rem;font-size:.75rem;color:var(--muted)">×${m.qty_needed}</div>` : '')}   <!-- no colour yet: nothing to show (quantity only when more than one) -->
     ${(() => { const ps = printSummaryHtml(modelPrintTotals(m)); return ps || m.file_url
         ? `<div class="pipe-card-print" title="Totals for ×${m.qty_needed || 1}">${ps}${fileLinkHtml(m.file_url)}</div>` : ''; })()}
   </div>`;
@@ -4905,7 +4921,13 @@ function _pipePlateCardHtml(p) {
       ${p.stage === 'plating' ? `<button type="button" class="plate-add-btn" onclick="event.stopPropagation();openAddModelToPlate('${p.id}')" title="Add a model to this plate">＋</button>` : ''}
       ${!isDone ? `<button onclick="event.stopPropagation();deletePipePlate('${p.id}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:.72rem;opacity:.45" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.45">✕</button>` : ''}
     </div>
-    ${!isDone ? (() => { const cl = _plateColourLineHtml(p); return cl ? `<div class="pc-row"><span class="pc-lbl">${_plateSingle(p) ? 'Filament' : 'Colours'}</span><span class="pc-vals">${cl}</span></div>` : ''; })() : ''}
+    ${(() => {
+      if (!isDone) { const cl = _plateColourLineHtml(p); return cl ? `<div class="pc-row"><span class="pc-lbl">${_plateSingle(p) ? 'Filament' : 'Colours'}</span><span class="pc-vals">${cl}</span></div>` : ''; }
+      // Done: the filament it actually used (recorded when it finished), else what the plate was set to
+      const used = (Array.isArray(p.filament_used) ? p.filament_used : []).map(u => u && filById(u.fil)).filter(Boolean);
+      const cl = used.length ? used.map(f => `<span class="pc-col">${filSpool(f, 12, '')}${_ovEsc(filLabel(f))}</span>`).join('') : _plateColourLineHtml(p);
+      return cl ? `<div class="pc-row"><span class="pc-lbl">${used.length > 1 ? 'Colours' : 'Filament'}</span><span class="pc-vals">${cl}</span></div>` : '';
+    })()}
     ${miniModels || p.stage === 'plating' ? `<div class="pc-row models"><span class="pc-lbl">Models</span>${miniModels ? `<div class="pipe-plate-models">${miniModels}</div>` : '<span class="pc-empty">← Drag ideas here</span>'}</div>` : ''}
     ${models.length && !useShown ? (() => { const ps = printSummaryHtml(sumPrintTotals(models)); return ps ? `<div class="pipe-card-print">${ps}</div>` : ''; })() : ''}
     ${p.slice_file   ? `<div style="font-size:.72rem;color:var(--muted);margin:.25rem 0">📁 ${p.slice_file}</div>` : ''}
@@ -6134,22 +6156,28 @@ function renderPmInvList() {
         return _pmInvRow({ cat: c }, 'folder catrow', `<span class="fic">📁</span><span class="t"><strong>${_pmHl(c, tokens)}</strong><span class="sub">${items.size} product${items.size === 1 ? '' : 's'}${nv > items.size ? ` · ${nv} variants` : ''}</span></span><span class="chev">›</span>`);
       }).join('');
     }
+    // A product's matching variants collapse into ONE folder (click it to see them all); a lone match is a normal pick row
+    const prodCount = new Set(hits.map(_pmItemKey)).size;
     const LIMIT = 150;
     let shown = 0;
     catsSorted.forEach(c => {
       if (shown >= LIMIT) return;
-      const rows = byCat.get(c).sort((a, b) => _pmCmp(a.item_name, b.item_name) || _pmCmp(a.variant_name, b.variant_name)).slice(0, LIMIT - shown);
-      shown += rows.length;
-      html += `<div class="pm-pick-sec sticky">📁 ${_ovEsc(c)} <span>${byCat.get(c).length}</span></div>`;
-      html += rows.map(r => {
-        const multi = (tree.get(c).get(_pmItemKey(r)) || []).length > 1 || !!r.variant_name;
+      const groups = new Map();
+      byCat.get(c).forEach(r => { const k = _pmItemKey(r); if (!groups.has(k)) groups.set(k, []); groups.get(k).push(r); });
+      const entries = [...groups.entries()].sort((a, b) => _pmCmp(a[1][0].item_name, b[1][0].item_name)).slice(0, LIMIT - shown);
+      shown += entries.length;
+      html += `<div class="pm-pick-sec sticky">📁 ${_ovEsc(c)} <span>${groups.size}</span></div>`;
+      html += entries.map(([key, vs]) => {
+        if (vs.length > 1) return _pmInvItemFolderHtml(c, key, vs.sort((a, b) => _pmCmp(a.variant_name, b.variant_name)), tokens);
+        const r = vs[0];
+        const multi = (tree.get(c).get(key) || []).length > 1 || !!r.variant_name;
         const title = multi ? `${_pmHl(r.item_name, tokens)} <span class="pm-var">${_pmHl(r.variant_name || '', tokens)}</span>` : _pmHl(r.item_name, tokens);
         return _pmInvPickHtml(r, title, tokens);
       }).join('');
     });
     if (!hits.length && !catHits.length) html = `<div class="pm-pick-empty">Nothing matches “${_ovEsc(q)}”.<br><span>Try fewer words, a SKU, or a colour like “brown”.</span></div>`;
-    else if (hits.length > shown) html += `<div class="pm-pick-more">+${hits.length - shown} more — keep typing to narrow it down</div>`;
-    crumbs.innerHTML = `<span class="crumb-info"><strong>${hits.length}</strong> product${hits.length === 1 ? '' : 's'} match${hits.length === 1 ? 'es' : ''} in all categories</span>
+    else if (prodCount > shown) html += `<div class="pm-pick-more">+${prodCount - shown} more — keep typing to narrow it down</div>`;
+    crumbs.innerHTML = `<span class="crumb-info"><strong>${prodCount}</strong> product${prodCount === 1 ? '' : 's'}${hits.length > prodCount ? ` (${hits.length} variants)` : ''} match${prodCount === 1 && hits.length === prodCount ? 'es' : ''} in all categories</span>
       <button type="button" class="crumb-link" onclick="pmInvClearSearch()">Clear search${cat ? ` → back to ${_ovEsc(item ? (tree.get(cat).get(item)?.[0]?.item_name || cat) : cat)}` : ''}</button>`;
   } else if (!cat) {
     // ── Top: recent picks + category folders ──
@@ -7301,7 +7329,7 @@ function openPlateEditor(id) {
   _peFil = { q: '', browse: false, type: null, edit: false };
   const nm = document.getElementById('pe-name');
   nm.value = p.name || '';
-  nm.disabled = p.stage === 'done';
+  nm.disabled = false;               // a Done plate can be renamed too; its history entry follows
   _plateEdRender();
   document.getElementById('modal-plate').classList.add('open');
 }
@@ -7372,8 +7400,9 @@ function _peUsageHtml(p) {
   const note = imp ? `<div class="pe-imp${imp.warn.length ? ' warn' : ''}">📄 Read <b>${_ovEsc(imp.name)}</b>${imp.summary ? ` — ${imp.summary}` : ''}${imp.warn.length ? `<div>${imp.warn.map(_ovEsc).join(' ')}</div>` : ''}${imp.info?.length ? `<p>${imp.info.map(_ovEsc).join(' ')}</p>` : ''}</div>` : '';
   if (p.stage === 'done') {
     const used = Array.isArray(p.filament_used) ? p.filament_used : [];
-    return used.length ? `<div class="pe-use">${used.map(u => { const f = filById(u.fil); return `<span class="plate-use-item">${filSpool(f, 13, '')}${_ovEsc(f ? filLabel(f) : '?')} ${fmtGrams(u.grams)}</span>`; }).join('')}</div>`
+    const body = used.length ? `<div class="pe-use">${used.map(u => { const f = filById(u.fil); return `<span class="plate-use-item">${filSpool(f, 13, '')}${_ovEsc(f ? filLabel(f) : '?')} ${fmtGrams(u.grams)}</span>`; }).join('')}</div>`
                        : `<div class="pe-note">${p.grams_used ? `${p.grams_used} g used` : 'Nothing recorded.'}</div>`;
+    return body + `<div class="pe-use-btns"><button type="button" class="btn btn-sm btn-outline" onclick="_peEditRecord('${_invJs(p.id)}')" title="Edit the print record — the same entry as in History">✏️ Edit print record</button></div>`;
   }
   const ed = _usageGridFor(p);
   const plan = _planOf(p);
@@ -8253,6 +8282,7 @@ function _rpPick(el) {
   const wrap = el.closest('.rp'), id = el.dataset.id, { ctx, key } = wrap.dataset;
   if (ctx === 'ue') { if (key === 'add') _ueAddCol(id); else _ueSetRoll(+key, id); return; }   // the plate's usage grid
   if (ctx === 'calc') { _calcPickFil(+key, id); return; }                                      // the print calculator
+  if (ctx === 'he') { _heSetRoll(+key, id); return; }                                          // editing a history entry
   if (key === 'add') _useAdd(ctx, id); else _useSetRoll(ctx, +key, id);
 }
 function _rpKey(e, inp) {
@@ -8438,7 +8468,7 @@ function openHistoryEntry(plateId, at) {
   const used = (e.used || []).filter(u => +u.grams > 0);
   const total = used.length ? used.reduce((s, u) => s + +u.grams, 0) : (+e.grams || 0);
   const row = (k, v) => v ? `<div class="hd-row"><span class="k">${k}</span><span class="v">${v}</span></div>` : '';
-  document.getElementById('hd-title').textContent = `${ok ? '✅ Printed OK' : '⚠️ Failed / partial'} — ${p.name || 'Plate'}`;
+  document.getElementById('hd-title').textContent = `${ok ? '✅ Printed OK' : '⚠️ Failed / partial'} — ${e.name || p.name || 'Plate'}`;
   document.getElementById('hd-body').innerHTML =
     row('When', _ovEsc(new Date(e.at).toLocaleString([], { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })))
     + row('Printer', _ovEsc(e.printer || ''))
@@ -8450,9 +8480,138 @@ function openHistoryEntry(plateId, at) {
     + row('Plate now', _ovEsc(_PLATE_STAGE[p.stage] || p.stage || ''));
   document.getElementById('hd-open').onclick = () => { closeHistoryEntry(); openPlateEditor(p.id); };
   document.getElementById('hd-del').onclick = () => { closeHistoryEntry(); deleteHistoryEntry(p.id, e.at); };
+  _histOpen = { plateId: p.id, at: e.at };
+  _histEdit = null;
+  document.getElementById('hd-view-actions').style.display = '';
+  document.getElementById('hd-edit-actions').style.display = 'none';
   document.getElementById('modal-hist').classList.add('open');
 }
-function closeHistoryEntry() { document.getElementById('modal-hist').classList.remove('open'); }
+function closeHistoryEntry() { _histEdit = null; document.getElementById('modal-hist').classList.remove('open'); }
+
+// ── Edit a history entry: when, outcome, printer, models, filament used, time, notes ──
+// This changes the record only — filament already taken off the rolls and stock already added are not re-worked.
+let _histOpen = null, _histEdit = null;
+const _toLocalInput = iso => { const d = new Date(iso), p = n => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`; };
+let _histEditDirect = false;      // edit started from the card's ✏️ (so Cancel closes instead of showing the details)
+function histEditStart(direct) {
+  _histEditDirect = direct === true;
+  const e = _histOpen && _historyEntries().find(x => x.plate.id === _histOpen.plateId && x.at === _histOpen.at);
+  if (!e) return;
+  // For the Done card's own entry, remember which live model each recorded item is, so edits here reach the card's models too
+  const oldItems = e.items || [];
+  const left = (e.plate.stage === 'done' && e.outcome === 'done' && _sameInstant(e.at, e.plate.completed_at)) ? _pipeModels.filter(m => m.plate_id === e.plate.id) : [];
+  const modelIds = oldItems.map(it => { const i = left.findIndex(m => m.name === it.name); return i >= 0 ? left.splice(i, 1)[0].id : null; });
+  oldItems.forEach((it, i) => { if (!modelIds[i] && left.length) modelIds[i] = left.shift().id; });
+  _histEdit = { plateId: e.plate.id, at: e.at, name: e.name || e.plate.name || '', outcome: e.outcome === 'failed' ? 'failed' : 'done', when: _toLocalInput(e.at), printer: e.printer || '',
+    items: oldItems.map((i, k) => ({ name: i.name, qty: i.qty, k })), modelIds, used: (e.used || []).map(u => ({ fil: u.fil, grams: u.grams })),
+    minutes: e.minutes ? fmtDuration(e.minutes) : '', notes: e.notes || '' };
+  document.getElementById('hd-view-actions').style.display = 'none';
+  document.getElementById('hd-edit-actions').style.display = '';
+  _histEditRender();
+}
+function histEditCancel() { if (_histEditDirect || !_histOpen) closeHistoryEntry(); else openHistoryEntry(_histOpen.plateId, _histOpen.at); }
+function _histEditRender() {
+  const h = _histEdit; if (!h) return;
+  const printers = ['', ...PIPE_PRINTERS];
+  if (h.printer && !printers.includes(h.printer)) printers.push(h.printer);
+  const items = h.items.map((it, i) => `<div class="he-row"><input type="text" class="calc-in" placeholder="Model name" value="${_ovEsc(it.name)}" oninput="_histEdit.items[${i}].name=this.value">
+      <input type="number" min="1" step="1" class="calc-in" value="${_ovEsc(it.qty)}" title="Quantity" oninput="_histEdit.items[${i}].qty=this.value">
+      <button type="button" class="row-icon-btn del" title="Remove" onclick="_histEdit.items.splice(${i},1);_histEditRender()">✕</button></div>`).join('');
+  const used = h.used.map((u, i) => {
+    const f = u.fil ? filById(u.fil) : null;
+    const pick = f ? `<div class="calc-fil-cur">${filSpool(f, 18, '')}<span class="t"><strong>${_ovEsc(filLabel(f))}</strong><em>${_ovEsc(f.brand || 'Unknown brand')}</em></span>
+        <button type="button" class="row-icon-btn" title="Choose a different roll" onclick="_histEdit.used[${i}].fil=null;_histEditRender()">⇄</button></div>`
+      : _rollPickHtml('he', i, 'Search for a roll…', null, null);
+    return `<div class="he-row he-used">${pick}<input type="number" min="0" step="0.1" class="calc-in" placeholder="g" value="${_ovEsc(u.grams ?? '')}" oninput="_histEdit.used[${i}].grams=this.value">
+      <button type="button" class="row-icon-btn del" title="Remove" onclick="_histEdit.used.splice(${i},1);_histEditRender()">✕</button></div>`;
+  }).join('');
+  document.getElementById('hd-body').innerHTML = `
+    <div class="form-group"><label>Name <span class="calc-hint">shown on the history card</span></label>
+      <input type="text" class="calc-in" value="${_ovEsc(h.name)}" placeholder="e.g. K1SE - 1" oninput="_histEdit.name=this.value"></div>
+    <div class="calc-grid2">
+      <div class="form-group"><label>When</label><input type="datetime-local" class="calc-in" value="${_ovEsc(h.when)}" oninput="_histEdit.when=this.value"></div>
+      <div class="form-group"><label>Outcome</label><select class="calc-in" onchange="_histEdit.outcome=this.value">
+        <option value="done"${h.outcome === 'done' ? ' selected' : ''}>✅ Printed OK</option><option value="failed"${h.outcome === 'failed' ? ' selected' : ''}>⚠️ Failed / partial</option></select></div>
+      <div class="form-group"><label>Printer</label><select class="calc-in" onchange="_histEdit.printer=this.value">${printers.map(p => `<option value="${_ovEsc(p)}"${p === h.printer ? ' selected' : ''}>${_ovEsc(p || '—')}</option>`).join('')}</select></div>
+      <div class="form-group"><label>Print time <span class="calc-hint">e.g. 6h 38m</span></label><input type="text" class="calc-in" value="${_ovEsc(h.minutes)}" placeholder="6h 38m" oninput="_histEdit.minutes=this.value"></div>
+    </div>
+    <div class="form-group"><label>Models</label>${items}<button type="button" class="btn btn-sm btn-outline" onclick="_histEdit.items.push({name:'',qty:1});_histEditRender()">＋ Add a model</button></div>
+    <div class="form-group"><label>Filament used</label>${used}<button type="button" class="btn btn-sm btn-outline" onclick="_histEdit.used.push({fil:null,grams:''});_histEditRender()">＋ Add a roll</button></div>
+    <div class="form-group"><label>Notes</label><textarea class="calc-in" style="min-height:60px" oninput="_histEdit.notes=this.value">${_ovEsc(h.notes)}</textarea></div>
+    <div class="calc-hint" style="margin-bottom:.4rem">This corrects the record only. Filament already taken off your rolls and stock already added aren't re-worked.</div>`;
+}
+function _heSetRoll(i, id) { if (_histEdit?.used[i]) { _histEdit.used[i].fil = id; _histEditRender(); } }
+async function histEditSave() {
+  const h = _histEdit; if (!h) return;
+  const p = _pipePlates.find(x => x.id === h.plateId); if (!p) return;
+  const minutes = parseDuration(h.minutes);
+  if (Number.isNaN(minutes)) { toast('Print time not recognised — try “6h 38m”', 'error'); return; }
+  const when = new Date(h.when);
+  if (isNaN(when)) { toast('Pick a valid date and time', 'error'); return; }
+  const formItems = h.items.map(i => ({ name: String(i.name || '').trim(), qty: Math.max(1, parseInt(i.qty) || 1), k: i.k })).filter(i => i.name);
+  const items = formItems.map(({ name, qty }) => ({ name, qty }));
+  const rows = h.used.filter(u => u.fil || String(u.grams ?? '').trim() !== '');
+  if (rows.some(u => !u.fil)) { toast('Choose the roll for each filament row (or remove it)', 'error'); return; }
+  const used = rows.map(u => ({ fil: u.fil, grams: Math.max(0, parseFloat(u.grams) || 0) }));
+  const log = Array.isArray(p.print_log) ? [...p.print_log] : [];
+  const at = log.findIndex(x => x.at === h.at);
+  const cur = _historyEntries().find(x => x.plate.id === p.id && x.at === h.at) || {};
+  const { plate: _drop, ...base } = at >= 0 ? log[at] : cur;                    // an entry built from the plate itself becomes a real one
+  const entry = { ...base, at: when.toISOString(), outcome: h.outcome, printer: h.printer || null, items, used, minutes: minutes || null, notes: h.notes.trim() || null, edited: true };
+  const newName = h.name.trim();
+  const ownsDone = p.stage === 'done' && h.outcome === 'done' && _sameInstant(h.at, p.completed_at);   // this is the Done card's own entry
+  delete entry.name;
+  if (newName && newName !== p.name && !ownsDone) entry.name = newName;                          // an older run keeps its own name
+  if (at >= 0) log[at] = entry; else log.push(entry);
+  const upd = { print_log: log };
+  if (ownsDone) {                                                                                // the Done card follows its own entry
+    upd.completed_at = entry.at; upd.filament_used = used; upd.grams_used = used.reduce((s, u) => s + u.grams, 0) || null;
+    if (newName && newName !== p.name) upd.name = newName;
+    if (h.printer && h.printer !== p.printer_name) upd.printer_name = h.printer;
+    const plan = _planOf(p);
+    if ((plan.minutes ?? null) !== (minutes || null)) upd.filament_plan = { v: 2, cols: plan.cols, grams: plan.grams || {}, minutes: minutes || null };
+  }
+  let { error } = await db.from('print_plates').update(upd).eq('id', p.id);
+  for (const col of ['print_log', 'filament_used']) {
+    if (error && error.message.includes(col)) { delete upd[col]; ({ error } = await db.from('print_plates').update(upd).eq('id', p.id)); }
+  }
+  if (error) { toast('Could not save: ' + error.message, 'error'); return; }
+  Object.assign(p, upd);
+  if (ownsDone) await _histApplyModels(p, h, formItems);       // model names / quantities / added / removed follow onto the Done card
+  renderPipeline();
+  toast('History entry updated', 'success');
+  closeHistoryEntry();
+}
+// The recorded models of the Done card's entry were edited: apply that to the plate's real models
+async function _histApplyModels(p, h, formItems) {
+  const kept = new Set(formItems.filter(i => i.k != null).map(i => i.k));
+  for (const it of formItems) {
+    if (it.k != null) {
+      const m = _pipeModels.find(x => x.id === h.modelIds[it.k]);
+      if (!m || (m.name === it.name && (+m.qty_needed || 1) === it.qty)) continue;
+      const { error } = await db.from('print_models').update({ name: it.name, qty_needed: it.qty }).eq('id', m.id);
+      if (error) toast(`Could not update “${m.name}” on the plate: ${error.message}`, 'error'); else { m.name = it.name; m.qty_needed = it.qty; }
+    } else {
+      const { data, error } = await db.from('print_models').insert([{ name: it.name, qty_needed: it.qty, plate_id: p.id }]).select().single();
+      if (error) toast(`Could not add “${it.name}” to the plate: ${error.message}`, 'error'); else if (data) _pipeModels.unshift(data);
+    }
+  }
+  const gone = (h.modelIds || []).filter((id, k) => id && !kept.has(k));
+  if (gone.length) {
+    const { error } = await db.from('print_models').delete().in('id', gone);
+    if (error) toast('Could not remove a model from the plate: ' + error.message, 'error'); else _pipeModels = _pipeModels.filter(m => !gone.includes(m.id));
+  }
+}
+// Done plate editor → the same editor as the history card (one record, two views)
+function _peEditRecord(id) {
+  const p = _pipePlates.find(x => x.id === id); if (!p) return;
+  const all = _historyEntries().filter(x => x.plate.id === id && x.outcome === 'done');
+  const e = all.find(x => _sameInstant(x.at, p.completed_at)) || all[0];
+  if (!e) { toast('This plate has no history entry to edit', 'info'); return; }
+  closePlateEditor();
+  openHistoryEntry(id, e.at);
+  histEditStart(true);
+}
 
 // Delete one history entry. The plate itself stays where it is; only this record goes. A deleted "done" entry leaves a marker
 // so it isn't rebuilt from the plate.
@@ -8474,25 +8633,34 @@ async function deleteHistoryEntry(plateId, at) {
 
 // A done plate's history entry follows the plate: edit a model on a done print and its entry is corrected too
 const _stableJson = o => JSON.stringify(o, (k, v) => v && typeof v === 'object' && !Array.isArray(v) ? Object.fromEntries(Object.entries(v).sort(([a], [b]) => a.localeCompare(b))) : v);
+// The log stores times as "…Z" while the database hands back "…+00:00" for the plate's own date — compare the instant, not the text
+const _sameInstant = (a, b) => !!a && !!b && new Date(a).getTime() === new Date(b).getTime();
 async function _syncHistoryFor(plateId) {
   const p = _pipePlates.find(x => x.id === plateId);
   if (!p || p.stage !== 'done' || !Array.isArray(p.print_log)) return false;
-  let idx = p.print_log.findIndex(e => e.outcome === 'done' && e.at === p.completed_at);
+  let idx = p.print_log.findIndex(e => e.outcome === 'done' && _sameInstant(e.at, p.completed_at));
+  const own = idx >= 0;                                       // the Done card's own entry
   if (idx < 0) for (let i = p.print_log.length - 1; i >= 0; i--) if (p.print_log[i].outcome === 'done') { idx = i; break; }
   if (idx < 0) return false;                                  // no entry (or it was deleted) — don't bring it back
-  const models = _pipeModels.filter(m => m.plate_id === p.id);
-  if (!models.length) return false;                           // models removed from the board → keep what was recorded
   const old = p.print_log[idx];
-  const next = { ...old,
+  if (old.edited && !own) return false;                       // an older run corrected by hand stays as edited
+  const models = _pipeModels.filter(m => m.plate_id === p.id);
+  // A name given on the history card is the plate's name too: the plate adopts it, and the entry goes back to following the plate
+  const { name: entryName, ...rest } = old;
+  const adoptName = own && entryName && entryName !== p.name ? entryName : null;
+  const next = { ...rest,
     printer: p.printer_name || old.printer || null,
-    items: models.map(m => ({ name: m.name, qty: +m.qty_needed || 1 })),
+    items: models.length ? models.map(m => ({ name: m.name, qty: +m.qty_needed || 1 })) : old.items,   // models removed from the board → keep what was recorded
     used: Array.isArray(p.filament_used) && p.filament_used.length ? p.filament_used : old.used,
     minutes: _planOf(p).minutes ?? old.minutes ?? null };
-  if (_stableJson(next) === _stableJson(old)) return false;
+  if (!own && entryName) next.name = entryName;               // an older run keeps its own name
+  if (_stableJson(next) === _stableJson(old) && !adoptName) return false;
   const log = p.print_log.map((e, i) => i === idx ? next : e);
-  const { error } = await db.from('print_plates').update({ print_log: log }).eq('id', p.id);
+  const upd = { print_log: log };
+  if (adoptName) upd.name = adoptName;
+  const { error } = await db.from('print_plates').update(upd).eq('id', p.id);
   if (error) return false;
-  p.print_log = log;
+  Object.assign(p, upd);
   return true;
 }
 
@@ -8517,11 +8685,12 @@ function _historyHtml() {
     const grams = usedArr.length ? usedArr.reduce((s, u) => s + +u.grams, 0) : (+e.grams || 0);
     const time = new Date(e.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     return `${head}<div class="hist-item ${ok ? 'ok' : 'failed'}" title="${_ovEsc(e.notes || 'Click for the details')}" onclick="openHistoryEntry('${_ovEsc(e.plate.id)}','${_ovEsc(e.at)}')">
-      <div class="hist-top"><strong>${ok ? '✅' : '⚠️'} ${_ovEsc(e.plate?.name || 'Plate')}</strong><span>${time}${e.printer ? ' · ' + _ovEsc(e.printer) : ''}</span></div>
+      <div class="hist-top"><strong>${ok ? '✅' : '⚠️'} ${_ovEsc(e.name || e.plate?.name || 'Plate')}</strong><span>${time}${e.printer ? ' · ' + _ovEsc(e.printer) : ''}</span></div>
       ${(e.items || []).length ? `<div class="hist-items">${_ovEsc(e.items.map(i => `${i.name} ×${i.qty}`).join(', '))}</div>` : ''}
       <div class="hist-use">${usedArr.map(u => { const f = filById(u.fil); return `<span title="${_ovEsc(filTitle(f || {}))}">${filSpool(f || null, 11, '')}${fmtGrams(u.grams)}</span>`; }).join('')}
         ${!usedArr.length && grams ? `<span>${fmtGrams(grams)}</span>` : ''}${e.minutes ? `<span>⏱ ${fmtDuration(e.minutes)}</span>` : ''}</div>
       ${!ok ? `<div class="hist-note">${_ovEsc(e.notes || 'Print failed')}</div>` : ''}
+      <button type="button" class="hist-del hist-edit" title="Edit this history entry" onclick="event.stopPropagation();openHistoryEntry('${_ovEsc(e.plate.id)}','${_ovEsc(e.at)}');histEditStart(true)">✏️</button>
       <button type="button" class="hist-del" title="Delete this history entry" onclick="event.stopPropagation();deleteHistoryEntry('${_ovEsc(e.plate.id)}','${_ovEsc(e.at)}')">🗑</button>
     </div>`;
   }).join('');
